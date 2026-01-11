@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Second Brain AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">🧠</span>
+          <span class="logo-text">Second Brain</span>
+        </div>
+      </div>
+      
+      <div class="spaces-section">
+        <div class="section-header">
+          <h3>Простори</h3>
+          <button class="btn-icon" id="add-space-btn" title="Створити простір">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+        <ul class="spaces-list" id="spaces-list">
+          <!-- Spaces will be loaded here -->
+        </ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator" id="status">
+          <span class="status-dot"></span>
+          <span class="status-text">Підключено</span>
+        </div>
+        <div class="ai-status" id="ai-status">
+          <span class="ai-status-dot"></span>
+          <span class="ai-status-text">AI: перевірка...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Empty State -->
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">📂</div>
+        <h2>Виберіть або створіть простір</h2>
+        <p>Простори допомагають організувати пам'ять AI за контекстами</p>
+        <button class="btn btn-primary" id="create-first-space">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Створити перший простір
+        </button>
+      </div>
+
+      <!-- Space Content -->
+      <div class="space-content hidden" id="space-content">
+        <!-- Space Header -->
+        <header class="space-header">
+          <div class="space-info">
+            <h1 id="space-name">Space Name</h1>
+            <p id="space-description">Description</p>
+          </div>
+          <div class="space-actions">
+            <button class="btn btn-ghost" id="edit-space-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              Редагувати
+            </button>
+            <button class="btn btn-danger-ghost" id="delete-space-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Видалити
+            </button>
+          </div>
+        </header>
+
+        <!-- Tabs -->
+        <nav class="tabs">
+          <button class="tab active" data-tab="chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Чат
+          </button>
+          <button class="tab" data-tab="facts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            Факти
+            <span class="tab-count" id="facts-count">0</span>
+          </button>
+          <button class="tab" data-tab="notes">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Нотатки
+            <span class="tab-count" id="notes-count">0</span>
+          </button>
+          <button class="tab" data-tab="profile">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Профіль
+          </button>
+          <button class="tab" data-tab="timeline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Історія
+          </button>
+        </nav>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Chat Tab -->
+          <section class="tab-pane active" id="chat-tab">
+            <div class="chat-container">
+              <div class="chat-messages" id="chat-messages">
+                <div class="chat-welcome">
+                  <div class="chat-welcome-icon">💬</div>
+                  <h3>Розпочніть розмову</h3>
+                  <p>AI вже знає контекст цього простору — запитуйте про що завгодно!</p>
+                </div>
+              </div>
+              <div class="chat-input-container">
+                <div class="chat-context-info" id="chat-context-info">
+                  <!-- Context info will be shown here -->
+                </div>
+                <form class="chat-form" id="chat-form">
+                  <textarea 
+                    class="chat-input" 
+                    id="chat-input" 
+                    placeholder="Напишіть повідомлення..."
+                    rows="1"
+                  ></textarea>
+                  <button type="submit" class="btn btn-primary chat-send" id="chat-send">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <!-- Facts Tab -->
+          <section class="tab-pane" id="facts-tab">
+            <div class="tab-header">
+              <h2>Верифіковані факти</h2>
+              <button class="btn btn-primary" id="add-fact-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Додати факт
+              </button>
+            </div>
+            <div class="items-grid" id="facts-list">
+              <!-- Facts will be loaded here -->
+            </div>
+          </section>
+
+          <!-- Notes Tab -->
+          <section class="tab-pane" id="notes-tab">
+            <div class="tab-header">
+              <h2>Нотатки та спостереження</h2>
+              <button class="btn btn-primary" id="add-note-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Додати нотатку
+              </button>
+            </div>
+            <div class="items-grid" id="notes-list">
+              <!-- Notes will be loaded here -->
+            </div>
+          </section>
+
+          <!-- Profile Tab -->
+          <section class="tab-pane" id="profile-tab">
+            <div class="tab-header">
+              <h2>Профіль</h2>
+              <button class="btn btn-primary" id="add-profile-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Додати запис
+              </button>
+            </div>
+            <div class="profile-grid" id="profile-list">
+              <!-- Profile entries will be loaded here -->
+            </div>
+          </section>
+
+          <!-- Timeline Tab -->
+          <section class="tab-pane" id="timeline-tab">
+            <div class="tab-header">
+              <h2>Історія змін</h2>
+            </div>
+            <div class="timeline" id="timeline-list">
+              <!-- Timeline entries will be loaded here -->
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Modal Title</h3>
+        <button class="btn-icon modal-close" id="modal-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Dynamic form content -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="modal-cancel">Скасувати</button>
+        <button class="btn btn-primary" id="modal-submit">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
