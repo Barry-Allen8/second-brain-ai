@@ -252,3 +252,38 @@ export const paginationParamsSchema = z.object({
   limit: z.number().int().min(1).max(100).default(20),
   offset: z.number().int().min(0).default(0),
 });
+
+// Chat request schema (accepts legacy and simplified payloads)
+const chatMessageItemSchema = z.object({
+  role: z.enum(['system', 'user', 'assistant']),
+  content: z.string().min(1).max(10000),
+});
+
+const simpleChatRequestSchema = z.object({
+  message: z.string().min(1).max(10000),
+  spaceId: z.preprocess(
+    (val) => (val === null || val === undefined) ? undefined : val,
+    z.string().uuid().optional()
+  ),
+  sessionId: z.preprocess(
+    (val) => (val === null || val === undefined) ? undefined : val,
+    z.string().uuid().optional()
+  ),
+});
+
+const structuredChatRequestSchema = z.object({
+  spaceId: z.preprocess(
+    (val) => (val === null || val === undefined) ? undefined : val,
+    z.string().uuid().optional()
+  ),
+  messages: z.array(chatMessageItemSchema).min(1),
+  sessionId: z.preprocess(
+    (val) => (val === null || val === undefined) ? undefined : val,
+    z.string().uuid().optional()
+  ),
+});
+
+export const chatRequestSchema = z.union([
+  simpleChatRequestSchema,
+  structuredChatRequestSchema,
+]);

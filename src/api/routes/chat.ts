@@ -3,8 +3,8 @@
  */
 
 import { Router } from 'express';
-import { z } from 'zod';
-import type { ChatSession } from '../../types/index.js';
+import type { z } from 'zod';
+import type { ChatSession, EntityId } from '../../types/index.js';
 import {
   chat,
   getSession,
@@ -13,22 +13,83 @@ import {
   getChatHistory,
   isAIConfigured,
   getAIConfig,
-} from '../../services/index.js';
+} from '../../ai/index.js';
 import {
   asyncHandler,
   validateBody,
   createSuccessResponse,
   createErrorResponse,
 } from '../middleware.js';
+import { chatRequestSchema } from '../../schemas/index.js';
+import { spaceService, storage } from '../../domain/index.js';
 
 export const chatRouter = Router();
 
-// Chat request schema
-const chatRequestSchema = z.object({
-  spaceId: z.string().uuid(),
-  message: z.string().min(1).max(10000),
-  sessionId: z.string().uuid().optional(),
-});
+type ChatRequestInput = z.infer<typeof chatRequestSchema>;
+
+type NormalizedChatRequest = {
+  spaceId?: EntityId;
+  message: string;
+  sessionId?: EntityId;
+};
+
+async function resolveSpaceId(preferredSpaceId?: EntityId): Promise<EntityId> {
+  if (preferredSpaceId && await storage.spaceExists(preferredSpaceId)) {
+    return preferredSpaceId;
+  }
+
+  const spaces = await spaceService.listSpaces();
+
+  const activeSpace = spaces.find((space) => space.isActive);
+  if (activeSpace) {
+    return activeSpace.id;
+  }
+
+  if (spaces.length > 0) {
+    return spaces[0]!.id;
+  }
+
+  const defaultSpace = await spaceService.createSpace({
+    name: 'Default Space',
+    description: 'Auto-created for chat requests without a space.',
+    icon: 'chat',
+    color: '#4f46e5',
+  });
+
+  return defaultSpace.id;
+}
+
+function normalizeChatRequest(body: ChatRequestInput): NormalizedChatRequest {
+  // Backward compatibility: support legacy { message } shape alongside structured { messages } payloads.
+  if ('message' in body) {
+    return {
+      spaceId: body.spaceId ?? undefined,
+      message: body.message,
+      sessionId: body.sessionId ?? undefined,
+    };
+  }
+
+  const lastUserMessage = [...body.messages].reverse().find(m => m.role === 'user');
+  const lastMessage = lastUserMessage ?? body.messages[body.messages.length - 1];
+
+  if (!lastMessage) {
+    throw new Error('No messages found in request');
+  }
+
+  return {
+    spaceId: body.spaceId ?? undefined,
+    message: lastMessage.content,
+    sessionId: body.sessionId ?? undefined,
+  };
+}
+
+function logParsedChatRequest(request: NormalizedChatRequest & { spaceId: EntityId }): void {
+  console.debug('[chat] parsed request', {
+    spaceId: request.spaceId,
+    sessionId: request.sessionId,
+    messagePreview: request.message.slice(0, 80),
+  });
+}
 
 // Check AI status
 chatRouter.get(
@@ -58,7 +119,14 @@ chatRouter.post(
       return;
     }
 
-    const response = await chat(req.body);
+    const normalized = normalizeChatRequest(req.body as ChatRequestInput);
+    const resolvedSpaceId = await resolveSpaceId(normalized.spaceId);
+    const response = await chat({
+      ...normalized,
+      spaceId: resolvedSpaceId,
+    });
+
+    logParsedChatRequest({ ...normalized, spaceId: resolvedSpaceId });
     res.json(createSuccessResponse(response));
   })
 );

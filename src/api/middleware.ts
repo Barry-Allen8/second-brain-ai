@@ -5,7 +5,7 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import type { ZodSchema, ZodError } from 'zod';
 import type { ApiResponse, ApiError } from '../types/index.js';
-import { StorageError } from '../services/index.js';
+import { StorageError } from '../domain/index.js';
 
 /** Wrap async route handlers to catch errors */
 export function asyncHandler(
@@ -22,6 +22,12 @@ export function validateBody<T>(schema: ZodSchema<T>): RequestHandler {
     const result = schema.safeParse(req.body);
     if (!result.success) {
       const error = formatZodError(result.error);
+      console.error('[validation] Request validation failed:', {
+        path: req.path,
+        method: req.method,
+        body: req.body,
+        errors: error.details,
+      });
       res.status(400).json(createErrorResponse(error));
       return;
     }
