@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import type { z } from 'zod';
 import type { ChatSession, EntityId } from '../../types/index.js';
+// CHANGE: Added setModel and SUPPORTED_MODELS imports
 import {
   chat,
   getSession,
@@ -13,6 +14,8 @@ import {
   getChatHistory,
   isAIConfigured,
   getAIConfig,
+  setModel,
+  SUPPORTED_MODELS,
 } from '../../ai/index.js';
 import {
   asyncHandler,
@@ -92,6 +95,7 @@ function logParsedChatRequest(request: NormalizedChatRequest & { spaceId: Entity
 }
 
 // Check AI status
+// CHANGE: Added supportedModels to status response
 chatRouter.get(
   '/status',
   asyncHandler(async (_req, res) => {
@@ -102,6 +106,7 @@ chatRouter.get(
       configured,
       provider: config.provider,
       model: config.model,
+      supportedModels: SUPPORTED_MODELS,
     }));
   })
 );
@@ -193,5 +198,37 @@ chatRouter.delete(
     }
 
     res.status(204).send();
+  })
+);
+
+// CHANGE: New endpoint to change OpenAI model dynamically
+// Set AI model
+chatRouter.put(
+  '/model',
+  asyncHandler(async (req, res) => {
+    const { model } = req.body as { model?: string };
+    
+    if (!model || typeof model !== 'string') {
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'Model name is required',
+      }));
+      return;
+    }
+
+    try {
+      setModel(model);
+      const config = getAIConfig();
+      
+      res.json(createSuccessResponse({
+        model: config.model,
+        message: `Model changed to ${model}`,
+      }));
+    } catch (error) {
+      res.status(400).json(createErrorResponse({
+        code: 'UNSUPPORTED_MODEL',
+        message: error instanceof Error ? error.message : 'Invalid model',
+      }));
+    }
   })
 );

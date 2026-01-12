@@ -6,7 +6,26 @@
 import OpenAI from 'openai';
 import type { ChatMessage, AIProviderConfig } from '../types/index.js';
 
+// CHANGE: Added supported models list including gpt-5.2
+/** Supported OpenAI models */
+export const SUPPORTED_MODELS = [
+  'gpt-4o-mini',
+  'gpt-5.2',
+  'gpt-4o',
+  'gpt-4-turbo',
+  'gpt-4',
+] as const;
+
+export type SupportedModel = typeof SUPPORTED_MODELS[number];
+
+// CHANGE: Added model validation helper
+/** Validate if model is supported */
+export function isSupportedModel(model: string): model is SupportedModel {
+  return SUPPORTED_MODELS.includes(model as SupportedModel);
+}
+
 // Default configuration
+// CHANGE: Model now defaults to gpt-4o-mini (backward compatible)
 const DEFAULT_CONFIG: AIProviderConfig = {
   provider: 'openai',
   model: process.env['OPENAI_MODEL'] || 'gpt-4o-mini',
@@ -20,6 +39,13 @@ let currentConfig: AIProviderConfig = DEFAULT_CONFIG;
 /** Initialize OpenAI client */
 export function initializeAI(config?: Partial<AIProviderConfig>): void {
   currentConfig = { ...DEFAULT_CONFIG, ...config };
+  
+  // CHANGE: Validate model on initialization
+  if (!isSupportedModel(currentConfig.model)) {
+    console.warn(`⚠️ Unsupported model "${currentConfig.model}". Falling back to gpt-4o-mini.`);
+    console.warn(`   Supported models: ${SUPPORTED_MODELS.join(', ')}`);
+    currentConfig.model = 'gpt-4o-mini';
+  }
   
   const apiKey = config?.apiKey || process.env['OPENAI_API_KEY'];
   
@@ -44,6 +70,22 @@ export function isAIConfigured(): boolean {
 /** Get current AI configuration */
 export function getAIConfig(): AIProviderConfig {
   return { ...currentConfig };
+}
+
+// CHANGE: Added function to dynamically change model
+/** 
+ * Set OpenAI model
+ * @throws Error if model is not supported
+ */
+export function setModel(model: string): void {
+  if (!isSupportedModel(model)) {
+    throw new Error(
+      `Unsupported model "${model}". Supported models: ${SUPPORTED_MODELS.join(', ')}`
+    );
+  }
+  
+  currentConfig.model = model;
+  console.log(`🔄 AI model changed to: ${model}`);
 }
 
 /** Send chat completion request */

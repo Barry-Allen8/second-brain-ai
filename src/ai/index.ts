@@ -1,4 +1,5 @@
-export { initializeAI, isAIConfigured, getAIConfig, chatCompletion, chatCompletionStream } from './provider.js';
+// CHANGE: Added setModel and SUPPORTED_MODELS exports
+export { initializeAI, isAIConfigured, getAIConfig, setModel, chatCompletion, chatCompletionStream, SUPPORTED_MODELS } from './provider.js';
 export { buildContextParts, buildSystemPrompt, estimateContextTokens } from './context-builder.js';
 export { parseMemoryExtract, saveExtractedMemory, requiresConfirmation } from './memory-extractor.js';
 export {

@@ -8,6 +8,7 @@ const API_BASE = '/api/v1';
 // State Management
 // ═══════════════════════════════════════════════════════════
 
+// CHANGE: Added AI model state
 const state = {
   spaces: [],
   currentSpaceId: null,
@@ -19,6 +20,8 @@ const state = {
   chatSessionId: null,
   chatMessages: [],
   aiConfigured: false,
+  aiModel: 'gpt-4o-mini',
+  supportedModels: [],
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -91,10 +94,12 @@ const timelineApi = {
 };
 
 // Chat API
+// CHANGE: Added setModel endpoint
 const chatApi = {
   status: () => api('/chat/status'),
   send: (data) => api('/chat', { method: 'POST', body: data }),
   getSession: (sessionId) => api(`/chat/sessions/${sessionId}`),
+  setModel: (model) => api('/chat/model', { method: 'PUT', body: { model } }),
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -223,24 +228,79 @@ elements.modalSubmit.addEventListener('click', async () => {
 // AI Status
 // ═══════════════════════════════════════════════════════════
 
+// CHANGE: Updated to store model info and make status clickable
 async function checkAIStatus() {
   try {
     const status = await chatApi.status();
     state.aiConfigured = status.configured;
+    state.aiModel = status.model || 'gpt-4o-mini';
+    state.supportedModels = status.supportedModels || ['gpt-4o-mini', 'gpt-5.2'];
     
     if (status.configured) {
       elements.aiStatus.classList.add('connected');
       elements.aiStatus.classList.remove('disconnected');
       elements.aiStatus.querySelector('.ai-status-text').textContent = `AI: ${status.model}`;
+      // Make it clickable to change model
+      elements.aiStatus.style.cursor = 'pointer';
+      elements.aiStatus.title = 'Клікніть для зміни моделі';
     } else {
       elements.aiStatus.classList.add('disconnected');
       elements.aiStatus.classList.remove('connected');
       elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: не налаштовано';
+      elements.aiStatus.style.cursor = 'default';
+      elements.aiStatus.title = '';
     }
   } catch (error) {
     elements.aiStatus.classList.add('disconnected');
     elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: помилка';
   }
+}
+
+// CHANGE: Added function to open model selector modal
+function openModelSelectorModal() {
+  if (!state.aiConfigured) {
+    showToast('AI не налаштовано', 'warning');
+    return;
+  }
+
+  const modelOptions = state.supportedModels
+    .map(model => `
+      <option value="${model}" ${model === state.aiModel ? 'selected' : ''}>
+        ${model}
+      </option>
+    `)
+    .join('');
+
+  openModal('Вибрати модель OpenAI', `
+    <div class="form-group">
+      <label class="form-label">Модель *</label>
+      <select name="model" class="form-select">
+        ${modelOptions}
+      </select>
+      <p class="form-hint">Поточна модель: ${state.aiModel}</p>
+    </div>
+    <div class="form-group">
+      <p style="color: var(--text-secondary); font-size: 0.875rem;">
+        <strong>Доступні моделі:</strong><br>
+        • gpt-4o-mini - швидка, економна (за замовчуванням)<br>
+        • gpt-5.2 - найновіша модель з покращеними можливостями<br>
+        • gpt-4o - потужна, збалансована<br>
+        • gpt-4-turbo - швидка версія GPT-4<br>
+        • gpt-4 - класична GPT-4
+      </p>
+    </div>
+  `, async (data) => {
+    if (!data.model) throw new Error("Оберіть модель");
+    
+    try {
+      await chatApi.setModel(data.model);
+      state.aiModel = data.model;
+      showToast(`Модель змінено на ${data.model}`, 'success');
+      await checkAIStatus();
+    } catch (error) {
+      throw new Error(error.message || 'Не вдалося змінити модель');
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1104,7 +1164,15 @@ $('#add-profile-btn').addEventListener('click', openAddProfileModal);
 // Initialize
 // ═══════════════════════════════════════════════════════════
 
+// CHANGE: Added click handler for AI status to open model selector
 document.addEventListener('DOMContentLoaded', () => {
   checkAIStatus();
   loadSpaces();
+  
+  // Add click handler to AI status indicator
+  elements.aiStatus.addEventListener('click', () => {
+    if (state.aiConfigured) {
+      openModelSelectorModal();
+    }
+  });
 });

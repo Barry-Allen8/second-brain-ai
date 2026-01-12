@@ -5,6 +5,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.chatRouter = void 0;
 const express_1 = require("express");
+// CHANGE: Added setModel and SUPPORTED_MODELS imports
 const index_js_1 = require("../../ai/index.js");
 const middleware_js_1 = require("../middleware.js");
 const index_js_2 = require("../../schemas/index.js");
@@ -58,6 +59,7 @@ function logParsedChatRequest(request) {
     });
 }
 // Check AI status
+// CHANGE: Added supportedModels to status response
 exports.chatRouter.get('/status', (0, middleware_js_1.asyncHandler)(async (_req, res) => {
     const configured = (0, index_js_1.isAIConfigured)();
     const config = (0, index_js_1.getAIConfig)();
@@ -65,6 +67,7 @@ exports.chatRouter.get('/status', (0, middleware_js_1.asyncHandler)(async (_req,
         configured,
         provider: config.provider,
         model: config.model,
+        supportedModels: index_js_1.SUPPORTED_MODELS,
     }));
 }));
 // Send chat message
@@ -127,5 +130,31 @@ exports.chatRouter.delete('/sessions/:sessionId', (0, middleware_js_1.asyncHandl
         return;
     }
     res.status(204).send();
+}));
+// CHANGE: New endpoint to change OpenAI model dynamically
+// Set AI model
+exports.chatRouter.put('/model', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+    const { model } = req.body;
+    if (!model || typeof model !== 'string') {
+        res.status(400).json((0, middleware_js_1.createErrorResponse)({
+            code: 'INVALID_REQUEST',
+            message: 'Model name is required',
+        }));
+        return;
+    }
+    try {
+        (0, index_js_1.setModel)(model);
+        const config = (0, index_js_1.getAIConfig)();
+        res.json((0, middleware_js_1.createSuccessResponse)({
+            model: config.model,
+            message: `Model changed to ${model}`,
+        }));
+    }
+    catch (error) {
+        res.status(400).json((0, middleware_js_1.createErrorResponse)({
+            code: 'UNSUPPORTED_MODEL',
+            message: error instanceof Error ? error.message : 'Invalid model',
+        }));
+    }
 }));
 //# sourceMappingURL=chat.js.map
