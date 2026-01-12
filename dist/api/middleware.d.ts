@@ -13,5 +13,5 @@ export declare function validateQuery<T>(schema: ZodSchema<T>): RequestHandler;
 export declare function createSuccessResponse<T>(data: T): ApiResponse<T>;
 export declare function createErrorResponse(error: ApiError): ApiResponse<never>;
 /** Global error handler middleware */
-export declare function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void;
+export declare function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void;
 //# sourceMappingURL=middleware.d.ts.map

@@ -75,8 +75,14 @@ function createErrorResponse(error) {
     };
 }
 /** Global error handler middleware */
-function errorHandler(err, _req, res, _next) {
-    console.error('Error:', err);
+function errorHandler(err, req, res, _next) {
+    console.error('[error] Unhandled error:', {
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        body: req.body,
+    });
     if (err instanceof index_js_1.StorageError) {
         const statusMap = {
             NOT_FOUND: 404,
@@ -92,7 +98,9 @@ function errorHandler(err, _req, res, _next) {
     }
     res.status(500).json(createErrorResponse({
         code: 'INTERNAL_ERROR',
-        message: 'An unexpected error occurred',
+        message: process.env.NODE_ENV === 'production'
+            ? 'An unexpected error occurred'
+            : err.message,
     }));
 }
 //# sourceMappingURL=middleware.js.map

@@ -82,11 +82,17 @@ export function createErrorResponse(error: ApiError): ApiResponse<never> {
 /** Global error handler middleware */
 export function errorHandler(
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void {
-  console.error('Error:', err);
+  console.error('[error] Unhandled error:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    body: req.body,
+  });
 
   if (err instanceof StorageError) {
     const statusMap: Record<StorageError['code'], number> = {
@@ -108,7 +114,9 @@ export function errorHandler(
   res.status(500).json(
     createErrorResponse({
       code: 'INTERNAL_ERROR',
-      message: 'An unexpected error occurred',
+      message: process.env.NODE_ENV === 'production' 
+        ? 'An unexpected error occurred' 
+        : err.message,
     })
   );
 }
