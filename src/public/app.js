@@ -21,7 +21,7 @@ const state = {
   chatMessages: [],
   aiConfigured: false,
   aiModel: 'gpt-4o-mini',
-  supportedModels: [],
+  supportedModels: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -234,7 +234,7 @@ async function checkAIStatus() {
     const status = await chatApi.status();
     state.aiConfigured = status.configured;
     state.aiModel = status.model || 'gpt-4o-mini';
-    state.supportedModels = status.supportedModels || ['gpt-4o-mini', 'gpt-5.2'];
+    state.supportedModels = status.supportedModels || ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
     
     if (status.configured) {
       elements.aiStatus.classList.add('connected');
@@ -283,10 +283,10 @@ function openModelSelectorModal() {
       <p style="color: var(--text-secondary); font-size: 0.875rem;">
         <strong>Доступні моделі:</strong><br>
         • gpt-4o-mini - швидка, економна (за замовчуванням)<br>
-        • gpt-5.2 - найновіша модель з покращеними можливостями<br>
-        • gpt-4o - потужна, збалансована<br>
-        • gpt-4-turbo - швидка версія GPT-4<br>
-        • gpt-4 - класична GPT-4
+        • gpt-4o - найновіша потужна модель від OpenAI<br>
+        • gpt-4-turbo - швидка версія GPT-4 з великим контекстом<br>
+        • gpt-4 - класична GPT-4<br>
+        • gpt-3.5-turbo - швидка та економна модель
       </p>
     </div>
   `, async (data) => {

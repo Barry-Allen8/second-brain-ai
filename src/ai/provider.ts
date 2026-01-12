@@ -6,14 +6,14 @@
 import OpenAI from 'openai';
 import type { ChatMessage, AIProviderConfig } from '../types/index.js';
 
-// CHANGE: Added supported models list including gpt-5.2
+// CHANGE: Added supported models list with REAL OpenAI models
 /** Supported OpenAI models */
 export const SUPPORTED_MODELS = [
   'gpt-4o-mini',
-  'gpt-5.2',
   'gpt-4o',
   'gpt-4-turbo',
   'gpt-4',
+  'gpt-3.5-turbo',
 ] as const;
 
 export type SupportedModel = typeof SUPPORTED_MODELS[number];
