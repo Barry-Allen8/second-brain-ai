@@ -33,11 +33,8 @@ import type {
   SpaceListItem,
   QueryContextRequest,
 } from '../types/api.js';
-import { storage, StorageError } from './storage.js';
-
-function now(): string {
-  return new Date().toISOString();
-}
+import { storage, StorageError } from './storage.service.js';
+import { now } from '../utils/index.js';
 
 function createDefaultRules(): SpaceRules {
   return {

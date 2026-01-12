@@ -5,7 +5,8 @@
 
 import 'dotenv/config';
 import { createApp } from './api/index.js';
-import { spaceService, initializeAI } from './services/index.js';
+import { spaceService } from './domain/index.js';
+import { initializeAI } from './ai/index.js';
 
 const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
 

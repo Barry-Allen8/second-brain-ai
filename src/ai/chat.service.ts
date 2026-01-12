@@ -1,6 +1,9 @@
 /**
  * Chat Service
  * Orchestrates AI conversations with context injection.
+ * 
+ * TODO: Implement session persistence (database or file-based).
+ * Current in-memory storage is lost on server restart.
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -10,19 +13,16 @@ import type {
   ChatSession,
   ChatRequest,
   ChatResponse,
-  ExtractedMemory,
 } from '../types/index.js';
 import { buildSystemPrompt, estimateContextTokens } from './context-builder.js';
-import { chatCompletion, isAIConfigured } from './ai-provider.js';
+import { chatCompletion, isAIConfigured } from './provider.js';
 import { parseMemoryExtract, saveExtractedMemory } from './memory-extractor.js';
-import { storage } from './storage.js';
+import { storage } from '../domain/index.js';
+import { now } from '../utils/index.js';
 
-// In-memory session storage (for MVP - could be persisted later)
+// In-memory session storage
+// TODO: Replace with persistent storage for production
 const sessions = new Map<EntityId, ChatSession>();
-
-function now(): string {
-  return new Date().toISOString();
-}
 
 /** Create a new chat session */
 export function createSession(spaceId: EntityId): ChatSession {

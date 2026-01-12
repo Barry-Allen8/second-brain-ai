@@ -6,13 +6,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 const index_js_1 = require("./api/index.js");
-const index_js_2 = require("./services/index.js");
+const index_js_2 = require("./domain/index.js");
+const index_js_3 = require("./ai/index.js");
 const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
 async function main() {
     // Initialize services
     await index_js_2.spaceService.init();
     // Initialize AI provider
-    (0, index_js_2.initializeAI)();
+    (0, index_js_3.initializeAI)();
     // Create and start server
     const app = (0, index_js_1.createApp)();
     app.listen(PORT, () => {

@@ -1,28 +1,36 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
+/**
+ * Services barrel export.
+ * Re-exports from domain/ and ai/ for backwards compatibility.
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SpaceService = exports.spaceService = exports.StorageError = exports.storage = void 0;
-var storage_js_1 = require("./storage.js");
-Object.defineProperty(exports, "storage", { enumerable: true, get: function () { return storage_js_1.storage; } });
-Object.defineProperty(exports, "StorageError", { enumerable: true, get: function () { return storage_js_1.StorageError; } });
-var space_js_1 = require("./space.js");
-Object.defineProperty(exports, "spaceService", { enumerable: true, get: function () { return space_js_1.spaceService; } });
-Object.defineProperty(exports, "SpaceService", { enumerable: true, get: function () { return space_js_1.SpaceService; } });
-__exportStar(require("./context-builder.js"), exports);
-__exportStar(require("./ai-provider.js"), exports);
-__exportStar(require("./memory-extractor.js"), exports);
-__exportStar(require("./chat.js"), exports);
+exports.exportSession = exports.getChatHistory = exports.clearSpaceSessions = exports.deleteSession = exports.listSessions = exports.getOrCreateSession = exports.getSession = exports.createSession = exports.chat = exports.requiresConfirmation = exports.saveExtractedMemory = exports.parseMemoryExtract = exports.estimateContextTokens = exports.buildSystemPrompt = exports.buildContextParts = exports.chatCompletionStream = exports.chatCompletion = exports.getAIConfig = exports.isAIConfigured = exports.initializeAI = exports.SpaceService = exports.spaceService = exports.StorageError = exports.storage = void 0;
+// Domain services
+var index_js_1 = require("../domain/index.js");
+Object.defineProperty(exports, "storage", { enumerable: true, get: function () { return index_js_1.storage; } });
+Object.defineProperty(exports, "StorageError", { enumerable: true, get: function () { return index_js_1.StorageError; } });
+Object.defineProperty(exports, "spaceService", { enumerable: true, get: function () { return index_js_1.spaceService; } });
+Object.defineProperty(exports, "SpaceService", { enumerable: true, get: function () { return index_js_1.SpaceService; } });
+// AI services
+var index_js_2 = require("../ai/index.js");
+Object.defineProperty(exports, "initializeAI", { enumerable: true, get: function () { return index_js_2.initializeAI; } });
+Object.defineProperty(exports, "isAIConfigured", { enumerable: true, get: function () { return index_js_2.isAIConfigured; } });
+Object.defineProperty(exports, "getAIConfig", { enumerable: true, get: function () { return index_js_2.getAIConfig; } });
+Object.defineProperty(exports, "chatCompletion", { enumerable: true, get: function () { return index_js_2.chatCompletion; } });
+Object.defineProperty(exports, "chatCompletionStream", { enumerable: true, get: function () { return index_js_2.chatCompletionStream; } });
+Object.defineProperty(exports, "buildContextParts", { enumerable: true, get: function () { return index_js_2.buildContextParts; } });
+Object.defineProperty(exports, "buildSystemPrompt", { enumerable: true, get: function () { return index_js_2.buildSystemPrompt; } });
+Object.defineProperty(exports, "estimateContextTokens", { enumerable: true, get: function () { return index_js_2.estimateContextTokens; } });
+Object.defineProperty(exports, "parseMemoryExtract", { enumerable: true, get: function () { return index_js_2.parseMemoryExtract; } });
+Object.defineProperty(exports, "saveExtractedMemory", { enumerable: true, get: function () { return index_js_2.saveExtractedMemory; } });
+Object.defineProperty(exports, "requiresConfirmation", { enumerable: true, get: function () { return index_js_2.requiresConfirmation; } });
+Object.defineProperty(exports, "chat", { enumerable: true, get: function () { return index_js_2.chat; } });
+Object.defineProperty(exports, "createSession", { enumerable: true, get: function () { return index_js_2.createSession; } });
+Object.defineProperty(exports, "getSession", { enumerable: true, get: function () { return index_js_2.getSession; } });
+Object.defineProperty(exports, "getOrCreateSession", { enumerable: true, get: function () { return index_js_2.getOrCreateSession; } });
+Object.defineProperty(exports, "listSessions", { enumerable: true, get: function () { return index_js_2.listSessions; } });
+Object.defineProperty(exports, "deleteSession", { enumerable: true, get: function () { return index_js_2.deleteSession; } });
+Object.defineProperty(exports, "clearSpaceSessions", { enumerable: true, get: function () { return index_js_2.clearSpaceSessions; } });
+Object.defineProperty(exports, "getChatHistory", { enumerable: true, get: function () { return index_js_2.getChatHistory; } });
+Object.defineProperty(exports, "exportSession", { enumerable: true, get: function () { return index_js_2.exportSession; } });
 //# sourceMappingURL=index.js.map

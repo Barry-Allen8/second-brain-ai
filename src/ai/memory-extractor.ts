@@ -10,7 +10,7 @@ import type {
   ExtractedNote,
   ExtractedProfileUpdate,
 } from '../types/index.js';
-import { spaceService } from './space.js';
+import { spaceService } from '../domain/index.js';
 
 const MEMORY_EXTRACT_REGEX = /```memory_extract\s*([\s\S]*?)```/;
 

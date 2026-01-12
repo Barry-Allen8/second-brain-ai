@@ -491,11 +491,16 @@ async function sendChatMessage(message) {
   showTypingIndicator();
   
   try {
-    const response = await chatApi.send({
-      spaceId: state.currentSpaceId,
-      message,
-      sessionId: state.chatSessionId,
-    });
+    // Build payload without null values (only include defined values)
+    const payload = { message };
+    if (state.currentSpaceId) {
+      payload.spaceId = state.currentSpaceId;
+    }
+    if (state.chatSessionId) {
+      payload.sessionId = state.chatSessionId;
+    }
+    
+    const response = await chatApi.send(payload);
     
     state.chatSessionId = response.sessionId;
     hideTypingIndicator();

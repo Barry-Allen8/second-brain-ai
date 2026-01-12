@@ -1,7 +1,7 @@
-export { storage, StorageError } from './storage.js';
-export { spaceService, SpaceService } from './space.js';
-export * from './context-builder.js';
-export * from './ai-provider.js';
-export * from './memory-extractor.js';
-export * from './chat.js';
+/**
+ * Services barrel export.
+ * Re-exports from domain/ and ai/ for backwards compatibility.
+ */
+export { storage, StorageError, spaceService, SpaceService } from '../domain/index.js';
+export { initializeAI, isAIConfigured, getAIConfig, chatCompletion, chatCompletionStream, buildContextParts, buildSystemPrompt, estimateContextTokens, parseMemoryExtract, saveExtractedMemory, requiresConfirmation, chat, createSession, getSession, getOrCreateSession, listSessions, deleteSession, clearSpaceSessions, getChatHistory, exportSession, } from '../ai/index.js';
 //# sourceMappingURL=index.d.ts.map

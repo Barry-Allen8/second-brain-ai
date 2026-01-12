@@ -4,7 +4,7 @@
  * These provide runtime validation and type inference.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.paginationParamsSchema = exports.queryContextRequestSchema = exports.addTimelineEntryRequestSchema = exports.updateProfileEntryRequestSchema = exports.addProfileEntryRequestSchema = exports.promoteNoteRequestSchema = exports.updateNoteRequestSchema = exports.addNoteRequestSchema = exports.updateFactRequestSchema = exports.addFactRequestSchema = exports.updateSpaceRequestSchema = exports.createSpaceRequestSchema = exports.timelineSchema = exports.timelineEntrySchema = exports.timelineEventTypeSchema = exports.notesSchema = exports.noteSchema = exports.noteImportanceSchema = exports.factsSchema = exports.factSchema = exports.profileSchema = exports.profileEntrySchema = exports.spaceMetadataSchema = exports.spaceRulesSchema = exports.sourceSchema = exports.sourceTypeSchema = exports.confidenceLevelSchema = exports.timestampSchema = exports.entityIdSchema = void 0;
+exports.chatRequestSchema = exports.paginationParamsSchema = exports.queryContextRequestSchema = exports.addTimelineEntryRequestSchema = exports.updateProfileEntryRequestSchema = exports.addProfileEntryRequestSchema = exports.promoteNoteRequestSchema = exports.updateNoteRequestSchema = exports.addNoteRequestSchema = exports.updateFactRequestSchema = exports.addFactRequestSchema = exports.updateSpaceRequestSchema = exports.createSpaceRequestSchema = exports.timelineSchema = exports.timelineEntrySchema = exports.timelineEventTypeSchema = exports.notesSchema = exports.noteSchema = exports.noteImportanceSchema = exports.factsSchema = exports.factSchema = exports.profileSchema = exports.profileEntrySchema = exports.spaceMetadataSchema = exports.spaceRulesSchema = exports.sourceSchema = exports.sourceTypeSchema = exports.confidenceLevelSchema = exports.timestampSchema = exports.entityIdSchema = void 0;
 const zod_1 = require("zod");
 // Base schemas
 exports.entityIdSchema = zod_1.z.string().uuid();
@@ -226,4 +226,23 @@ exports.paginationParamsSchema = zod_1.z.object({
     limit: zod_1.z.number().int().min(1).max(100).default(20),
     offset: zod_1.z.number().int().min(0).default(0),
 });
+// Chat request schema (accepts legacy and simplified payloads)
+const chatMessageItemSchema = zod_1.z.object({
+    role: zod_1.z.enum(['system', 'user', 'assistant']),
+    content: zod_1.z.string().min(1).max(10000),
+});
+const simpleChatRequestSchema = zod_1.z.object({
+    message: zod_1.z.string().min(1).max(10000),
+    spaceId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
+    sessionId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
+});
+const structuredChatRequestSchema = zod_1.z.object({
+    spaceId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
+    messages: zod_1.z.array(chatMessageItemSchema).min(1),
+    sessionId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
+});
+exports.chatRequestSchema = zod_1.z.union([
+    simpleChatRequestSchema,
+    structuredChatRequestSchema,
+]);
 //# sourceMappingURL=validation.js.map

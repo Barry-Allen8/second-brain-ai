@@ -3,7 +3,7 @@
  */
 
 import { Router } from 'express';
-import { spaceService } from '../../services/index.js';
+import { spaceService } from '../../domain/index.js';
 import {
   asyncHandler,
   validateBody,

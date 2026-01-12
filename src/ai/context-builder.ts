@@ -1,6 +1,9 @@
 /**
  * Context Builder Service
  * Constructs optimized prompts from memory context for AI consumption.
+ * 
+ * TODO: Add vector search support for semantic retrieval of relevant facts/notes.
+ * Current implementation uses simple filtering by category/tags.
  */
 
 import type {
@@ -12,7 +15,8 @@ import type {
   Timeline,
   SystemPromptParts,
 } from '../types/index.js';
-import { storage } from './storage.js';
+import { storage } from '../domain/index.js';
+import { now } from '../utils/index.js';
 
 const MAX_FACTS = 30;
 const MAX_NOTES = 15;
@@ -93,10 +97,10 @@ function buildProfileSection(profile: Profile): string {
     return '=== ПРОФІЛЬ ===\nПрофіль порожній.';
   }
 
-  const now = new Date().toISOString();
+  const currentTime = now();
   const validEntries = profile.entries.filter(e => {
-    if (e.validFrom && e.validFrom > now) return false;
-    if (e.validUntil && e.validUntil < now) return false;
+    if (e.validFrom && e.validFrom > currentTime) return false;
+    if (e.validUntil && e.validUntil < currentTime) return false;
     return true;
   });
 

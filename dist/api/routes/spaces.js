@@ -5,7 +5,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.spacesRouter = void 0;
 const express_1 = require("express");
-const index_js_1 = require("../../services/index.js");
+const index_js_1 = require("../../domain/index.js");
 const middleware_js_1 = require("../middleware.js");
 const index_js_2 = require("../../schemas/index.js");
 exports.spacesRouter = (0, express_1.Router)();

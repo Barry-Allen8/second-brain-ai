@@ -1,6 +1,9 @@
 /**
  * File-based storage service for context spaces.
  * Designed for single-node deployment with future migration path to distributed storage.
+ * 
+ * TODO: Migrate to database storage (PostgreSQL/SQLite) for production use.
+ * Current file-based implementation is suitable for development and single-node deployment.
  */
 
 import { promises as fs } from 'node:fs';

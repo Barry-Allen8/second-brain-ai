@@ -950,4 +950,44 @@ export declare const paginationParamsSchema: z.ZodObject<{
     limit?: number | undefined;
     offset?: number | undefined;
 }>;
+export declare const chatRequestSchema: z.ZodUnion<[z.ZodObject<{
+    message: z.ZodString;
+    spaceId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    sessionId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+}, "strip", z.ZodTypeAny, {
+    message: string;
+    spaceId?: string | undefined;
+    sessionId?: string | undefined;
+}, {
+    message: string;
+    spaceId?: unknown;
+    sessionId?: unknown;
+}>, z.ZodObject<{
+    spaceId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    messages: z.ZodArray<z.ZodObject<{
+        role: z.ZodEnum<["system", "user", "assistant"]>;
+        content: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        content: string;
+        role: "system" | "user" | "assistant";
+    }, {
+        content: string;
+        role: "system" | "user" | "assistant";
+    }>, "many">;
+    sessionId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+}, "strip", z.ZodTypeAny, {
+    messages: {
+        content: string;
+        role: "system" | "user" | "assistant";
+    }[];
+    spaceId?: string | undefined;
+    sessionId?: string | undefined;
+}, {
+    messages: {
+        content: string;
+        role: "system" | "user" | "assistant";
+    }[];
+    spaceId?: unknown;
+    sessionId?: unknown;
+}>]>;
 //# sourceMappingURL=validation.d.ts.map

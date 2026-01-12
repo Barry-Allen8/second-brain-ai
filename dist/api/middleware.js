@@ -9,7 +9,7 @@ exports.validateQuery = validateQuery;
 exports.createSuccessResponse = createSuccessResponse;
 exports.createErrorResponse = createErrorResponse;
 exports.errorHandler = errorHandler;
-const index_js_1 = require("../services/index.js");
+const index_js_1 = require("../domain/index.js");
 /** Wrap async route handlers to catch errors */
 function asyncHandler(fn) {
     return (req, res, next) => {
@@ -22,6 +22,12 @@ function validateBody(schema) {
         const result = schema.safeParse(req.body);
         if (!result.success) {
             const error = formatZodError(result.error);
+            console.error('[validation] Request validation failed:', {
+                path: req.path,
+                method: req.method,
+                body: req.body,
+                errors: error.details,
+            });
             res.status(400).json(createErrorResponse(error));
             return;
         }
