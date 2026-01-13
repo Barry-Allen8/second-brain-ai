@@ -103,6 +103,25 @@ const chatApi = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// Utility Functions
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Escapes HTML special characters to prevent XSS and form breaking
+ * @param {string} str - The string to escape
+ * @returns {string} - The escaped string
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// ═══════════════════════════════════════════════════════════
 // DOM Elements
 // ═══════════════════════════════════════════════════════════
 
@@ -205,9 +224,8 @@ function getFormData() {
 
 $('#modal-close').addEventListener('click', closeModal);
 $('#modal-cancel').addEventListener('click', closeModal);
-elements.modalOverlay.addEventListener('click', (e) => {
-  if (e.target === elements.modalOverlay) closeModal();
-});
+// NOTE: Backdrop click disabled intentionally to prevent accidental data loss
+// Modal closes ONLY via explicit Cancel/Close buttons
 
 elements.modalSubmit.addEventListener('click', async () => {
   if (currentModalCallback) {
@@ -327,8 +345,8 @@ function renderSpacesList() {
   elements.spacesList.innerHTML = state.spaces.map(space => `
     <li class="space-item ${space.id === state.currentSpaceId ? 'active' : ''}" 
         data-id="${space.id}">
-      <span class="space-item-icon">${space.icon || '📁'}</span>
-      <span class="space-item-name">${space.name}</span>
+      <span class="space-item-icon">${escapeHtml(space.icon || '📁')}</span>
+      <span class="space-item-name">${escapeHtml(space.name)}</span>
       <span class="space-item-count">${space.factCount}</span>
     </li>
   `).join('');
@@ -364,6 +382,7 @@ async function selectSpace(spaceId) {
 }
 
 function renderSpaceContent() {
+  // Using textContent is safe - no need for escapeHtml here
   elements.spaceName.textContent = state.currentSpace.name;
   elements.spaceDescription.textContent = state.currentSpace.description;
   elements.factsCount.textContent = state.facts.length;
@@ -403,15 +422,15 @@ function openEditSpaceModal() {
   openModal('Редагувати простір', `
     <div class="form-group">
       <label class="form-label">Назва *</label>
-      <input type="text" name="name" class="form-input" value="${space.name}">
+      <input type="text" name="name" class="form-input" value="${escapeHtml(space.name)}">
     </div>
     <div class="form-group">
       <label class="form-label">Опис</label>
-      <textarea name="description" class="form-textarea">${space.description}</textarea>
+      <textarea name="description" class="form-textarea">${escapeHtml(space.description)}</textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>
-      <input type="text" name="icon" class="form-input" value="${space.icon || ''}" maxlength="2">
+      <input type="text" name="icon" class="form-input" value="${escapeHtml(space.icon || '')}" maxlength="2">
     </div>
   `, async (data) => {
     if (!data.name) throw new Error("Назва обов'язкова");
@@ -444,7 +463,7 @@ function renderChatWelcome() {
     <div class="chat-welcome">
       <div class="chat-welcome-icon">💬</div>
       <h3>Розпочніть розмову</h3>
-      <p>AI вже знає контекст "${state.currentSpace?.name}" — запитуйте про що завгодно!</p>
+      <p>AI вже знає контекст "${escapeHtml(state.currentSpace?.name || '')}" — запитуйте про що завгодно!</p>
     </div>
   `;
 }
@@ -617,7 +636,7 @@ function renderFacts() {
   elements.factsList.innerHTML = state.facts.map(fact => `
     <div class="card" data-id="${fact.id}">
       <div class="card-header">
-        <span class="card-category">${fact.category}</span>
+        <span class="card-category">${escapeHtml(fact.category)}</span>
         <div class="card-actions">
           <button class="btn-icon edit-fact" title="Редагувати">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -633,14 +652,9 @@ function renderFacts() {
           </button>
         </div>
       </div>
-      <div class="card-content">${fact.statement}</div>
+      <div class="card-content">${escapeHtml(fact.statement)}</div>
       <div class="card-footer">
-        <div class="card-meta">
-          <span class="confidence ${fact.confidence}">${getConfidenceLabel(fact.confidence)}</span>
-        </div>
-        <div class="card-tags">
-          ${fact.tags.map(tag => `<span class="tag">#${tag}</span>`).join('')}
-        </div>
+        <span class="confidence ${fact.confidence}">${getConfidenceLabel(fact.confidence)}</span>
       </div>
     </div>
   `).join('');
@@ -689,11 +703,6 @@ function openAddFactModal() {
         <option value="low">Низька</option>
       </select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Теги</label>
-      <input type="text" name="tags" class="form-input" placeholder="tag1, tag2, tag3">
-      <p class="form-hint">Розділіть комою</p>
-    </div>
   `, async (data) => {
     if (!data.category || !data.statement) throw new Error("Категорія і твердження обов'язкові");
     await factsApi.create(state.currentSpaceId, data);
@@ -708,11 +717,11 @@ function openEditFactModal(factId) {
   openModal('Редагувати факт', `
     <div class="form-group">
       <label class="form-label">Категорія *</label>
-      <input type="text" name="category" class="form-input" value="${fact.category}">
+      <input type="text" name="category" class="form-input" value="${escapeHtml(fact.category)}">
     </div>
     <div class="form-group">
       <label class="form-label">Твердження *</label>
-      <textarea name="statement" class="form-textarea">${fact.statement}</textarea>
+      <textarea name="statement" class="form-textarea">${escapeHtml(fact.statement)}</textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Рівень довіри</label>
@@ -722,10 +731,6 @@ function openEditFactModal(factId) {
         <option value="medium" ${fact.confidence === 'medium' ? 'selected' : ''}>Середня</option>
         <option value="low" ${fact.confidence === 'low' ? 'selected' : ''}>Низька</option>
       </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Теги</label>
-      <input type="text" name="tags" class="form-input" value="${fact.tags.join(', ')}">
     </div>
   `, async (data) => {
     await factsApi.update(state.currentSpaceId, factId, data);
@@ -765,7 +770,7 @@ function renderNotes() {
     <div class="card" data-id="${note.id}">
       ${note.factCandidate ? '<span class="fact-candidate">⭐ Кандидат у факти</span>' : ''}
       <div class="card-header">
-        ${note.category ? `<span class="card-category">${note.category}</span>` : '<span></span>'}
+        <span></span>
         <div class="card-actions">
           ${!note.promotedToFactId ? `
             <button class="btn btn-promote promote-note" title="Перетворити на факт">
@@ -789,13 +794,7 @@ function renderNotes() {
           </button>
         </div>
       </div>
-      <div class="card-content">${note.content}</div>
-      <div class="card-footer">
-        <span class="importance ${note.importance}">${getImportanceLabel(note.importance)}</span>
-        <div class="card-tags">
-          ${note.tags.map(tag => `<span class="tag">#${tag}</span>`).join('')}
-        </div>
-      </div>
+      <div class="card-content">${escapeHtml(note.content)}</div>
     </div>
   `).join('');
 
@@ -833,22 +832,6 @@ function openAddNoteModal() {
       <textarea name="content" class="form-textarea" placeholder="Ваше спостереження..."></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Категорія</label>
-      <input type="text" name="category" class="form-input" placeholder="Опціонально">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Важливість</label>
-      <select name="importance" class="form-select">
-        <option value="high">Висока</option>
-        <option value="medium" selected>Середня</option>
-        <option value="low">Низька</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Теги</label>
-      <input type="text" name="tags" class="form-input" placeholder="tag1, tag2">
-    </div>
-    <div class="form-group">
       <label class="form-checkbox-group">
         <input type="checkbox" name="factCandidate" class="form-checkbox">
         <span>Кандидат у факти</span>
@@ -869,23 +852,7 @@ function openEditNoteModal(noteId) {
   openModal('Редагувати нотатку', `
     <div class="form-group">
       <label class="form-label">Текст нотатки *</label>
-      <textarea name="content" class="form-textarea">${note.content}</textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Категорія</label>
-      <input type="text" name="category" class="form-input" value="${note.category || ''}">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Важливість</label>
-      <select name="importance" class="form-select">
-        <option value="high" ${note.importance === 'high' ? 'selected' : ''}>Висока</option>
-        <option value="medium" ${note.importance === 'medium' ? 'selected' : ''}>Середня</option>
-        <option value="low" ${note.importance === 'low' ? 'selected' : ''}>Низька</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Теги</label>
-      <input type="text" name="tags" class="form-input" value="${note.tags.join(', ')}">
+      <textarea name="content" class="form-textarea">${escapeHtml(note.content)}</textarea>
     </div>
     <div class="form-group">
       <label class="form-checkbox-group">
@@ -908,11 +875,11 @@ function openPromoteNoteModal(noteId) {
     </p>
     <div class="form-group">
       <label class="form-label">Категорія *</label>
-      <input type="text" name="category" class="form-input" value="${note.category || ''}" placeholder="personal, health, work...">
+      <input type="text" name="category" class="form-input" value="${escapeHtml(note.category || '')}" placeholder="personal, health, work...">
     </div>
     <div class="form-group">
       <label class="form-label">Твердження *</label>
-      <textarea name="statement" class="form-textarea">${note.content}</textarea>
+      <textarea name="statement" class="form-textarea">${escapeHtml(note.content)}</textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Рівень довіри</label>
@@ -922,10 +889,6 @@ function openPromoteNoteModal(noteId) {
         <option value="medium">Середня</option>
         <option value="low">Низька</option>
       </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Теги</label>
-      <input type="text" name="tags" class="form-input" value="${note.tags.join(', ')}">
     </div>
   `, async (data) => {
     if (!data.category || !data.statement) throw new Error("Категорія і твердження обов'язкові");
@@ -973,12 +936,12 @@ function renderProfile() {
     <div class="profile-category-group">
       ${entries.map(entry => `
         <div class="profile-card" data-id="${entry.id}">
-          <div class="profile-category">${category}</div>
-          <div class="profile-key">${entry.key}</div>
+          <div class="profile-category">${escapeHtml(category)}</div>
+          <div class="profile-key">${escapeHtml(entry.key)}</div>
           <div class="profile-value ${Array.isArray(entry.value) ? 'array' : ''}">
             ${Array.isArray(entry.value) 
-              ? entry.value.map(v => `<span>${v}</span>`).join('') 
-              : entry.value}
+              ? entry.value.map(v => `<span>${escapeHtml(v)}</span>`).join('') 
+              : escapeHtml(entry.value)}
           </div>
           <div class="card-actions" style="opacity: 1; margin-top: var(--space-md);">
             <button class="btn-icon edit-profile" title="Редагувати">
@@ -1047,15 +1010,15 @@ function openEditProfileModal(entryId) {
   openModal('Редагувати запис', `
     <div class="form-group">
       <label class="form-label">Категорія</label>
-      <input type="text" class="form-input" value="${entry.category}" disabled>
+      <input type="text" class="form-input" value="${escapeHtml(entry.category)}" disabled>
     </div>
     <div class="form-group">
       <label class="form-label">Ключ</label>
-      <input type="text" class="form-input" value="${entry.key}" disabled>
+      <input type="text" class="form-input" value="${escapeHtml(entry.key)}" disabled>
     </div>
     <div class="form-group">
       <label class="form-label">Значення *</label>
-      <input type="text" name="value" class="form-input" value="${valueStr}">
+      <input type="text" name="value" class="form-input" value="${escapeHtml(valueStr)}">
     </div>
   `, async (data) => {
     if (!data.value) throw new Error("Значення обов'язкове");
@@ -1101,8 +1064,8 @@ function renderTimeline() {
   elements.timelineList.innerHTML = sorted.map(entry => `
     <div class="timeline-item">
       <div class="timeline-time">${formatDate(entry.timestamp)}</div>
-      <div class="timeline-title">${entry.title}</div>
-      <span class="timeline-type ${entry.eventType}">${getEventTypeLabel(entry.eventType)}</span>
+      <div class="timeline-title">${escapeHtml(entry.title)}</div>
+      <span class="timeline-type ${escapeHtml(entry.eventType)}">${getEventTypeLabel(entry.eventType)}</span>
     </div>
   `).join('');
 }
