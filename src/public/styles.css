@@ -1047,6 +1047,7 @@ body {
 
 .chat-select {
   flex: 1;
+  min-width: 0;
   padding: var(--space-sm) var(--space-md);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
@@ -1071,6 +1072,11 @@ body {
 .btn-sm {
   padding: var(--space-sm);
   font-size: 0.875rem;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chat-container {
@@ -1238,8 +1244,18 @@ body {
 
 .chat-form {
   display: flex;
-  gap: var(--space-sm);
-  align-items: flex-end;
+  gap: 0;
+  align-items: stretch;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.chat-form:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .chat-input {
@@ -1248,19 +1264,18 @@ body {
   font-family: var(--font-sans);
   font-size: 0.9375rem;
   color: var(--text-primary);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
+  background: transparent;
+  border: none;
   resize: none;
   min-height: 48px;
   max-height: 200px;
-  transition: border-color var(--transition-fast);
+  transition: none;
 }
 
 .chat-input:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  border: none;
+  box-shadow: none;
 }
 
 .chat-input::placeholder {
@@ -1269,9 +1284,15 @@ body {
 
 .chat-send {
   width: 48px;
-  height: 48px;
+  min-width: 48px;
+  height: auto;
   padding: 0;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
+  border: none;
+  border-left: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chat-send:disabled {

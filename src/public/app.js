@@ -422,6 +422,27 @@ function renderChatSelector() {
     }
     select.appendChild(option);
   });
+  
+  // Update button states
+  updateChatButtonStates();
+}
+
+function updateChatButtonStates() {
+  const hasActiveChat = !!state.currentChatId;
+  const renameBtn = $('#rename-chat-btn');
+  const deleteBtn = $('#delete-chat-btn');
+  
+  if (renameBtn) {
+    renameBtn.disabled = !hasActiveChat;
+    renameBtn.style.opacity = hasActiveChat ? '1' : '0.5';
+    renameBtn.style.cursor = hasActiveChat ? 'pointer' : 'not-allowed';
+  }
+  
+  if (deleteBtn) {
+    deleteBtn.disabled = !hasActiveChat;
+    deleteBtn.style.opacity = hasActiveChat ? '1' : '0.5';
+    deleteBtn.style.cursor = hasActiveChat ? 'pointer' : 'not-allowed';
+  }
 }
 
 async function createNewChat() {
@@ -434,6 +455,7 @@ async function createNewChat() {
   state.currentChatMessages = [];
   elements.chatSelect.value = '';
   renderChatWelcome();
+  updateChatButtonStates();
   showToast('Новий чат створено', 'info');
 }
 
@@ -448,6 +470,7 @@ async function selectChat(sessionId) {
     state.currentChatId = sessionId;
     state.currentChatMessages = session.messages || [];
     renderChatMessages();
+    updateChatButtonStates();
   } catch (error) {
     showToast('Не вдалося завантажити чат', 'error');
   }
@@ -488,6 +511,7 @@ async function deleteChat() {
     state.currentChatMessages = [];
     await loadChats();
     renderChatWelcome();
+    updateChatButtonStates();
   } catch (error) {
     showToast('Не вдалося видалити чат', 'error');
   }
