@@ -112,7 +112,32 @@ const elements = {
   chatSend: $('#chat-send'),
   chatSelect: $('#chat-select'),
   aiStatus: $('#ai-status'),
+  // Mobile elements
+  sidebar: $('#sidebar'),
+  sidebarOverlay: $('#sidebar-overlay'),
+  hamburgerBtn: $('#hamburger-btn'),
+  sidebarClose: $('#sidebar-close'),
 };
+
+// ═══════════════════════════════════════════════════════════
+// Mobile Sidebar Management
+// ═══════════════════════════════════════════════════════════
+
+function openSidebar() {
+  elements.sidebar.classList.add('open');
+  elements.sidebarOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+  elements.sidebar.classList.remove('open');
+  elements.sidebarOverlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function isMobile() {
+  return window.innerWidth <= 768;
+}
 
 // ═══════════════════════════════════════════════════════════
 // Toast Notifications
@@ -323,6 +348,11 @@ async function selectSpace(spaceId) {
     
     elements.emptyState.classList.add('hidden');
     elements.spaceContent.classList.remove('hidden');
+    
+    // Close sidebar on mobile after selecting a space
+    if (isMobile()) {
+      closeSidebar();
+    }
   } catch (error) {
     showToast('Не вдалося завантажити простір', 'error');
   }
@@ -643,6 +673,18 @@ async function sendChatMessage(message) {
 // ═══════════════════════════════════════════════════════════
 // Event Listeners
 // ═══════════════════════════════════════════════════════════
+
+// Mobile sidebar
+elements.hamburgerBtn.addEventListener('click', openSidebar);
+elements.sidebarClose.addEventListener('click', closeSidebar);
+elements.sidebarOverlay.addEventListener('click', closeSidebar);
+
+// Close sidebar on escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isMobile() && elements.sidebar.classList.contains('open')) {
+    closeSidebar();
+  }
+});
 
 // Spaces
 $('#add-space-btn').addEventListener('click', openCreateSpaceModal);
