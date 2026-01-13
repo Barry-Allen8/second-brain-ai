@@ -4,7 +4,7 @@
 
 import express from 'express';
 import path from 'node:path';
-import { spacesRouter, factsRouter, notesRouter, profileRouter, timelineRouter, chatRouter } from './routes/index.js';
+import { spacesRouter, chatRouter } from './routes/index.js';
 import { errorHandler, createSuccessResponse } from './middleware.js';
 
 export function createApp() {
@@ -40,10 +40,6 @@ export function createApp() {
 
   // API routes
   app.use('/api/v1/spaces', spacesRouter);
-  app.use('/api/v1/spaces/:spaceId/facts', factsRouter);
-  app.use('/api/v1/spaces/:spaceId/notes', notesRouter);
-  app.use('/api/v1/spaces/:spaceId/profile', profileRouter);
-  app.use('/api/v1/spaces/:spaceId/timeline', timelineRouter);
   app.use('/api/v1/chat', chatRouter);
 
   // Error handling

@@ -39,10 +39,6 @@ function createApp() {
     });
     // API routes
     app.use('/api/v1/spaces', index_js_1.spacesRouter);
-    app.use('/api/v1/spaces/:spaceId/facts', index_js_1.factsRouter);
-    app.use('/api/v1/spaces/:spaceId/notes', index_js_1.notesRouter);
-    app.use('/api/v1/spaces/:spaceId/profile', index_js_1.profileRouter);
-    app.use('/api/v1/spaces/:spaceId/timeline', index_js_1.timelineRouter);
     app.use('/api/v1/chat', index_js_1.chatRouter);
     // Error handling
     app.use(middleware_js_1.errorHandler);

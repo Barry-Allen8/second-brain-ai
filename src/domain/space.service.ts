@@ -140,11 +140,7 @@ export class SpaceService {
 
     for (const id of spaceIds) {
       try {
-        const [metadata, facts, notes] = await Promise.all([
-          storage.readMetadata(id),
-          storage.readFacts(id),
-          storage.readNotes(id),
-        ]);
+        const metadata = await storage.readMetadata(id);
 
         spaces.push({
           id: metadata.id,
@@ -154,8 +150,8 @@ export class SpaceService {
           color: metadata.color,
           tags: metadata.tags,
           isActive: metadata.isActive,
-          factCount: facts.items.length,
-          noteCount: notes.items.length,
+          factCount: 0, // Deprecated but kept for compatibility
+          noteCount: 0, // Deprecated but kept for compatibility
           lastUpdated: metadata.updatedAt,
         });
       } catch (error) {

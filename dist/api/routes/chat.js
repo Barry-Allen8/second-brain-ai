@@ -101,18 +101,59 @@ exports.chatRouter.get('/sessions/:sessionId', (0, middleware_js_1.asyncHandler)
     }
     res.json((0, middleware_js_1.createSuccessResponse)(session));
 }));
+// Update session (e.g., rename)
+exports.chatRouter.patch('/sessions/:sessionId', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+    const sessionId = req.params['sessionId'];
+    const { name } = req.body;
+    if (!name || typeof name !== 'string') {
+        res.status(400).json((0, middleware_js_1.createErrorResponse)({
+            code: 'INVALID_REQUEST',
+            message: 'Name is required',
+        }));
+        return;
+    }
+    const updated = (0, index_js_1.updateSession)(sessionId, { name });
+    if (!updated) {
+        res.status(404).json((0, middleware_js_1.createErrorResponse)({
+            code: 'SESSION_NOT_FOUND',
+            message: 'Chat session not found',
+        }));
+        return;
+    }
+    res.json((0, middleware_js_1.createSuccessResponse)(updated));
+}));
 // Get chat history for session
 exports.chatRouter.get('/sessions/:sessionId/messages', (0, middleware_js_1.asyncHandler)(async (req, res) => {
     const sessionId = req.params['sessionId'];
     const messages = (0, index_js_1.getChatHistory)(sessionId);
     res.json((0, middleware_js_1.createSuccessResponse)(messages));
 }));
-// List sessions for a space
+// List sessions (can filter by spaceId via query param)
+exports.chatRouter.get('/sessions', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+    const spaceId = req.query['spaceId'];
+    if (!spaceId) {
+        res.status(400).json((0, middleware_js_1.createErrorResponse)({
+            code: 'INVALID_REQUEST',
+            message: 'spaceId query parameter is required',
+        }));
+        return;
+    }
+    const sessions = (0, index_js_1.listSessions)(spaceId);
+    res.json((0, middleware_js_1.createSuccessResponse)(sessions.map((s) => ({
+        sessionId: s.id,
+        name: s.name,
+        messageCount: s.messages.length,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+    }))));
+}));
+// List sessions for a space (legacy route for compatibility)
 exports.chatRouter.get('/spaces/:spaceId/sessions', (0, middleware_js_1.asyncHandler)(async (req, res) => {
     const spaceId = req.params['spaceId'];
     const sessions = (0, index_js_1.listSessions)(spaceId);
     res.json((0, middleware_js_1.createSuccessResponse)(sessions.map((s) => ({
-        id: s.id,
+        sessionId: s.id,
+        name: s.name,
         messageCount: s.messages.length,
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,

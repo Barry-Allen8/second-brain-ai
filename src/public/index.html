@@ -97,44 +97,37 @@
             </svg>
             Чат
           </button>
-          <button class="tab" data-tab="facts">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 11 12 14 22 4"></polyline>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-            </svg>
-            Факти
-            <span class="tab-count" id="facts-count">0</span>
-          </button>
-          <button class="tab" data-tab="notes">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            Нотатки
-            <span class="tab-count" id="notes-count">0</span>
-          </button>
-          <button class="tab" data-tab="profile">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            Профіль
-          </button>
-          <button class="tab" data-tab="timeline">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            Історія
-          </button>
         </nav>
 
         <!-- Tab Content -->
         <div class="tab-content">
           <!-- Chat Tab -->
           <section class="tab-pane active" id="chat-tab">
+            <div class="chat-header">
+              <div class="chat-selector">
+                <select class="chat-select" id="chat-select">
+                  <option value="">Новий чат</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="new-chat-btn" title="Новий чат">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
+                <button class="btn btn-ghost btn-sm" id="rename-chat-btn" title="Перейменувати чат">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
+                <button class="btn btn-danger-ghost btn-sm" id="delete-chat-btn" title="Видалити чат">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
             <div class="chat-container">
               <div class="chat-messages" id="chat-messages">
                 <div class="chat-welcome">
@@ -144,9 +137,6 @@
                 </div>
               </div>
               <div class="chat-input-container">
-                <div class="chat-context-info" id="chat-context-info">
-                  <!-- Context info will be shown here -->
-                </div>
                 <form class="chat-form" id="chat-form">
                   <textarea 
                     class="chat-input" 
@@ -162,67 +152,6 @@
                   </button>
                 </form>
               </div>
-            </div>
-          </section>
-
-          <!-- Facts Tab -->
-          <section class="tab-pane" id="facts-tab">
-            <div class="tab-header">
-              <h2>Верифіковані факти</h2>
-              <button class="btn btn-primary" id="add-fact-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Додати факт
-              </button>
-            </div>
-            <div class="items-grid" id="facts-list">
-              <!-- Facts will be loaded here -->
-            </div>
-          </section>
-
-          <!-- Notes Tab -->
-          <section class="tab-pane" id="notes-tab">
-            <div class="tab-header">
-              <h2>Нотатки та спостереження</h2>
-              <button class="btn btn-primary" id="add-note-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Додати нотатку
-              </button>
-            </div>
-            <div class="items-grid" id="notes-list">
-              <!-- Notes will be loaded here -->
-            </div>
-          </section>
-
-          <!-- Profile Tab -->
-          <section class="tab-pane" id="profile-tab">
-            <div class="tab-header">
-              <h2>Профіль</h2>
-              <button class="btn btn-primary" id="add-profile-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Додати запис
-              </button>
-            </div>
-            <div class="profile-grid" id="profile-list">
-              <!-- Profile entries will be loaded here -->
-            </div>
-          </section>
-
-          <!-- Timeline Tab -->
-          <section class="tab-pane" id="timeline-tab">
-            <div class="tab-header">
-              <h2>Історія змін</h2>
-            </div>
-            <div class="timeline" id="timeline-list">
-              <!-- Timeline entries will be loaded here -->
             </div>
           </section>
         </div>

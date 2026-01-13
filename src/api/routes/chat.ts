@@ -10,6 +10,7 @@ import {
   chat,
   getSession,
   listSessions,
+  updateSession,
   deleteSession,
   getChatHistory,
   isAIConfigured,
@@ -155,6 +156,35 @@ chatRouter.get(
   })
 );
 
+// Update session (e.g., rename)
+chatRouter.patch(
+  '/sessions/:sessionId',
+  asyncHandler(async (req, res) => {
+    const sessionId = req.params['sessionId']!;
+    const { name } = req.body as { name?: string };
+    
+    if (!name || typeof name !== 'string') {
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'Name is required',
+      }));
+      return;
+    }
+    
+    const updated = updateSession(sessionId, { name });
+    
+    if (!updated) {
+      res.status(404).json(createErrorResponse({
+        code: 'SESSION_NOT_FOUND',
+        message: 'Chat session not found',
+      }));
+      return;
+    }
+
+    res.json(createSuccessResponse(updated));
+  })
+);
+
 // Get chat history for session
 chatRouter.get(
   '/sessions/:sessionId/messages',
@@ -166,7 +196,33 @@ chatRouter.get(
   })
 );
 
-// List sessions for a space
+// List sessions (can filter by spaceId via query param)
+chatRouter.get(
+  '/sessions',
+  asyncHandler(async (req, res) => {
+    const spaceId = req.query['spaceId'] as EntityId | undefined;
+    
+    if (!spaceId) {
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'spaceId query parameter is required',
+      }));
+      return;
+    }
+    
+    const sessions = listSessions(spaceId);
+    
+    res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
+      sessionId: s.id,
+      name: s.name,
+      messageCount: s.messages.length,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    }))));
+  })
+);
+
+// List sessions for a space (legacy route for compatibility)
 chatRouter.get(
   '/spaces/:spaceId/sessions',
   asyncHandler(async (req, res) => {
@@ -174,7 +230,8 @@ chatRouter.get(
     const sessions = listSessions(spaceId);
     
     res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
-      id: s.id,
+      sessionId: s.id,
+      name: s.name,
       messageCount: s.messages.length,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,

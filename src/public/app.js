@@ -1,27 +1,25 @@
 /**
- * Second Brain AI - Frontend Application
+ * Second Brain AI - Frontend Application (Simplified MVP)
  */
 
 const API_BASE = '/api/v1';
+const MAX_CHATS_PER_SPACE = 10;
 
 // ═══════════════════════════════════════════════════════════
 // State Management
 // ═══════════════════════════════════════════════════════════
 
-// CHANGE: Added AI model state
 const state = {
   spaces: [],
   currentSpaceId: null,
   currentSpace: null,
-  facts: [],
-  notes: [],
-  profile: [],
-  timeline: [],
-  chatSessionId: null,
-  chatMessages: [],
   aiConfigured: false,
   aiModel: 'gpt-4o-mini',
   supportedModels: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+  // Chat management
+  chats: [], // List of chats in current space
+  currentChatId: null,
+  currentChatMessages: [],
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -63,54 +61,21 @@ const spacesApi = {
   delete: (id) => api(`/spaces/${id}`, { method: 'DELETE' }),
 };
 
-// Facts API
-const factsApi = {
-  list: (spaceId) => api(`/spaces/${spaceId}/facts`),
-  create: (spaceId, data) => api(`/spaces/${spaceId}/facts`, { method: 'POST', body: data }),
-  update: (spaceId, factId, data) => api(`/spaces/${spaceId}/facts/${factId}`, { method: 'PATCH', body: data }),
-  delete: (spaceId, factId) => api(`/spaces/${spaceId}/facts/${factId}`, { method: 'DELETE' }),
-};
-
-// Notes API
-const notesApi = {
-  list: (spaceId) => api(`/spaces/${spaceId}/notes`),
-  create: (spaceId, data) => api(`/spaces/${spaceId}/notes`, { method: 'POST', body: data }),
-  update: (spaceId, noteId, data) => api(`/spaces/${spaceId}/notes/${noteId}`, { method: 'PATCH', body: data }),
-  delete: (spaceId, noteId) => api(`/spaces/${spaceId}/notes/${noteId}`, { method: 'DELETE' }),
-  promote: (spaceId, noteId, data) => api(`/spaces/${spaceId}/notes/${noteId}/promote`, { method: 'POST', body: data }),
-};
-
-// Profile API
-const profileApi = {
-  list: (spaceId) => api(`/spaces/${spaceId}/profile`),
-  create: (spaceId, data) => api(`/spaces/${spaceId}/profile`, { method: 'POST', body: data }),
-  update: (spaceId, entryId, data) => api(`/spaces/${spaceId}/profile/${entryId}`, { method: 'PATCH', body: data }),
-  delete: (spaceId, entryId) => api(`/spaces/${spaceId}/profile/${entryId}`, { method: 'DELETE' }),
-};
-
-// Timeline API
-const timelineApi = {
-  list: (spaceId) => api(`/spaces/${spaceId}/timeline`),
-};
-
 // Chat API
-// CHANGE: Added setModel endpoint
 const chatApi = {
   status: () => api('/chat/status'),
   send: (data) => api('/chat', { method: 'POST', body: data }),
   getSession: (sessionId) => api(`/chat/sessions/${sessionId}`),
   setModel: (model) => api('/chat/model', { method: 'PUT', body: { model } }),
+  listSessions: (spaceId) => api(`/chat/sessions?spaceId=${spaceId}`),
+  deleteSession: (sessionId) => api(`/chat/sessions/${sessionId}`, { method: 'DELETE' }),
+  renameSession: (sessionId, name) => api(`/chat/sessions/${sessionId}`, { method: 'PATCH', body: { name } }),
 };
 
 // ═══════════════════════════════════════════════════════════
 // Utility Functions
 // ═══════════════════════════════════════════════════════════
 
-/**
- * Escapes HTML special characters to prevent XSS and form breaking
- * @param {string} str - The string to escape
- * @returns {string} - The escaped string
- */
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -134,12 +99,6 @@ const elements = {
   spaceContent: $('#space-content'),
   spaceName: $('#space-name'),
   spaceDescription: $('#space-description'),
-  factsList: $('#facts-list'),
-  notesList: $('#notes-list'),
-  profileList: $('#profile-list'),
-  timelineList: $('#timeline-list'),
-  factsCount: $('#facts-count'),
-  notesCount: $('#notes-count'),
   modalOverlay: $('#modal-overlay'),
   modal: $('#modal'),
   modalTitle: $('#modal-title'),
@@ -151,7 +110,7 @@ const elements = {
   chatForm: $('#chat-form'),
   chatInput: $('#chat-input'),
   chatSend: $('#chat-send'),
-  chatContextInfo: $('#chat-context-info'),
+  chatSelect: $('#chat-select'),
   aiStatus: $('#ai-status'),
 };
 
@@ -211,11 +170,7 @@ function getFormData() {
     if (field.type === 'checkbox') {
       data[field.name] = field.checked;
     } else if (field.value.trim()) {
-      if (field.name === 'tags') {
-        data[field.name] = field.value.split(',').map(t => t.trim()).filter(Boolean);
-      } else {
-        data[field.name] = field.value.trim();
-      }
+      data[field.name] = field.value.trim();
     }
   });
   
@@ -224,8 +179,6 @@ function getFormData() {
 
 $('#modal-close').addEventListener('click', closeModal);
 $('#modal-cancel').addEventListener('click', closeModal);
-// NOTE: Backdrop click disabled intentionally to prevent accidental data loss
-// Modal closes ONLY via explicit Cancel/Close buttons
 
 elements.modalSubmit.addEventListener('click', async () => {
   if (currentModalCallback) {
@@ -246,7 +199,6 @@ elements.modalSubmit.addEventListener('click', async () => {
 // AI Status
 // ═══════════════════════════════════════════════════════════
 
-// CHANGE: Updated to store model info and make status clickable
 async function checkAIStatus() {
   try {
     const status = await chatApi.status();
@@ -258,7 +210,6 @@ async function checkAIStatus() {
       elements.aiStatus.classList.add('connected');
       elements.aiStatus.classList.remove('disconnected');
       elements.aiStatus.querySelector('.ai-status-text').textContent = `AI: ${status.model}`;
-      // Make it clickable to change model
       elements.aiStatus.style.cursor = 'pointer';
       elements.aiStatus.title = 'Клікніть для зміни моделі';
     } else {
@@ -274,7 +225,6 @@ async function checkAIStatus() {
   }
 }
 
-// CHANGE: Added function to open model selector modal
 function openModelSelectorModal() {
   if (!state.aiConfigured) {
     showToast('AI не налаштовано', 'warning');
@@ -347,7 +297,6 @@ function renderSpacesList() {
         data-id="${space.id}">
       <span class="space-item-icon">${escapeHtml(space.icon || '📁')}</span>
       <span class="space-item-name">${escapeHtml(space.name)}</span>
-      <span class="space-item-count">${space.factCount}</span>
     </li>
   `).join('');
 
@@ -358,21 +307,19 @@ function renderSpacesList() {
 
 async function selectSpace(spaceId) {
   state.currentSpaceId = spaceId;
-  state.chatSessionId = null;
-  state.chatMessages = [];
+  state.currentChatId = null;
+  state.currentChatMessages = [];
   
   try {
     const space = await spacesApi.get(spaceId);
     state.currentSpace = space.metadata;
-    state.facts = space.facts.items;
-    state.notes = space.notes.items;
-    state.profile = space.profile.entries;
-    state.timeline = space.timeline.entries;
+    
+    // Load chats for this space
+    await loadChats();
     
     renderSpacesList();
     renderSpaceContent();
     renderChatWelcome();
-    updateChatContextInfo();
     
     elements.emptyState.classList.add('hidden');
     elements.spaceContent.classList.remove('hidden');
@@ -382,16 +329,8 @@ async function selectSpace(spaceId) {
 }
 
 function renderSpaceContent() {
-  // Using textContent is safe - no need for escapeHtml here
   elements.spaceName.textContent = state.currentSpace.name;
   elements.spaceDescription.textContent = state.currentSpace.description;
-  elements.factsCount.textContent = state.facts.length;
-  elements.notesCount.textContent = state.notes.length;
-  
-  renderFacts();
-  renderNotes();
-  renderProfile();
-  renderTimeline();
 }
 
 function openCreateSpaceModal() {
@@ -455,7 +394,107 @@ async function deleteSpace() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Chat Functions
+// Chat Management
+// ═══════════════════════════════════════════════════════════
+
+async function loadChats() {
+  try {
+    const sessions = await chatApi.listSessions(state.currentSpaceId);
+    state.chats = sessions || [];
+    renderChatSelector();
+  } catch (error) {
+    console.error('Error loading chats:', error);
+    state.chats = [];
+    renderChatSelector();
+  }
+}
+
+function renderChatSelector() {
+  const select = elements.chatSelect;
+  select.innerHTML = '<option value="">Новий чат</option>';
+  
+  state.chats.forEach(chat => {
+    const option = document.createElement('option');
+    option.value = chat.sessionId;
+    option.textContent = chat.name || `Чат ${new Date(chat.createdAt).toLocaleString('uk-UA')}`;
+    if (chat.sessionId === state.currentChatId) {
+      option.selected = true;
+    }
+    select.appendChild(option);
+  });
+}
+
+async function createNewChat() {
+  if (state.chats.length >= MAX_CHATS_PER_SPACE) {
+    showToast(`Максимум ${MAX_CHATS_PER_SPACE} чатів на простір. Видаліть старі чати.`, 'warning');
+    return;
+  }
+  
+  state.currentChatId = null;
+  state.currentChatMessages = [];
+  elements.chatSelect.value = '';
+  renderChatWelcome();
+  showToast('Новий чат створено', 'info');
+}
+
+async function selectChat(sessionId) {
+  if (!sessionId) {
+    createNewChat();
+    return;
+  }
+  
+  try {
+    const session = await chatApi.getSession(sessionId);
+    state.currentChatId = sessionId;
+    state.currentChatMessages = session.messages || [];
+    renderChatMessages();
+  } catch (error) {
+    showToast('Не вдалося завантажити чат', 'error');
+  }
+}
+
+async function renameChat() {
+  if (!state.currentChatId) {
+    showToast('Спочатку оберіть чат', 'warning');
+    return;
+  }
+  
+  const currentChat = state.chats.find(c => c.sessionId === state.currentChatId);
+  openModal('Перейменувати чат', `
+    <div class="form-group">
+      <label class="form-label">Назва чату *</label>
+      <input type="text" name="name" class="form-input" value="${escapeHtml(currentChat?.name || '')}" placeholder="Моя розмова про...">
+    </div>
+  `, async (data) => {
+    if (!data.name) throw new Error("Назва обов'язкова");
+    await chatApi.renameSession(state.currentChatId, data.name);
+    showToast('Чат перейменовано', 'success');
+    await loadChats();
+  });
+}
+
+async function deleteChat() {
+  if (!state.currentChatId) {
+    showToast('Спочатку оберіть чат', 'warning');
+    return;
+  }
+  
+  if (!confirm('Видалити цей чат? Це незворотня дія!')) return;
+  
+  try {
+    await chatApi.deleteSession(state.currentChatId);
+    showToast('Чат видалено', 'success');
+    state.currentChatId = null;
+    state.currentChatMessages = [];
+    await loadChats();
+    renderChatWelcome();
+  } catch (error) {
+    showToast('Не вдалося видалити чат', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Chat Interface
 // ═══════════════════════════════════════════════════════════
 
 function renderChatWelcome() {
@@ -468,21 +507,14 @@ function renderChatWelcome() {
   `;
 }
 
-function updateChatContextInfo() {
-  if (state.currentSpace) {
-    elements.chatContextInfo.innerHTML = `
-      <span>📊 ${state.facts.length} фактів</span>
-      <span>📝 ${state.notes.length} нотаток</span>
-      <span>👤 ${state.profile.length} записів профілю</span>
-    `;
-  }
+function renderChatMessages() {
+  elements.chatMessages.innerHTML = '';
+  state.currentChatMessages.forEach(msg => {
+    addChatMessageToDOM(msg.role, msg.content);
+  });
 }
 
-function addChatMessage(role, content, extractedMemory) {
-  const message = { role, content, extractedMemory };
-  state.chatMessages.push(message);
-  
-  // Remove welcome message if present
+function addChatMessageToDOM(role, content) {
   const welcome = elements.chatMessages.querySelector('.chat-welcome');
   if (welcome) welcome.remove();
   
@@ -492,26 +524,10 @@ function addChatMessage(role, content, extractedMemory) {
   const avatar = role === 'user' ? '👤' : '🧠';
   const formattedContent = formatChatContent(content);
   
-  let extractedHtml = '';
-  if (extractedMemory) {
-    const total = (extractedMemory.facts?.length || 0) + 
-                  (extractedMemory.notes?.length || 0) + 
-                  (extractedMemory.profileUpdates?.length || 0);
-    if (total > 0) {
-      extractedHtml = `
-        <div class="chat-extracted">
-          <span>✨</span>
-          <span>Збережено: ${total} нових записів у пам'ять</span>
-        </div>
-      `;
-    }
-  }
-  
   messageEl.innerHTML = `
     <div class="chat-avatar">${avatar}</div>
     <div class="chat-bubble">
       ${formattedContent}
-      ${extractedHtml}
     </div>
   `;
   
@@ -520,7 +536,6 @@ function addChatMessage(role, content, extractedMemory) {
 }
 
 function formatChatContent(content) {
-  // Basic markdown-like formatting
   return content
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>')
@@ -562,7 +577,10 @@ async function sendChatMessage(message) {
     return;
   }
   
-  addChatMessage('user', message);
+  // Add message to state and DOM
+  state.currentChatMessages.push({ role: 'user', content: message });
+  addChatMessageToDOM('user', message);
+  
   elements.chatInput.value = '';
   elements.chatInput.style.height = 'auto';
   elements.chatSend.disabled = true;
@@ -570,26 +588,26 @@ async function sendChatMessage(message) {
   showTypingIndicator();
   
   try {
-    // Build payload without null values (only include defined values)
     const payload = { message };
     if (state.currentSpaceId) {
       payload.spaceId = state.currentSpaceId;
     }
-    if (state.chatSessionId) {
-      payload.sessionId = state.chatSessionId;
+    if (state.currentChatId) {
+      payload.sessionId = state.currentChatId;
     }
     
     const response = await chatApi.send(payload);
     
-    state.chatSessionId = response.sessionId;
-    hideTypingIndicator();
-    addChatMessage('assistant', response.message.content, response.extractedMemory);
-    
-    // Refresh data if memory was extracted
-    if (response.extractedMemory) {
-      await selectSpace(state.currentSpaceId);
-      updateChatContextInfo();
+    // Update current chat ID if it's a new chat
+    if (!state.currentChatId) {
+      state.currentChatId = response.sessionId;
+      await loadChats();
+      elements.chatSelect.value = state.currentChatId;
     }
+    
+    state.currentChatMessages.push({ role: 'assistant', content: response.message.content });
+    hideTypingIndicator();
+    addChatMessageToDOM('assistant', response.message.content);
   } catch (error) {
     hideTypingIndicator();
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
@@ -598,7 +616,23 @@ async function sendChatMessage(message) {
   }
 }
 
-// Chat form handler
+// ═══════════════════════════════════════════════════════════
+// Event Listeners
+// ═══════════════════════════════════════════════════════════
+
+// Spaces
+$('#add-space-btn').addEventListener('click', openCreateSpaceModal);
+$('#create-first-space').addEventListener('click', openCreateSpaceModal);
+$('#edit-space-btn').addEventListener('click', openEditSpaceModal);
+$('#delete-space-btn').addEventListener('click', deleteSpace);
+
+// Chat management
+$('#new-chat-btn').addEventListener('click', createNewChat);
+$('#rename-chat-btn').addEventListener('click', renameChat);
+$('#delete-chat-btn').addEventListener('click', deleteChat);
+elements.chatSelect.addEventListener('change', (e) => selectChat(e.target.value));
+
+// Chat form
 elements.chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   sendChatMessage(elements.chatInput.value);
@@ -619,520 +653,13 @@ elements.chatInput.addEventListener('keydown', (e) => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// Facts Management
-// ═══════════════════════════════════════════════════════════
-
-function renderFacts() {
-  if (state.facts.length === 0) {
-    elements.factsList.innerHTML = `
-      <div class="empty-list">
-        <div class="empty-list-icon">📋</div>
-        <p class="empty-list-text">Ще немає фактів. Додайте перший!</p>
-      </div>
-    `;
-    return;
-  }
-
-  elements.factsList.innerHTML = state.facts.map(fact => `
-    <div class="card" data-id="${fact.id}">
-      <div class="card-header">
-        <span class="card-category">${escapeHtml(fact.category)}</span>
-        <div class="card-actions">
-          <button class="btn-icon edit-fact" title="Редагувати">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-          </button>
-          <button class="btn-icon danger delete-fact" title="Видалити">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div class="card-content">${escapeHtml(fact.statement)}</div>
-      <div class="card-footer">
-        <span class="confidence ${fact.confidence}">${getConfidenceLabel(fact.confidence)}</span>
-      </div>
-    </div>
-  `).join('');
-
-  elements.factsList.querySelectorAll('.edit-fact').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.closest('.card').dataset.id;
-      openEditFactModal(id);
-    });
-  });
-
-  elements.factsList.querySelectorAll('.delete-fact').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.closest('.card').dataset.id;
-      deleteFact(id);
-    });
-  });
-}
-
-function getConfidenceLabel(confidence) {
-  const labels = {
-    verified: '✓ Верифіковано',
-    high: 'Висока',
-    medium: 'Середня',
-    low: 'Низька',
-  };
-  return labels[confidence] || confidence;
-}
-
-function openAddFactModal() {
-  openModal('Додати факт', `
-    <div class="form-group">
-      <label class="form-label">Категорія *</label>
-      <input type="text" name="category" class="form-input" placeholder="personal, health, work...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Твердження *</label>
-      <textarea name="statement" class="form-textarea" placeholder="Опишіть факт..."></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Рівень довіри</label>
-      <select name="confidence" class="form-select">
-        <option value="verified">Верифіковано</option>
-        <option value="high">Висока</option>
-        <option value="medium" selected>Середня</option>
-        <option value="low">Низька</option>
-      </select>
-    </div>
-  `, async (data) => {
-    if (!data.category || !data.statement) throw new Error("Категорія і твердження обов'язкові");
-    await factsApi.create(state.currentSpaceId, data);
-    showToast('Факт додано', 'success');
-    await selectSpace(state.currentSpaceId);
-    await loadSpaces();
-  });
-}
-
-function openEditFactModal(factId) {
-  const fact = state.facts.find(f => f.id === factId);
-  openModal('Редагувати факт', `
-    <div class="form-group">
-      <label class="form-label">Категорія *</label>
-      <input type="text" name="category" class="form-input" value="${escapeHtml(fact.category)}">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Твердження *</label>
-      <textarea name="statement" class="form-textarea">${escapeHtml(fact.statement)}</textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Рівень довіри</label>
-      <select name="confidence" class="form-select">
-        <option value="verified" ${fact.confidence === 'verified' ? 'selected' : ''}>Верифіковано</option>
-        <option value="high" ${fact.confidence === 'high' ? 'selected' : ''}>Висока</option>
-        <option value="medium" ${fact.confidence === 'medium' ? 'selected' : ''}>Середня</option>
-        <option value="low" ${fact.confidence === 'low' ? 'selected' : ''}>Низька</option>
-      </select>
-    </div>
-  `, async (data) => {
-    await factsApi.update(state.currentSpaceId, factId, data);
-    showToast('Факт оновлено', 'success');
-    await selectSpace(state.currentSpaceId);
-  });
-}
-
-async function deleteFact(factId) {
-  if (!confirm('Видалити цей факт?')) return;
-  try {
-    await factsApi.delete(state.currentSpaceId, factId);
-    showToast('Факт видалено', 'success');
-    await selectSpace(state.currentSpaceId);
-    await loadSpaces();
-  } catch (error) {
-    showToast('Помилка видалення', 'error');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// Notes Management
-// ═══════════════════════════════════════════════════════════
-
-function renderNotes() {
-  if (state.notes.length === 0) {
-    elements.notesList.innerHTML = `
-      <div class="empty-list">
-        <div class="empty-list-icon">📝</div>
-        <p class="empty-list-text">Ще немає нотаток. Додайте першу!</p>
-      </div>
-    `;
-    return;
-  }
-
-  elements.notesList.innerHTML = state.notes.map(note => `
-    <div class="card" data-id="${note.id}">
-      ${note.factCandidate ? '<span class="fact-candidate">⭐ Кандидат у факти</span>' : ''}
-      <div class="card-header">
-        <span></span>
-        <div class="card-actions">
-          ${!note.promotedToFactId ? `
-            <button class="btn btn-promote promote-note" title="Перетворити на факт">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 11 12 14 22 4"></polyline>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-              </svg>
-            </button>
-          ` : ''}
-          <button class="btn-icon edit-note" title="Редагувати">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-          </button>
-          <button class="btn-icon danger delete-note" title="Видалити">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div class="card-content">${escapeHtml(note.content)}</div>
-    </div>
-  `).join('');
-
-  elements.notesList.querySelectorAll('.edit-note').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.closest('.card').dataset.id;
-      openEditNoteModal(id);
-    });
-  });
-
-  elements.notesList.querySelectorAll('.delete-note').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.closest('.card').dataset.id;
-      deleteNote(id);
-    });
-  });
-
-  elements.notesList.querySelectorAll('.promote-note').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.closest('.card').dataset.id;
-      openPromoteNoteModal(id);
-    });
-  });
-}
-
-function getImportanceLabel(importance) {
-  const labels = { high: '⚡ Важливо', medium: 'Середня', low: 'Низька' };
-  return labels[importance] || importance;
-}
-
-function openAddNoteModal() {
-  openModal('Додати нотатку', `
-    <div class="form-group">
-      <label class="form-label">Текст нотатки *</label>
-      <textarea name="content" class="form-textarea" placeholder="Ваше спостереження..."></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-checkbox-group">
-        <input type="checkbox" name="factCandidate" class="form-checkbox">
-        <span>Кандидат у факти</span>
-      </label>
-      <p class="form-hint">Позначте, якщо це може стати підтвердженим фактом</p>
-    </div>
-  `, async (data) => {
-    if (!data.content) throw new Error("Текст нотатки обов'язковий");
-    await notesApi.create(state.currentSpaceId, data);
-    showToast('Нотатку додано', 'success');
-    await selectSpace(state.currentSpaceId);
-    await loadSpaces();
-  });
-}
-
-function openEditNoteModal(noteId) {
-  const note = state.notes.find(n => n.id === noteId);
-  openModal('Редагувати нотатку', `
-    <div class="form-group">
-      <label class="form-label">Текст нотатки *</label>
-      <textarea name="content" class="form-textarea">${escapeHtml(note.content)}</textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-checkbox-group">
-        <input type="checkbox" name="factCandidate" class="form-checkbox" ${note.factCandidate ? 'checked' : ''}>
-        <span>Кандидат у факти</span>
-      </label>
-    </div>
-  `, async (data) => {
-    await notesApi.update(state.currentSpaceId, noteId, data);
-    showToast('Нотатку оновлено', 'success');
-    await selectSpace(state.currentSpaceId);
-  });
-}
-
-function openPromoteNoteModal(noteId) {
-  const note = state.notes.find(n => n.id === noteId);
-  openModal('Перетворити на факт', `
-    <p style="color: var(--text-secondary); margin-bottom: var(--space-md);">
-      Нотатка буде збережена, а на її основі буде створено новий факт.
-    </p>
-    <div class="form-group">
-      <label class="form-label">Категорія *</label>
-      <input type="text" name="category" class="form-input" value="${escapeHtml(note.category || '')}" placeholder="personal, health, work...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Твердження *</label>
-      <textarea name="statement" class="form-textarea">${escapeHtml(note.content)}</textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Рівень довіри</label>
-      <select name="confidence" class="form-select">
-        <option value="verified">Верифіковано</option>
-        <option value="high" selected>Висока</option>
-        <option value="medium">Середня</option>
-        <option value="low">Низька</option>
-      </select>
-    </div>
-  `, async (data) => {
-    if (!data.category || !data.statement) throw new Error("Категорія і твердження обов'язкові");
-    await notesApi.promote(state.currentSpaceId, noteId, data);
-    showToast('Нотатку перетворено на факт', 'success');
-    await selectSpace(state.currentSpaceId);
-    await loadSpaces();
-  });
-}
-
-async function deleteNote(noteId) {
-  if (!confirm('Видалити цю нотатку?')) return;
-  try {
-    await notesApi.delete(state.currentSpaceId, noteId);
-    showToast('Нотатку видалено', 'success');
-    await selectSpace(state.currentSpaceId);
-    await loadSpaces();
-  } catch (error) {
-    showToast('Помилка видалення', 'error');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// Profile Management
-// ═══════════════════════════════════════════════════════════
-
-function renderProfile() {
-  if (state.profile.length === 0) {
-    elements.profileList.innerHTML = `
-      <div class="empty-list">
-        <div class="empty-list-icon">👤</div>
-        <p class="empty-list-text">Профіль порожній. Додайте характеристики!</p>
-      </div>
-    `;
-    return;
-  }
-
-  const grouped = state.profile.reduce((acc, entry) => {
-    if (!acc[entry.category]) acc[entry.category] = [];
-    acc[entry.category].push(entry);
-    return acc;
-  }, {});
-
-  elements.profileList.innerHTML = Object.entries(grouped).map(([category, entries]) => `
-    <div class="profile-category-group">
-      ${entries.map(entry => `
-        <div class="profile-card" data-id="${entry.id}">
-          <div class="profile-category">${escapeHtml(category)}</div>
-          <div class="profile-key">${escapeHtml(entry.key)}</div>
-          <div class="profile-value ${Array.isArray(entry.value) ? 'array' : ''}">
-            ${Array.isArray(entry.value) 
-              ? entry.value.map(v => `<span>${escapeHtml(v)}</span>`).join('') 
-              : escapeHtml(entry.value)}
-          </div>
-          <div class="card-actions" style="opacity: 1; margin-top: var(--space-md);">
-            <button class="btn-icon edit-profile" title="Редагувати">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </button>
-            <button class="btn-icon danger delete-profile" title="Видалити">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `).join('');
-
-  elements.profileList.querySelectorAll('.edit-profile').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.closest('.profile-card').dataset.id;
-      openEditProfileModal(id);
-    });
-  });
-
-  elements.profileList.querySelectorAll('.delete-profile').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.closest('.profile-card').dataset.id;
-      deleteProfileEntry(id);
-    });
-  });
-}
-
-function openAddProfileModal() {
-  openModal('Додати запис профілю', `
-    <div class="form-group">
-      <label class="form-label">Категорія *</label>
-      <input type="text" name="category" class="form-input" placeholder="personal, preferences, contacts...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Ключ *</label>
-      <input type="text" name="key" class="form-input" placeholder="name, birthday, email...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Значення *</label>
-      <input type="text" name="value" class="form-input" placeholder="Значення">
-      <p class="form-hint">Для списку розділіть комами: item1, item2, item3</p>
-    </div>
-  `, async (data) => {
-    if (!data.category || !data.key || !data.value) throw new Error("Усі поля обов'язкові");
-    if (data.value.includes(',')) {
-      data.value = data.value.split(',').map(v => v.trim());
-    }
-    await profileApi.create(state.currentSpaceId, data);
-    showToast('Запис додано', 'success');
-    await selectSpace(state.currentSpaceId);
-  });
-}
-
-function openEditProfileModal(entryId) {
-  const entry = state.profile.find(e => e.id === entryId);
-  const valueStr = Array.isArray(entry.value) ? entry.value.join(', ') : entry.value;
-  
-  openModal('Редагувати запис', `
-    <div class="form-group">
-      <label class="form-label">Категорія</label>
-      <input type="text" class="form-input" value="${escapeHtml(entry.category)}" disabled>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Ключ</label>
-      <input type="text" class="form-input" value="${escapeHtml(entry.key)}" disabled>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Значення *</label>
-      <input type="text" name="value" class="form-input" value="${escapeHtml(valueStr)}">
-    </div>
-  `, async (data) => {
-    if (!data.value) throw new Error("Значення обов'язкове");
-    if (data.value.includes(',')) {
-      data.value = data.value.split(',').map(v => v.trim());
-    }
-    await profileApi.update(state.currentSpaceId, entryId, data);
-    showToast('Запис оновлено', 'success');
-    await selectSpace(state.currentSpaceId);
-  });
-}
-
-async function deleteProfileEntry(entryId) {
-  if (!confirm('Видалити цей запис профілю?')) return;
-  try {
-    await profileApi.delete(state.currentSpaceId, entryId);
-    showToast('Запис видалено', 'success');
-    await selectSpace(state.currentSpaceId);
-  } catch (error) {
-    showToast('Помилка видалення', 'error');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// Timeline
-// ═══════════════════════════════════════════════════════════
-
-function renderTimeline() {
-  if (state.timeline.length === 0) {
-    elements.timelineList.innerHTML = `
-      <div class="empty-list">
-        <div class="empty-list-icon">📅</div>
-        <p class="empty-list-text">Історія змін порожня</p>
-      </div>
-    `;
-    return;
-  }
-
-  const sorted = [...state.timeline].sort((a, b) => 
-    new Date(b.timestamp) - new Date(a.timestamp)
-  );
-
-  elements.timelineList.innerHTML = sorted.map(entry => `
-    <div class="timeline-item">
-      <div class="timeline-time">${formatDate(entry.timestamp)}</div>
-      <div class="timeline-title">${escapeHtml(entry.title)}</div>
-      <span class="timeline-type ${escapeHtml(entry.eventType)}">${getEventTypeLabel(entry.eventType)}</span>
-    </div>
-  `).join('');
-}
-
-function formatDate(isoString) {
-  const date = new Date(isoString);
-  return date.toLocaleString('uk-UA', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function getEventTypeLabel(eventType) {
-  const labels = {
-    fact_added: 'Факт додано',
-    fact_updated: 'Факт оновлено',
-    fact_removed: 'Факт видалено',
-    note_added: 'Нотатку додано',
-    note_promoted: 'Нотатку → Факт',
-    profile_updated: 'Профіль оновлено',
-    milestone: 'Подія',
-    observation: 'Спостереження',
-    custom: 'Інше',
-  };
-  return labels[eventType] || eventType;
-}
-
-// ═══════════════════════════════════════════════════════════
-// Tabs Navigation
-// ═══════════════════════════════════════════════════════════
-
-$$('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    $$('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    
-    const tabName = tab.dataset.tab;
-    $$('.tab-pane').forEach(pane => pane.classList.remove('active'));
-    $(`#${tabName}-tab`).classList.add('active');
-  });
-});
-
-// ═══════════════════════════════════════════════════════════
-// Event Listeners
-// ═══════════════════════════════════════════════════════════
-
-$('#add-space-btn').addEventListener('click', openCreateSpaceModal);
-$('#create-first-space').addEventListener('click', openCreateSpaceModal);
-$('#edit-space-btn').addEventListener('click', openEditSpaceModal);
-$('#delete-space-btn').addEventListener('click', deleteSpace);
-$('#add-fact-btn').addEventListener('click', openAddFactModal);
-$('#add-note-btn').addEventListener('click', openAddNoteModal);
-$('#add-profile-btn').addEventListener('click', openAddProfileModal);
-
-// ═══════════════════════════════════════════════════════════
 // Initialize
 // ═══════════════════════════════════════════════════════════
 
-// CHANGE: Added click handler for AI status to open model selector
 document.addEventListener('DOMContentLoaded', () => {
   checkAIStatus();
   loadSpaces();
   
-  // Add click handler to AI status indicator
   elements.aiStatus.addEventListener('click', () => {
     if (state.aiConfigured) {
       openModelSelectorModal();

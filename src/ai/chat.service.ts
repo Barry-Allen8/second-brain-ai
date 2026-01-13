@@ -61,6 +61,19 @@ export function listSessions(spaceId: EntityId): ChatSession[] {
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
+/** Update session metadata */
+export function updateSession(sessionId: EntityId, updates: Partial<Pick<ChatSession, 'name'>>): ChatSession | null {
+  const session = sessions.get(sessionId);
+  if (!session) return null;
+  
+  if (updates.name !== undefined) {
+    session.name = updates.name;
+  }
+  
+  session.updatedAt = now();
+  return session;
+}
+
 /** Delete a session */
 export function deleteSession(sessionId: EntityId): boolean {
   return sessions.delete(sessionId);

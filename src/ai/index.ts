@@ -8,6 +8,7 @@ export {
   getSession,
   getOrCreateSession,
   listSessions,
+  updateSession,
   deleteSession,
   clearSpaceSessions,
   getChatHistory,

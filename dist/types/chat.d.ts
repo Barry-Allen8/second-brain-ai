@@ -17,6 +17,7 @@ export interface ChatMessage {
 export interface ChatSession {
     id: EntityId;
     spaceId: EntityId;
+    name?: string;
     messages: ChatMessage[];
     createdAt: string;
     updatedAt: string;
