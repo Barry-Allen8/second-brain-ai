@@ -3,9 +3,10 @@
  * Provides offline functionality and caching strategies
  */
 
-const CACHE_NAME = 'second-brain-ai-v1';
-const STATIC_CACHE_NAME = 'second-brain-ai-static-v1';
-const DYNAMIC_CACHE_NAME = 'second-brain-ai-dynamic-v1';
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `second-brain-ai-${CACHE_VERSION}`;
+const STATIC_CACHE_NAME = `second-brain-ai-static-${CACHE_VERSION}`;
+const DYNAMIC_CACHE_NAME = `second-brain-ai-dynamic-${CACHE_VERSION}`;
 
 // Static assets to cache immediately
 const STATIC_ASSETS = [
