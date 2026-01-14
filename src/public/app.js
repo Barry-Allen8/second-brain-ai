@@ -439,10 +439,7 @@ function openModelSelectorModal() {
       <p style="color: var(--text-secondary); font-size: 0.875rem;">
         <strong>Доступні моделі:</strong><br>
         • gpt-4o-mini - швидка, економна (за замовчуванням)<br>
-        • gpt-4o - найновіша потужна модель від OpenAI<br>
-        • gpt-4-turbo - швидка версія GPT-4 з великим контекстом<br>
-        • gpt-4 - класична GPT-4<br>
-        • gpt-3.5-turbo - швидка та економна модель
+        • gpt-4o - найпотужніша модель від OpenAI
       </p>
     </div>
   `, async (data) => {
