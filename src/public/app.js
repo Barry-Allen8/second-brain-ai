@@ -178,7 +178,7 @@ const state = {
   currentSpace: null,
   aiConfigured: false,
   aiModel: 'gpt-4o-mini',
-  supportedModels: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+  supportedModels: ['gpt-4o-mini', 'gpt-4o'],
   // Chat management
   chats: [], // List of chats in current space
   currentChatId: null,
@@ -392,7 +392,12 @@ async function checkAIStatus() {
     const status = await chatApi.status();
     state.aiConfigured = status.configured;
     state.aiModel = status.model || 'gpt-4o-mini';
-    state.supportedModels = status.supportedModels || ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
+    // Validate that saved model is in supported list, fallback to default if not
+    if (!['gpt-4o-mini', 'gpt-4o'].includes(state.aiModel)) {
+      console.warn(`Unsupported model "${state.aiModel}". Falling back to gpt-4o-mini.`);
+      state.aiModel = 'gpt-4o-mini';
+    }
+    state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
     
     if (status.configured) {
       elements.aiStatus.classList.add('connected');
