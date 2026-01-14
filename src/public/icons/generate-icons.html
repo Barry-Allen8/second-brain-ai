@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генератор PWA іконок - Second Brain AI</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0a0e14 0%, #1a1f2e 100%);
+      color: #e1e5eb;
+      min-height: 100vh;
+      padding: 40px;
+    }
+    h1 { color: #00d9ff; margin-bottom: 24px; }
+    p { color: #8b92a0; margin-bottom: 32px; }
+    .icons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .icon-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(0,217,255,0.2);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+    .icon-card h3 { color: #00d9ff; margin-bottom: 16px; }
+    canvas {
+      border: 1px solid rgba(0,217,255,0.3);
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    button {
+      background: linear-gradient(135deg, #00d9ff 0%, #00b8d9 100%);
+      color: #0a0e14;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3);
+    }
+    .instructions {
+      background: rgba(0,217,255,0.1);
+      border: 1px solid rgba(0,217,255,0.3);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 32px;
+    }
+    .instructions h2 { color: #00d9ff; margin-bottom: 16px; }
+    .instructions ol { padding-left: 24px; }
+    .instructions li { margin-bottom: 8px; color: #8b92a0; }
+    code {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #00d9ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Генератор PWA іконок</h1>
+  <p>Натисніть на кнопки, щоб завантажити PNG іконки для Second Brain AI</p>
+
+  <div class="icons-grid">
+    <div class="icon-card">
+      <h3>192x192 (any)</h3>
+      <canvas id="canvas-192" width="192" height="192"></canvas>
+      <br>
+      <button onclick="downloadIcon('canvas-192', 'icon-192x192.png')">Завантажити PNG</button>
+    </div>
+    
+    <div class="icon-card">
+      <h3>192x192 (maskable)</h3>
+      <canvas id="canvas-192-maskable" width="192" height="192"></canvas>
+      <br>
+      <button onclick="downloadIcon('canvas-192-maskable', 'icon-192x192-maskable.png')">Завантажити PNG</button>
+    </div>
+    
+    <div class="icon-card">
+      <h3>512x512 (any)</h3>
+      <canvas id="canvas-512" width="512" height="512"></canvas>
+      <br>
+      <button onclick="downloadIcon('canvas-512', 'icon-512x512.png')">Завантажити PNG</button>
+    </div>
+    
+    <div class="icon-card">
+      <h3>512x512 (maskable)</h3>
+      <canvas id="canvas-512-maskable" width="512" height="512"></canvas>
+      <br>
+      <button onclick="downloadIcon('canvas-512-maskable', 'icon-512x512-maskable.png')">Завантажити PNG</button>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h2>📋 Інструкція</h2>
+    <ol>
+      <li>Натисніть кнопку "Завантажити PNG" під кожною іконкою</li>
+      <li>Збережіть файли в папку <code>src/public/icons/</code></li>
+      <li>Файли повинні мати такі назви:
+        <ul>
+          <li><code>icon-192x192.png</code></li>
+          <li><code>icon-192x192-maskable.png</code></li>
+          <li><code>icon-512x512.png</code></li>
+          <li><code>icon-512x512-maskable.png</code></li>
+        </ul>
+      </li>
+      <li>Запустіть <code>npm run build</code> для копіювання в dist/</li>
+    </ol>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size, isMaskable) {
+      const ctx = canvas.getContext('2d');
+      const scale = size / 512;
+      
+      // Background gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, size, size);
+      bgGrad.addColorStop(0, '#0a0e14');
+      bgGrad.addColorStop(1, '#1a1f2e');
+      
+      // Draw background
+      if (isMaskable) {
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, size, size);
+      } else {
+        ctx.fillStyle = bgGrad;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, size, size, 64 * scale);
+        ctx.fill();
+      }
+      
+      // Glow gradient for brain
+      const glowGrad = ctx.createLinearGradient(0, 0, size, size);
+      glowGrad.addColorStop(0, '#00d9ff');
+      glowGrad.addColorStop(1, '#00b8d9');
+      
+      // Center and scale
+      ctx.save();
+      ctx.translate(size / 2, size / 2);
+      const iconScale = isMaskable ? 0.55 * scale : 0.75 * scale;
+      ctx.scale(iconScale, iconScale);
+      
+      // Shadow
+      ctx.shadowColor = 'rgba(0, 217, 255, 0.5)';
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 8;
+      
+      // Draw brain - left hemisphere
+      ctx.strokeStyle = glowGrad;
+      ctx.lineWidth = 16;
+      ctx.lineCap = 'round';
+      
+      ctx.beginPath();
+      ctx.moveTo(-80, -100);
+      ctx.quadraticCurveTo(-120, -80, -120, -20);
+      ctx.quadraticCurveTo(-130, 20, -100, 60);
+      ctx.quadraticCurveTo(-80, 100, -40, 100);
+      ctx.quadraticCurveTo(0, 110, 0, 80);
+      ctx.stroke();
+      
+      // Right hemisphere
+      ctx.beginPath();
+      ctx.moveTo(80, -100);
+      ctx.quadraticCurveTo(120, -80, 120, -20);
+      ctx.quadraticCurveTo(130, 20, 100, 60);
+      ctx.quadraticCurveTo(80, 100, 40, 100);
+      ctx.quadraticCurveTo(0, 110, 0, 80);
+      ctx.stroke();
+      
+      // Center line
+      ctx.globalAlpha = 0.7;
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(0, -100);
+      ctx.lineTo(0, 80);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      
+      // Neural dots
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = glowGrad;
+      
+      // Left dots
+      ctx.beginPath();
+      ctx.arc(-60, -60, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(-90, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(-50, 50, 9, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Right dots
+      ctx.beginPath();
+      ctx.arc(60, -60, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(90, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(50, 50, 9, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // AI core (glow)
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.arc(0, -20, 28, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(0, -20, 16, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    }
+    
+    function downloadIcon(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    // Draw all icons on load
+    window.onload = function() {
+      drawIcon(document.getElementById('canvas-192'), 192, false);
+      drawIcon(document.getElementById('canvas-192-maskable'), 192, true);
+      drawIcon(document.getElementById('canvas-512'), 512, false);
+      drawIcon(document.getElementById('canvas-512-maskable'), 512, true);
+    };
+  </script>
+</body>
+</html>

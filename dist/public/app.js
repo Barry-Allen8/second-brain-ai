@@ -6,6 +6,169 @@ const API_BASE = '/api/v1';
 const MAX_CHATS_PER_SPACE = 10;
 
 // ═══════════════════════════════════════════════════════════
+// PWA Service Worker Registration
+// ═══════════════════════════════════════════════════════════
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    console.log('[PWA] Service Worker не підтримується цим браузером');
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.register('/service-worker.js', {
+      scope: '/'
+    });
+
+    console.log('[PWA] Service Worker зареєстровано:', registration.scope);
+
+    // Check for updates
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      console.log('[PWA] Нова версія Service Worker знайдена');
+
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // New content is available
+          console.log('[PWA] Нова версія доступна!');
+          showUpdateNotification();
+        }
+      });
+    });
+
+    // Handle controller change (when new SW takes over)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('[PWA] Новий Service Worker активовано');
+    });
+
+  } catch (error) {
+    console.error('[PWA] Помилка реєстрації Service Worker:', error);
+  }
+}
+
+function showUpdateNotification() {
+  // Show a toast notification about the update
+  if (typeof showToast === 'function') {
+    showToast('Доступна нова версія! Оновіть сторінку.', 'info');
+  }
+}
+
+// PWA Install Prompt Handler
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  // Prevent the default browser install prompt
+  event.preventDefault();
+  
+  // Store the event for later use
+  deferredInstallPrompt = event;
+  
+  console.log('[PWA] Додаток можна встановити');
+  
+  // Optionally show custom install button/notification
+  showInstallButton();
+});
+
+function showInstallButton() {
+  // Check if we already showed install prompt
+  const installShown = localStorage.getItem('pwa-install-shown');
+  if (installShown) return;
+
+  // Create a subtle install suggestion after a delay
+  setTimeout(() => {
+    if (deferredInstallPrompt && typeof showToast === 'function') {
+      showToast('💡 Встановіть Second Brain як додаток!', 'info');
+      localStorage.setItem('pwa-install-shown', 'true');
+    }
+  }, 30000); // Show after 30 seconds
+}
+
+async function installPWA() {
+  if (!deferredInstallPrompt) {
+    console.log('[PWA] Встановлення недоступне');
+    return false;
+  }
+
+  // Show the install prompt
+  deferredInstallPrompt.prompt();
+
+  // Wait for user response
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  
+  console.log('[PWA] Результат встановлення:', outcome);
+
+  // Clear the deferred prompt
+  deferredInstallPrompt = null;
+
+  return outcome === 'accepted';
+}
+
+// Track successful installation
+window.addEventListener('appinstalled', () => {
+  console.log('[PWA] Додаток успішно встановлено!');
+  deferredInstallPrompt = null;
+  
+  if (typeof showToast === 'function') {
+    showToast('🎉 Second Brain AI встановлено!', 'success');
+  }
+});
+
+// Check if running as installed PWA
+function isPWAInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true ||
+         document.referrer.includes('android-app://');
+}
+
+// Online/Offline Status Handler
+function updateOnlineStatus() {
+  const isOnline = navigator.onLine;
+  const statusEl = document.getElementById('status');
+  
+  if (statusEl) {
+    const dot = statusEl.querySelector('.status-dot');
+    const text = statusEl.querySelector('.status-text');
+    
+    if (isOnline) {
+      statusEl.classList.remove('offline');
+      if (dot) dot.style.background = 'var(--success)';
+      if (text) text.textContent = 'Підключено';
+    } else {
+      statusEl.classList.add('offline');
+      if (dot) dot.style.background = 'var(--warning)';
+      if (text) text.textContent = 'Офлайн';
+    }
+  }
+  
+  console.log('[PWA] Статус мережі:', isOnline ? 'онлайн' : 'офлайн');
+}
+
+window.addEventListener('online', () => {
+  updateOnlineStatus();
+  if (typeof showToast === 'function') {
+    showToast("З'єднання відновлено", 'success');
+  }
+});
+
+window.addEventListener('offline', () => {
+  updateOnlineStatus();
+  if (typeof showToast === 'function') {
+    showToast('Немає з\'єднання з інтернетом', 'warning');
+  }
+});
+
+// Register SW on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    registerServiceWorker();
+    updateOnlineStatus();
+  });
+} else {
+  registerServiceWorker();
+  updateOnlineStatus();
+}
+
+// ═══════════════════════════════════════════════════════════
 // State Management
 // ═══════════════════════════════════════════════════════════
 
