@@ -548,7 +548,7 @@ async function selectSpace(spaceId) {
 
 function renderSpaceContent() {
   elements.spaceName.textContent = state.currentSpace.name;
-  elements.spaceDescription.textContent = state.currentSpace.description;
+  // Description is hidden - only visible in edit modal
 }
 
 function openCreateSpaceModal() {

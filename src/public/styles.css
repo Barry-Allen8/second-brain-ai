@@ -304,8 +304,8 @@ body {
   background-clip: text;
 }
 
-.space-info p#space-description {
-  display: none;
+#space-description {
+  display: none !important;
 }
 
 .space-actions {
