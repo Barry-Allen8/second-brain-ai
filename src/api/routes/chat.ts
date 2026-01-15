@@ -254,7 +254,7 @@ chatRouter.delete(
       return;
     }
 
-    res.status(204).send();
+    res.json(createSuccessResponse({ deleted: true }));
   })
 );
 

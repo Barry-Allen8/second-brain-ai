@@ -60,7 +60,7 @@ spacesRouter.delete(
   '/:spaceId',
   asyncHandler(async (req, res) => {
     await spaceService.deleteSpace(req.params['spaceId']!);
-    res.status(204).send();
+    res.json(createSuccessResponse({ deleted: true }));
   })
 );
 
