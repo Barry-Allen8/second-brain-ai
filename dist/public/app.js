@@ -123,21 +123,22 @@ function isPWAInstalled() {
 // Online/Offline Status Handler
 function updateOnlineStatus() {
   const isOnline = navigator.onLine;
-  const statusEl = document.getElementById('status');
-  
-  if (statusEl) {
-    const dot = statusEl.querySelector('.status-dot');
-    const text = statusEl.querySelector('.status-text');
-    
-    if (isOnline) {
-      statusEl.classList.remove('offline');
-      if (dot) dot.style.background = 'var(--success)';
-      if (text) text.textContent = 'Онлайн';
-    } else {
-      statusEl.classList.add('offline');
-      if (dot) dot.style.background = 'var(--warning)';
-      if (text) text.textContent = 'Офлайн';
-    }
+  const aiStatusEl = document.getElementById('ai-status');
+  if (!aiStatusEl) return;
+
+  if (isOnline) {
+    aiStatusEl.querySelector('.ai-status-text').textContent = 'AI: перевірка...';
+    aiStatusEl.classList.remove('disconnected');
+    aiStatusEl.classList.add('connected');
+    aiStatusEl.style.cursor = 'default';
+    aiStatusEl.title = '';
+    checkAIStatus();
+  } else {
+    aiStatusEl.classList.remove('connected');
+    aiStatusEl.classList.add('disconnected');
+    aiStatusEl.querySelector('.ai-status-text').textContent = 'Офлайн';
+    aiStatusEl.style.cursor = 'default';
+    aiStatusEl.title = '';
   }
   
   console.log('[PWA] Статус мережі:', isOnline ? 'онлайн' : 'офлайн');
@@ -894,7 +895,6 @@ elements.chatInput.addEventListener('keydown', (e) => {
 // ═══════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
-  checkAIStatus();
   loadSpaces();
   
   elements.aiStatus.addEventListener('click', () => {
