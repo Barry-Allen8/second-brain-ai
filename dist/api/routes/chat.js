@@ -170,7 +170,7 @@ exports.chatRouter.delete('/sessions/:sessionId', (0, middleware_js_1.asyncHandl
         }));
         return;
     }
-    res.status(204).send();
+    res.json((0, middleware_js_1.createSuccessResponse)({ deleted: true }));
 }));
 // CHANGE: New endpoint to change OpenAI model dynamically
 // Set AI model

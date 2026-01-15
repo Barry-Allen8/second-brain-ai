@@ -32,7 +32,7 @@ exports.spacesRouter.patch('/:spaceId', (0, middleware_js_1.validateBody)(index_
 // Delete space
 exports.spacesRouter.delete('/:spaceId', (0, middleware_js_1.asyncHandler)(async (req, res) => {
     await index_js_1.spaceService.deleteSpace(req.params['spaceId']);
-    res.status(204).send();
+    res.json((0, middleware_js_1.createSuccessResponse)({ deleted: true }));
 }));
 // Query context for AI prompt construction
 exports.spacesRouter.post('/:spaceId/context', (0, middleware_js_1.validateBody)(index_js_2.queryContextRequestSchema.omit({ spaceId: true })), (0, middleware_js_1.asyncHandler)(async (req, res) => {

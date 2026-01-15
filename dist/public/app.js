@@ -202,6 +202,9 @@ async function api(endpoint, options = {}) {
 
   try {
     const response = await fetch(url, config);
+    if (response.status === 204) {
+      return null;
+    }
     const data = await response.json();
     
     if (!response.ok || !data.success) {
@@ -399,6 +402,15 @@ async function checkAIStatus() {
     }
     state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
     
+    // Update connection status to show model name
+    const statusEl = document.getElementById('status');
+    if (statusEl && status.configured) {
+      const statusText = statusEl.querySelector('.status-text');
+      if (statusText) {
+        statusText.textContent = `${status.model}`;
+      }
+    }
+    
     if (status.configured) {
       elements.aiStatus.classList.add('connected');
       elements.aiStatus.classList.remove('disconnected');
@@ -536,7 +548,7 @@ function openCreateSpaceModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Опис</label>
-      <textarea name="description" class="form-textarea" placeholder="Короткий опис контексту"></textarea>
+      <textarea name="description" class="form-textarea description-textarea" placeholder="Короткий опис контексту"></textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>
@@ -560,7 +572,7 @@ function openEditSpaceModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Опис</label>
-      <textarea name="description" class="form-textarea">${escapeHtml(space.description)}</textarea>
+      <textarea name="description" class="form-textarea description-textarea">${escapeHtml(space.description)}</textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>

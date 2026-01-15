@@ -880,7 +880,12 @@ body {
 
 .form-textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 150px;
+}
+
+/* Larger textarea for description in modal */
+.form-textarea.description-textarea {
+  min-height: 200px;
 }
 
 .form-select {
@@ -1293,10 +1298,16 @@ body {
     /* Stick to bottom */
     position: sticky;
     bottom: 0;
-    /* Respect mobile safe areas */
-    padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
+    /* Respect mobile safe areas - increased padding for visibility */
+    padding-bottom: max(var(--space-md), calc(env(safe-area-inset-bottom) + var(--space-sm)));
     padding-left: max(var(--space-sm), env(safe-area-inset-left));
     padding-right: max(var(--space-sm), env(safe-area-inset-right));
+  }
+
+  /* === CHAT CONTAINER HEIGHT FIX === */
+  .chat-container {
+    height: calc(100vh - 56px - 80px);
+    min-height: 250px;
   }
 
   .chat-form {
@@ -1318,6 +1329,11 @@ body {
   .chat-send svg {
     width: 20px;
     height: 20px;
+  }
+
+  /* === SPACE DESCRIPTION HIDDEN ON MOBILE === */
+  .space-info p#space-description {
+    display: none;
   }
 
   /* === MODAL === */
