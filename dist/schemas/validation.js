@@ -29,7 +29,7 @@ exports.spaceMetadataSchema = zod_1.z.object({
     createdAt: exports.timestampSchema,
     updatedAt: exports.timestampSchema,
     name: zod_1.z.string().min(1).max(100),
-    description: zod_1.z.string().max(500),
+    description: zod_1.z.string().max(20000),
     icon: zod_1.z.string().max(50).optional(),
     color: zod_1.z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     tags: zod_1.z.array(zod_1.z.string().max(50)).max(20),
@@ -125,7 +125,7 @@ exports.timelineSchema = zod_1.z.object({
 // API Request schemas
 exports.createSpaceRequestSchema = zod_1.z.object({
     name: zod_1.z.string().min(1).max(100),
-    description: zod_1.z.string().max(500),
+    description: zod_1.z.string().max(20000),
     icon: zod_1.z.string().max(50).optional(),
     color: zod_1.z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
@@ -133,7 +133,7 @@ exports.createSpaceRequestSchema = zod_1.z.object({
 });
 exports.updateSpaceRequestSchema = zod_1.z.object({
     name: zod_1.z.string().min(1).max(100).optional(),
-    description: zod_1.z.string().max(500).optional(),
+    description: zod_1.z.string().max(20000).optional(),
     icon: zod_1.z.string().max(50).optional(),
     color: zod_1.z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),

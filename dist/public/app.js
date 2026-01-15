@@ -132,7 +132,14 @@ function updateOnlineStatus() {
     if (isOnline) {
       statusEl.classList.remove('offline');
       if (dot) dot.style.background = 'var(--success)';
-      if (text) text.textContent = 'Підключено';
+      // Show model name if AI is configured, otherwise show 'Підключено'
+      if (text) {
+        if (state.aiConfigured && state.aiModel) {
+          text.textContent = `AI: ${state.aiModel}`;
+        } else {
+          text.textContent = 'Підключено';
+        }
+      }
     } else {
       statusEl.classList.add('offline');
       if (dot) dot.style.background = 'var(--warning)';
@@ -402,12 +409,16 @@ async function checkAIStatus() {
     }
     state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
     
-    // Update connection status to show model name
+    // Update connection status to show model name (both on desktop and mobile)
     const statusEl = document.getElementById('status');
-    if (statusEl && status.configured) {
+    if (statusEl) {
       const statusText = statusEl.querySelector('.status-text');
       if (statusText) {
-        statusText.textContent = `${status.model}`;
+        if (status.configured) {
+          statusText.textContent = `AI: ${status.model}`;
+        } else {
+          statusText.textContent = 'AI: не налаштовано';
+        }
       }
     }
     
@@ -537,7 +548,10 @@ async function selectSpace(spaceId) {
 
 function renderSpaceContent() {
   elements.spaceName.textContent = state.currentSpace.name;
-  elements.spaceDescription.textContent = state.currentSpace.description;
+  // Keep header clean; description stays only in edit modal
+  if (elements.spaceDescription) {
+    elements.spaceDescription.textContent = '';
+  }
 }
 
 function openCreateSpaceModal() {
@@ -548,7 +562,7 @@ function openCreateSpaceModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Опис</label>
-      <textarea name="description" class="form-textarea description-textarea" placeholder="Короткий опис контексту"></textarea>
+      <textarea name="description" class="form-textarea description-textarea" rows="12" maxlength="20000" placeholder="Детальний опис контексту"></textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>
@@ -572,7 +586,7 @@ function openEditSpaceModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Опис</label>
-      <textarea name="description" class="form-textarea description-textarea">${escapeHtml(space.description)}</textarea>
+      <textarea name="description" class="form-textarea description-textarea" rows="12" maxlength="20000">${escapeHtml(space.description)}</textarea>
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>

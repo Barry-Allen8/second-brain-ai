@@ -33,7 +33,7 @@ export const spaceMetadataSchema = z.object({
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
   name: z.string().min(1).max(100),
-  description: z.string().max(5000),
+  description: z.string().max(20000),
   icon: z.string().max(50).optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   tags: z.array(z.string().max(50)).max(20),
@@ -140,7 +140,7 @@ export const timelineSchema = z.object({
 // API Request schemas
 export const createSpaceRequestSchema = z.object({
   name: z.string().min(1).max(100),
-  description: z.string().max(5000),
+  description: z.string().max(20000),
   icon: z.string().max(50).optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
@@ -149,7 +149,7 @@ export const createSpaceRequestSchema = z.object({
 
 export const updateSpaceRequestSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  description: z.string().max(5000).optional(),
+  description: z.string().max(20000).optional(),
   icon: z.string().max(50).optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
