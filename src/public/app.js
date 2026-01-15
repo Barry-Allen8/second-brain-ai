@@ -124,21 +124,39 @@ function isPWAInstalled() {
 function updateOnlineStatus() {
   const isOnline = navigator.onLine;
   const aiStatusEl = document.getElementById('ai-status');
-  if (!aiStatusEl) return;
+  const mobileAiStatusEl = document.getElementById('mobile-ai-status');
 
   if (isOnline) {
-    aiStatusEl.querySelector('.ai-status-text').textContent = 'AI: перевірка...';
-    aiStatusEl.classList.remove('disconnected');
-    aiStatusEl.classList.add('connected');
-    aiStatusEl.style.cursor = 'default';
-    aiStatusEl.title = '';
+    // Update sidebar status
+    if (aiStatusEl) {
+      aiStatusEl.querySelector('.ai-status-text').textContent = 'AI: перевірка...';
+      aiStatusEl.classList.remove('disconnected');
+      aiStatusEl.classList.add('connected');
+      aiStatusEl.style.cursor = 'default';
+      aiStatusEl.title = '';
+    }
+    // Update mobile status
+    if (mobileAiStatusEl) {
+      mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = '...';
+      mobileAiStatusEl.classList.remove('disconnected');
+      mobileAiStatusEl.classList.add('connected');
+    }
     checkAIStatus();
   } else {
-    aiStatusEl.classList.remove('connected');
-    aiStatusEl.classList.add('disconnected');
-    aiStatusEl.querySelector('.ai-status-text').textContent = 'Офлайн';
-    aiStatusEl.style.cursor = 'default';
-    aiStatusEl.title = '';
+    // Update sidebar status
+    if (aiStatusEl) {
+      aiStatusEl.classList.remove('connected');
+      aiStatusEl.classList.add('disconnected');
+      aiStatusEl.querySelector('.ai-status-text').textContent = 'Офлайн';
+      aiStatusEl.style.cursor = 'default';
+      aiStatusEl.title = '';
+    }
+    // Update mobile status
+    if (mobileAiStatusEl) {
+      mobileAiStatusEl.classList.remove('connected');
+      mobileAiStatusEl.classList.add('disconnected');
+      mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = 'Офлайн';
+    }
   }
   
   console.log('[PWA] Статус мережі:', isOnline ? 'онлайн' : 'офлайн');
@@ -279,6 +297,7 @@ const elements = {
   chatSend: $('#chat-send'),
   chatSelect: $('#chat-select'),
   aiStatus: $('#ai-status'),
+  mobileAiStatus: $('#mobile-ai-status'),
   // Mobile elements
   sidebar: $('#sidebar'),
   sidebarOverlay: $('#sidebar-overlay'),
@@ -404,21 +423,43 @@ async function checkAIStatus() {
     state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
     
     if (status.configured) {
+      // Update sidebar AI status
       elements.aiStatus.classList.add('connected');
       elements.aiStatus.classList.remove('disconnected');
       elements.aiStatus.querySelector('.ai-status-text').textContent = `AI: ${status.model}`;
       elements.aiStatus.style.cursor = 'pointer';
       elements.aiStatus.title = 'Клікніть для зміни моделі';
+      
+      // Update mobile AI status
+      if (elements.mobileAiStatus) {
+        elements.mobileAiStatus.classList.add('connected');
+        elements.mobileAiStatus.classList.remove('disconnected');
+        elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = status.model;
+      }
     } else {
       elements.aiStatus.classList.add('disconnected');
       elements.aiStatus.classList.remove('connected');
       elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: не налаштовано';
       elements.aiStatus.style.cursor = 'default';
       elements.aiStatus.title = '';
+      
+      // Update mobile AI status
+      if (elements.mobileAiStatus) {
+        elements.mobileAiStatus.classList.add('disconnected');
+        elements.mobileAiStatus.classList.remove('connected');
+        elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = 'Не налаштовано';
+      }
     }
   } catch (error) {
     elements.aiStatus.classList.add('disconnected');
     elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: помилка';
+    
+    // Update mobile AI status on error
+    if (elements.mobileAiStatus) {
+      elements.mobileAiStatus.classList.add('disconnected');
+      elements.mobileAiStatus.classList.remove('connected');
+      elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = 'Помилка';
+    }
   }
 }
 
@@ -895,11 +936,22 @@ elements.chatInput.addEventListener('keydown', (e) => {
 // ═══════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
+  checkAIStatus();
   loadSpaces();
   
+  // Sidebar AI status click handler
   elements.aiStatus.addEventListener('click', () => {
     if (state.aiConfigured) {
       openModelSelectorModal();
     }
   });
+  
+  // Mobile AI status click handler
+  if (elements.mobileAiStatus) {
+    elements.mobileAiStatus.addEventListener('click', () => {
+      if (state.aiConfigured) {
+        openModelSelectorModal();
+      }
+    });
+  }
 });
