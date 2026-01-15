@@ -132,14 +132,7 @@ function updateOnlineStatus() {
     if (isOnline) {
       statusEl.classList.remove('offline');
       if (dot) dot.style.background = 'var(--success)';
-      // Show model name if AI is configured, otherwise show 'Підключено'
-      if (text) {
-        if (state.aiConfigured && state.aiModel) {
-          text.textContent = `AI: ${state.aiModel}`;
-        } else {
-          text.textContent = 'Підключено';
-        }
-      }
+      if (text) text.textContent = 'Онлайн';
     } else {
       statusEl.classList.add('offline');
       if (dot) dot.style.background = 'var(--warning)';
@@ -408,19 +401,6 @@ async function checkAIStatus() {
       state.aiModel = 'gpt-4o-mini';
     }
     state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
-    
-    // Update connection status to show model name (both on desktop and mobile)
-    const statusEl = document.getElementById('status');
-    if (statusEl) {
-      const statusText = statusEl.querySelector('.status-text');
-      if (statusText) {
-        if (status.configured) {
-          statusText.textContent = `AI: ${status.model}`;
-        } else {
-          statusText.textContent = 'AI: не налаштовано';
-        }
-      }
-    }
     
     if (status.configured) {
       elements.aiStatus.classList.add('connected');
