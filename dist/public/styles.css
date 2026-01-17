@@ -1778,20 +1778,19 @@ body {
   transition: all var(--transition-fast);
 }
 
+/* Chat Input Main Area */
 .chat-input-main {
   display: flex;
   align-items: flex-end;
   width: 100%;
+  padding: 4px;
+  /* Internal spacing */
 }
 
-.chat-form:focus-within {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
+/* Input Field */
 .chat-input {
   flex: 1;
-  padding: var(--space-md);
+  padding: 12px;
   font-family: var(--font-sans);
   font-size: 0.9375rem;
   color: var(--text-primary);
@@ -1801,6 +1800,7 @@ body {
   min-height: 48px;
   max-height: 200px;
   transition: none;
+  line-height: 1.5;
 }
 
 .chat-input:focus {
@@ -1813,210 +1813,14 @@ body {
   color: var(--text-muted);
 }
 
-.chat-send {
-  width: 48px;
-  min-width: 48px;
-  height: auto;
-  padding: 0;
-  border-radius: 0;
-  border: none;
-  border-left: 1px solid var(--border-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chat-send:disabled {
-  opacity: 0.5;
-}
-
-/* Typing Indicator */
-.chat-typing {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  color: var(--text-muted);
-  font-size: 0.875rem;
-}
-
-.chat-typing-dots {
-  display: flex;
-  gap: 4px;
-}
-
-.chat-typing-dots span {
-  width: 8px;
-  height: 8px;
-  background: var(--text-muted);
-  border-radius: 50%;
-  animation: typingDot 1.4s infinite ease-in-out;
-}
-
-.chat-typing-dots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.chat-typing-dots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes typingDot {
-
-  0%,
-  80%,
-  100% {
-    transform: scale(0.6);
-    opacity: 0.5;
-  }
-
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* AI Status in Sidebar */
-.ai-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: var(--space-sm);
-}
-
-.ai-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-muted);
-}
-
-.ai-status.connected .ai-status-dot {
-  background: var(--success);
-  box-shadow: 0 0 6px var(--success);
-}
-
-.ai-status.disconnected .ai-status-dot {
-  background: var(--danger);
-}
-
-/* Chat Message Markdown-like formatting */
-.chat-bubble ul,
-.chat-bubble ol {
-  margin: var(--space-sm) 0;
-  padding-left: var(--space-lg);
-}
-
-.chat-bubble li {
-  margin-bottom: var(--space-xs);
-}
-
-.chat-bubble strong {
-  font-weight: 600;
-}
-
-.chat-bubble em {
-  font-style: italic;
-}
-
-/* Attachments */
-/* Attachments */
-.chat-attachments {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: 0 var(--space-sm);
-  overflow-x: auto;
-  min-height: 0;
-  transition: all var(--transition-fast);
-  scrollbar-width: thin;
-}
-
-.chat-attachments:not(:empty) {
-  padding: var(--space-sm);
-  padding-bottom: 0;
-  height: 48px;
-  margin-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--border-secondary);
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
-/* Remove border radius from input container bottom when attachments open? 
-   Actually, the chat form has border radius. 
-   Let's keep it simple. The chat-attachments is inside chat-form.
-*/
-
-.chat-attachment-item {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-full);
-  padding: 3px 8px 3px 3px;
-  font-size: 0.8125rem;
-  color: var(--text-primary);
-  max-width: 200px;
-  height: 32px;
-  transition: all var(--transition-fast);
-  user-select: none;
-}
-
-.chat-attachment-item:hover {
-  border-color: var(--border-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.attachment-preview {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: var(--bg-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  border: 1px solid var(--border-secondary);
-}
-
-.attachment-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-}
-
-.attachment-remove {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-  margin-left: 2px;
-  transition: all var(--transition-fast);
-}
-
-.attachment-remove:hover {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
-
+/* Attachment Button */
 .chat-attach {
-  width: 44px;
-  height: auto;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  /* Align with bottom of input */
+  margin-left: 4px;
+  border-radius: 50%;
   padding: 0;
   display: flex;
   align-items: center;
@@ -2025,9 +1829,55 @@ body {
   border: none;
   background: transparent;
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .chat-attach:hover {
   color: var(--accent-primary);
   background: var(--bg-hover);
+}
+
+/* Send Button */
+.chat-send {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  margin-bottom: 4px;
+  /* Align with bottom of input */
+  margin-right: 4px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  /* Default subtle background */
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+/* Use primary color effectively for send button */
+.chat-send.btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+  opacity: 1;
+}
+
+.chat-send:active {
+  transform: scale(0.95);
+}
+
+.chat-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+.chat-send svg {
+  width: 20px;
+  height: 20px;
 }
