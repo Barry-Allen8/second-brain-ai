@@ -35,16 +35,16 @@ let currentConfig: AIProviderConfig = DEFAULT_CONFIG;
 /** Initialize OpenAI client */
 export function initializeAI(config?: Partial<AIProviderConfig>): void {
   currentConfig = { ...DEFAULT_CONFIG, ...config };
-  
+
   // CHANGE: Validate model on initialization
   if (!isSupportedModel(currentConfig.model)) {
     console.warn(`⚠️ Unsupported model "${currentConfig.model}". Falling back to gpt-4o-mini.`);
     console.warn(`   Supported models: ${SUPPORTED_MODELS.join(', ')}`);
     currentConfig.model = 'gpt-4o-mini';
   }
-  
+
   const apiKey = config?.apiKey || process.env['OPENAI_API_KEY'];
-  
+
   if (!apiKey) {
     console.warn('⚠️ OpenAI API key not configured. Set OPENAI_API_KEY environment variable.');
     return;
@@ -79,7 +79,7 @@ export function setModel(model: string): void {
       `Unsupported model "${model}". Supported models: ${SUPPORTED_MODELS.join(', ')}`
     );
   }
-  
+
   currentConfig.model = model;
   console.log(`🔄 AI model changed to: ${model}`);
 }
@@ -99,10 +99,25 @@ export async function chatCompletion(
   // Convert to OpenAI message format
   const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
-    ...messages.map(m => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })),
+    ...messages.map(m => {
+      if (m.role === 'user') {
+        if (Array.isArray(m.content)) {
+          return {
+            role: 'user',
+            content: m.content as OpenAI.Chat.ChatCompletionContentPart[],
+          } as OpenAI.Chat.ChatCompletionUserMessageParam;
+        }
+        return {
+          role: 'user',
+          content: m.content as string,
+        } as OpenAI.Chat.ChatCompletionUserMessageParam;
+      }
+
+      return {
+        role: 'assistant',
+        content: m.content as string,
+      } as OpenAI.Chat.ChatCompletionAssistantMessageParam;
+    }),
   ];
 
   try {
@@ -114,7 +129,7 @@ export async function chatCompletion(
     });
 
     const content = response.choices[0]?.message?.content;
-    
+
     if (!content) {
       throw new Error('Empty response from AI');
     }
@@ -143,10 +158,25 @@ export async function* chatCompletionStream(
 
   const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
-    ...messages.map(m => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })),
+    ...messages.map(m => {
+      if (m.role === 'user') {
+        if (Array.isArray(m.content)) {
+          return {
+            role: 'user',
+            content: m.content as OpenAI.Chat.ChatCompletionContentPart[],
+          } as OpenAI.Chat.ChatCompletionUserMessageParam;
+        }
+        return {
+          role: 'user',
+          content: m.content as string,
+        } as OpenAI.Chat.ChatCompletionUserMessageParam;
+      }
+
+      return {
+        role: 'assistant',
+        content: m.content as string,
+      } as OpenAI.Chat.ChatCompletionAssistantMessageParam;
+    }),
   ];
 
   const stream = await openaiClient.chat.completions.create({

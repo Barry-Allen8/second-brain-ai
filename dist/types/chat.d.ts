@@ -4,11 +4,21 @@
 import type { EntityId } from './memory.js';
 /** Chat message role */
 export type MessageRole = 'system' | 'user' | 'assistant';
+/** Chat content part for multimodal messages */
+export type ChatContentPart = {
+    type: 'text';
+    text: string;
+} | {
+    type: 'image_url';
+    image_url: {
+        url: string;
+    };
+};
 /** Chat message */
 export interface ChatMessage {
     id: EntityId;
     role: MessageRole;
-    content: string;
+    content: string | ChatContentPart[];
     timestamp: string;
     /** File attachments */
     attachments?: ChatAttachment[];

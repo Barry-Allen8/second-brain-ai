@@ -180,10 +180,8 @@ chatRouter.post(
       for (const att of attachments) {
         if (att.type === 'file' && (att as any).content) {
           attachmentsContext += `File: ${att.name}\nContent:\n${(att as any).content}\n---\n`;
-        } else if (att.type === 'image') {
-          // Images are handled via vision if supported, but here we just mention it
-          attachmentsContext += `Image: ${att.name}\n`;
         }
+        // Images are now handled via native Vision API in ChatService
       }
       normalized.message += attachmentsContext;
     }

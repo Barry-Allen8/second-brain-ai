@@ -13,6 +13,7 @@ import type {
   ChatSession,
   ChatRequest,
   ChatResponse,
+  ChatContentPart,
 } from '../types/index.js';
 import { buildSystemPrompt, estimateContextTokens } from './context-builder.js';
 import { chatCompletion, isAIConfigured } from './provider.js';
@@ -33,7 +34,7 @@ export function createSession(spaceId: EntityId): ChatSession {
     createdAt: now(),
     updatedAt: now(),
   };
-  
+
   sessions.set(session.id, session);
   return session;
 }
@@ -65,11 +66,11 @@ export function listSessions(spaceId: EntityId): ChatSession[] {
 export function updateSession(sessionId: EntityId, updates: Partial<Pick<ChatSession, 'name'>>): ChatSession | null {
   const session = sessions.get(sessionId);
   if (!session) return null;
-  
+
   if (updates.name !== undefined) {
     session.name = updates.name;
   }
-  
+
   session.updatedAt = now();
   return session;
 }
@@ -108,10 +109,34 @@ export async function chat(request: ChatRequest): Promise<ChatResponse> {
   const session = getOrCreateSession(request.spaceId, request.sessionId);
 
   // Create user message
+  let content: string | ChatContentPart[] = request.message;
+
+  // Check for image attachments and convert to multimodal message if needed
+  if (request.attachments && request.attachments.some(a => a.type === 'image')) {
+    const parts: ChatContentPart[] = [];
+
+    // Add text part (even if empty, to be safe, but usually user adds text)
+    if (request.message) {
+      parts.push({ type: 'text', text: request.message });
+    }
+
+    // Add image parts
+    request.attachments.forEach(att => {
+      if (att.type === 'image') {
+        parts.push({
+          type: 'image_url',
+          image_url: { url: att.url }
+        });
+      }
+    });
+
+    content = parts;
+  }
+
   const userMessage: ChatMessage = {
     id: uuidv4(),
     role: 'user',
-    content: request.message,
+    content: content,
     timestamp: now(),
   };
   session.messages.push(userMessage);
@@ -158,8 +183,8 @@ export async function chat(request: ChatRequest): Promise<ChatResponse> {
 function countSection(prompt: string, sectionName: string): number {
   const sectionMatch = prompt.match(new RegExp(`=== ${sectionName}.*?===([\\s\\S]*?)(?====|$)`));
   if (!sectionMatch || !sectionMatch[1]) return 0;
-  
-  const lines = sectionMatch[1].split('\n').filter((l: string) => 
+
+  const lines = sectionMatch[1].split('\n').filter((l: string) =>
     l.trim().startsWith('•') || l.trim().startsWith('✓') || l.trim().startsWith('◉') || l.trim().startsWith('○') || l.trim().startsWith('⚡')
   );
   return lines.length;

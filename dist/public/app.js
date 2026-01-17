@@ -808,7 +808,25 @@ function addChatMessageToDOM(role, content) {
 }
 
 function formatChatContent(content) {
-  return content
+  // Handle array content (multimodal)
+  if (Array.isArray(content)) {
+    return content.map(part => {
+      if (part.type === 'text') {
+        return formatText(part.text);
+      } else if (part.type === 'image_url') {
+        return `<img src="${part.image_url.url}" class="chat-content-image" alt="Image">`;
+      }
+      return '';
+    }).join('');
+  }
+
+  // Handle string content
+  return formatText(content);
+}
+
+function formatText(text) {
+  if (!text) return '';
+  return text
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -1062,4 +1080,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Image modal handler (delegated)
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('chat-content-image')) {
+      const src = e.target.src;
+      const modal = document.createElement('div');
+      modal.className = 'image-modal';
+      modal.innerHTML = `<img src="${src}" alt="Full view">`;
+      modal.onclick = () => modal.remove();
+      document.body.appendChild(modal);
+    }
+  });
 });

@@ -132,10 +132,7 @@ exports.chatRouter.post('/', upload.array('attachments'), (0, middleware_js_1.as
             if (att.type === 'file' && att.content) {
                 attachmentsContext += `File: ${att.name}\nContent:\n${att.content}\n---\n`;
             }
-            else if (att.type === 'image') {
-                // Images are handled via vision if supported, but here we just mention it
-                attachmentsContext += `Image: ${att.name}\n`;
-            }
+            // Images are now handled via native Vision API in ChatService
         }
         normalized.message += attachmentsContext;
     }
