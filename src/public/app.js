@@ -943,25 +943,13 @@ async function sendChatMessage(message) {
 
   // 1. Prepare data for UI and Upload
   const filesToSend = [...selectedFiles];
-  // Clear file state immediately to prevent double-send or sticky UI
-  selectedFiles = [];
-
-  // 2. Clear Input UI immediately (Optimistic update)
-  const inputEl = elements.chatInput || document.getElementById('chat-input');
-  if (inputEl) {
-    inputEl.value = '';
-    inputEl.style.height = 'auto'; // Reset height
-    inputEl.focus(); // Keep focus for rapid typing
-  }
-
-  // Clear attachments UI
-  renderAttachments();
+  // Note: We don't clear state/UI yet, waiting for successful "add to history" step
 
   // Disable send button temporarily
   if (elements.chatSend) elements.chatSend.disabled = true;
 
   try {
-    // 3. Process files for Display (Base64/DataURL)
+    // 2. Process files for Display (Base64/DataURL)
     const filePromises = filesToSend.map(file => {
       return new Promise((resolve) => {
         if (file.type.startsWith('image/')) {
@@ -984,7 +972,7 @@ async function sendChatMessage(message) {
 
     const filesData = await Promise.all(filePromises);
 
-    // 4. Construct mixed content message for UI
+    // 3. Construct mixed content message for UI
     const contentParts = [];
     if (message.trim()) {
       contentParts.push({ type: 'text', text: message });
@@ -997,15 +985,27 @@ async function sendChatMessage(message) {
       }
     });
 
-    // Add User Message to DOM
+    // 4. Add User Message to DOM (Optimistic)
     if (contentParts.length > 0) {
       state.currentChatMessages.push({ role: 'user', content: contentParts });
       addChatMessageToDOM('user', contentParts);
+
+      // 5. Clear Input UI NOW (After adding to history, as consistent with ChatGPT)
+      const inputEl = document.getElementById('chat-input');
+      if (inputEl) {
+        inputEl.value = '';
+        inputEl.style.height = 'auto'; // Reset height
+        inputEl.focus(); // Keep focus for rapid typing
+      }
+
+      // Clear file state and attachments UI
+      selectedFiles = [];
+      renderAttachments();
     }
 
     showTypingIndicator();
 
-    // 5. Send to API
+    // 6. Send to API
     const formData = new FormData();
     formData.append('message', message);
     if (state.currentSpaceId) {
@@ -1039,12 +1039,12 @@ async function sendChatMessage(message) {
     console.error('Send error:', error);
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
 
-    // Optional: Restore input on error? 
-    // Usually better to keep it cleared but show error, or let user retry. 
-    // For now, we leave it cleared as per "ChatGPT-like" behavior which rarely restores input unless fatal.
+    // Note: Input is already cleared if we reached step 5. 
+    // If error happened before step 5 (e.g. file processing), input remains (which is good behavior).
   } finally {
     if (elements.chatSend) elements.chatSend.disabled = false;
     // Ensure focus is back on input
+    const inputEl = document.getElementById('chat-input');
     if (inputEl) inputEl.focus();
   }
 }
