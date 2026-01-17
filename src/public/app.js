@@ -891,7 +891,7 @@ function renderAttachments() {
     let preview = '';
     if (file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file);
-      preview = `<img src="${url}" class="attachment-preview" alt="Preview">`;
+      preview = `<img src="${url}" class="attachment-preview" alt="Preview" style="cursor: pointer">`;
     } else {
       // PDF or other file icon
       preview = `<div class="attachment-preview">📄</div>`;
@@ -1123,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Image modal handler (delegated)
   document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('chat-content-image')) {
+    if ((e.target.classList.contains('chat-content-image') || e.target.classList.contains('attachment-preview')) && e.target.tagName === 'IMG') {
       const src = e.target.src;
       const modal = document.createElement('div');
       modal.className = 'image-modal';
