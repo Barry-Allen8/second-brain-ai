@@ -59,12 +59,12 @@ let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', (event) => {
   // Prevent the default browser install prompt
   event.preventDefault();
-  
+
   // Store the event for later use
   deferredInstallPrompt = event;
-  
+
   console.log('[PWA] Додаток можна встановити');
-  
+
   // Optionally show custom install button/notification
   showInstallButton();
 });
@@ -94,7 +94,7 @@ async function installPWA() {
 
   // Wait for user response
   const { outcome } = await deferredInstallPrompt.userChoice;
-  
+
   console.log('[PWA] Результат встановлення:', outcome);
 
   // Clear the deferred prompt
@@ -107,7 +107,7 @@ async function installPWA() {
 window.addEventListener('appinstalled', () => {
   console.log('[PWA] Додаток успішно встановлено!');
   deferredInstallPrompt = null;
-  
+
   if (typeof showToast === 'function') {
     showToast('🎉 Second Brain AI встановлено!', 'success');
   }
@@ -116,8 +116,8 @@ window.addEventListener('appinstalled', () => {
 // Check if running as installed PWA
 function isPWAInstalled() {
   return window.matchMedia('(display-mode: standalone)').matches ||
-         window.navigator.standalone === true ||
-         document.referrer.includes('android-app://');
+    window.navigator.standalone === true ||
+    document.referrer.includes('android-app://');
 }
 
 // Online/Offline Status Handler
@@ -158,7 +158,7 @@ function updateOnlineStatus() {
       mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = 'Офлайн';
     }
   }
-  
+
   console.log('[PWA] Статус мережі:', isOnline ? 'онлайн' : 'офлайн');
 }
 
@@ -211,11 +211,16 @@ const state = {
 async function api(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   const config = {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...options.headers },
     ...options,
   };
-  
-  if (options.body && typeof options.body === 'object') {
+
+  if (options.body instanceof FormData) {
+    if (config.headers && config.headers['Content-Type']) {
+      delete config.headers['Content-Type'];
+    }
+  } else if (options.body && typeof options.body === 'object') {
+    config.headers = { ...config.headers, 'Content-Type': 'application/json' };
     config.body = JSON.stringify(options.body);
   }
 
@@ -225,11 +230,11 @@ async function api(endpoint, options = {}) {
       return null;
     }
     const data = await response.json();
-    
+
     if (!response.ok || !data.success) {
       throw new Error(data.error?.message || 'API request failed');
     }
-    
+
     return data.data;
   } catch (error) {
     console.error('API Error:', error);
@@ -343,9 +348,9 @@ function showToast(message, type = 'info') {
     <span class="toast-icon">${icons[type]}</span>
     <span class="toast-message">${message}</span>
   `;
-  
+
   elements.toastContainer.appendChild(toast);
-  
+
   setTimeout(() => {
     toast.style.animation = 'slideIn 0.2s ease reverse';
     setTimeout(() => toast.remove(), 200);
@@ -363,7 +368,7 @@ function openModal(title, formHtml, onSubmit) {
   elements.modalBody.innerHTML = formHtml;
   elements.modalOverlay.classList.remove('hidden');
   currentModalCallback = onSubmit;
-  
+
   const firstInput = elements.modalBody.querySelector('input, textarea, select');
   if (firstInput) setTimeout(() => firstInput.focus(), 100);
 }
@@ -376,7 +381,7 @@ function closeModal() {
 function getFormData() {
   const form = elements.modalBody;
   const data = {};
-  
+
   form.querySelectorAll('[name]').forEach(field => {
     if (field.type === 'checkbox') {
       data[field.name] = field.checked;
@@ -384,7 +389,7 @@ function getFormData() {
       data[field.name] = field.value.trim();
     }
   });
-  
+
   return data;
 }
 
@@ -421,7 +426,7 @@ async function checkAIStatus() {
       state.aiModel = 'gpt-4o-mini';
     }
     state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
-    
+
     if (status.configured) {
       // Update sidebar AI status
       elements.aiStatus.classList.add('connected');
@@ -429,7 +434,7 @@ async function checkAIStatus() {
       elements.aiStatus.querySelector('.ai-status-text').textContent = `AI: ${status.model}`;
       elements.aiStatus.style.cursor = 'pointer';
       elements.aiStatus.title = 'Клікніть для зміни моделі';
-      
+
       // Update mobile AI status
       if (elements.mobileAiStatus) {
         elements.mobileAiStatus.classList.add('connected');
@@ -442,7 +447,7 @@ async function checkAIStatus() {
       elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: не налаштовано';
       elements.aiStatus.style.cursor = 'default';
       elements.aiStatus.title = '';
-      
+
       // Update mobile AI status
       if (elements.mobileAiStatus) {
         elements.mobileAiStatus.classList.add('disconnected');
@@ -453,7 +458,7 @@ async function checkAIStatus() {
   } catch (error) {
     elements.aiStatus.classList.add('disconnected');
     elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: помилка';
-    
+
     // Update mobile AI status on error
     if (elements.mobileAiStatus) {
       elements.mobileAiStatus.classList.add('disconnected');
@@ -494,7 +499,7 @@ function openModelSelectorModal() {
     </div>
   `, async (data) => {
     if (!data.model) throw new Error("Оберіть модель");
-    
+
     try {
       await chatApi.setModel(data.model);
       state.aiModel = data.model;
@@ -514,7 +519,7 @@ async function loadSpaces() {
   try {
     state.spaces = await spacesApi.list();
     renderSpacesList();
-    
+
     if (state.spaces.length === 0) {
       elements.emptyState.classList.remove('hidden');
       elements.spaceContent.classList.add('hidden');
@@ -544,21 +549,21 @@ async function selectSpace(spaceId) {
   state.currentSpaceId = spaceId;
   state.currentChatId = null;
   state.currentChatMessages = [];
-  
+
   try {
     const space = await spacesApi.get(spaceId);
     state.currentSpace = space.metadata;
-    
+
     // Load chats for this space
     await loadChats();
-    
+
     renderSpacesList();
     renderSpaceContent();
     renderChatWelcome();
-    
+
     elements.emptyState.classList.add('hidden');
     elements.spaceContent.classList.remove('hidden');
-    
+
     // Close sidebar on mobile after selecting a space
     if (isMobile()) {
       closeSidebar();
@@ -625,7 +630,7 @@ function openEditSpaceModal() {
 
 async function deleteSpace() {
   if (!confirm(`Видалити простір "${state.currentSpace.name}"? Це незворотня дія!`)) return;
-  
+
   try {
     await spacesApi.delete(state.currentSpaceId);
     showToast('Простір видалено', 'success');
@@ -655,7 +660,7 @@ async function loadChats() {
 function renderChatSelector() {
   const select = elements.chatSelect;
   select.innerHTML = '<option value="">Новий чат</option>';
-  
+
   state.chats.forEach(chat => {
     const option = document.createElement('option');
     option.value = chat.sessionId;
@@ -665,7 +670,7 @@ function renderChatSelector() {
     }
     select.appendChild(option);
   });
-  
+
   // Update button states
   updateChatButtonStates();
 }
@@ -674,13 +679,13 @@ function updateChatButtonStates() {
   const hasActiveChat = !!state.currentChatId;
   const renameBtn = $('#rename-chat-btn');
   const deleteBtn = $('#delete-chat-btn');
-  
+
   if (renameBtn) {
     renameBtn.disabled = !hasActiveChat;
     renameBtn.style.opacity = hasActiveChat ? '1' : '0.5';
     renameBtn.style.cursor = hasActiveChat ? 'pointer' : 'not-allowed';
   }
-  
+
   if (deleteBtn) {
     deleteBtn.disabled = !hasActiveChat;
     deleteBtn.style.opacity = hasActiveChat ? '1' : '0.5';
@@ -693,7 +698,7 @@ async function createNewChat() {
     showToast(`Максимум ${MAX_CHATS_PER_SPACE} чатів на простір. Видаліть старі чати.`, 'warning');
     return;
   }
-  
+
   state.currentChatId = null;
   state.currentChatMessages = [];
   elements.chatSelect.value = '';
@@ -707,7 +712,7 @@ async function selectChat(sessionId) {
     createNewChat();
     return;
   }
-  
+
   try {
     const session = await chatApi.getSession(sessionId);
     state.currentChatId = sessionId;
@@ -724,7 +729,7 @@ async function renameChat() {
     showToast('Спочатку оберіть чат', 'warning');
     return;
   }
-  
+
   const currentChat = state.chats.find(c => c.sessionId === state.currentChatId);
   openModal('Перейменувати чат', `
     <div class="form-group">
@@ -744,9 +749,9 @@ async function deleteChat() {
     showToast('Спочатку оберіть чат', 'warning');
     return;
   }
-  
+
   if (!confirm('Видалити цей чат? Це незворотня дія!')) return;
-  
+
   try {
     await chatApi.deleteSession(state.currentChatId);
     showToast('Чат видалено', 'success');
@@ -784,20 +789,20 @@ function renderChatMessages() {
 function addChatMessageToDOM(role, content) {
   const welcome = elements.chatMessages.querySelector('.chat-welcome');
   if (welcome) welcome.remove();
-  
+
   const messageEl = document.createElement('div');
   messageEl.className = `chat-message ${role}`;
-  
+
   const avatar = role === 'user' ? '👤' : '🧠';
   const formattedContent = formatChatContent(content);
-  
+
   messageEl.innerHTML = `
     <div class="chat-avatar">${avatar}</div>
     <div class="chat-bubble">
       ${formattedContent}
     </div>
   `;
-  
+
   elements.chatMessages.appendChild(messageEl);
   elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 }
@@ -837,41 +842,124 @@ function hideTypingIndicator() {
   if (typing) typing.remove();
 }
 
+// ═══════════════════════════════════════════════════════════
+// File Handling
+// ═══════════════════════════════════════════════════════════
+
+let selectedFiles = [];
+
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  selectedFiles = [...selectedFiles, ...files];
+  renderAttachments();
+  e.target.value = ''; // Reset input
+}
+
+function renderAttachments() {
+  const container = document.getElementById('chat-attachments');
+  container.innerHTML = '';
+
+  selectedFiles.forEach((file, index) => {
+    const item = document.createElement('div');
+    item.className = 'chat-attachment-item';
+
+    let preview = '';
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      preview = `<img src="${url}" class="attachment-preview">`;
+    } else {
+      preview = '📄';
+    }
+
+    item.innerHTML = `
+      ${preview}
+      <span>${escapeHtml(file.name)}</span>
+      <button class="attachment-remove" data-index="${index}" type="button">×</button>
+    `;
+    container.appendChild(item);
+  });
+
+  // Add remove listeners
+  container.querySelectorAll('.attachment-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.target.dataset.index);
+      selectedFiles.splice(index, 1);
+      renderAttachments();
+    });
+  });
+}
+
+// Add listeners
+document.getElementById('chat-attach').addEventListener('click', () => {
+  document.getElementById('file-input').click();
+});
+document.getElementById('file-input').addEventListener('change', handleFileSelect);
+
+
 async function sendChatMessage(message) {
-  if (!message.trim()) return;
+  if (!message.trim() && selectedFiles.length === 0) return;
   if (!state.aiConfigured) {
     showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'error');
     return;
   }
-  
+
   // Add message to state and DOM
-  state.currentChatMessages.push({ role: 'user', content: message });
-  addChatMessageToDOM('user', message);
-  
+  // If there are files but no text, we just say "Attached x files".
+  const displayContent = message || (selectedFiles.length > 0 ? `[Attached ${selectedFiles.length} files]` : '');
+
+  state.currentChatMessages.push({ role: 'user', content: displayContent });
+
+  // Render user message with attachments (simple preview)
+  // For proper preview, we should render them in DOM.
+  // But reusing addChatMessageToDOM for now.
+  let contentHtml = escapeHtml(message);
+  if (selectedFiles.length > 0) {
+    const filesHtml = selectedFiles.map(f => {
+      if (f.type.startsWith('image/')) {
+        return `<div class="chat-file-preview">📷 ${escapeHtml(f.name)}</div>`; // Simple preview for now
+      }
+      return `<div class="chat-file-preview">📄 ${escapeHtml(f.name)}</div>`;
+    }).join('');
+    contentHtml += `<div class="chat-files-list">${filesHtml}</div>`;
+  }
+
+  // Use existing simple render, but we might want to enhance addChatMessageToDOM later.
+  // For now, simple text content.
+  addChatMessageToDOM('user', displayContent);
+
   elements.chatInput.value = '';
   elements.chatInput.style.height = 'auto';
   elements.chatSend.disabled = true;
-  
+
   showTypingIndicator();
-  
+
   try {
-    const payload = { message };
+    const formData = new FormData();
+    formData.append('message', message);
     if (state.currentSpaceId) {
-      payload.spaceId = state.currentSpaceId;
+      formData.append('spaceId', state.currentSpaceId);
     }
     if (state.currentChatId) {
-      payload.sessionId = state.currentChatId;
+      formData.append('sessionId', state.currentChatId);
     }
-    
-    const response = await chatApi.send(payload);
-    
+
+    selectedFiles.forEach(file => {
+      formData.append('attachments', file);
+    });
+
+    // Clear files immediately after sending starts
+    selectedFiles = [];
+    renderAttachments();
+
+    const response = await chatApi.send(formData);
+
     // Update current chat ID if it's a new chat
     if (!state.currentChatId) {
       state.currentChatId = response.sessionId;
       await loadChats();
       elements.chatSelect.value = state.currentChatId;
     }
-    
+
     state.currentChatMessages.push({ role: 'assistant', content: response.message.content });
     hideTypingIndicator();
     addChatMessageToDOM('assistant', response.message.content);
@@ -938,14 +1026,14 @@ elements.chatInput.addEventListener('keydown', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   checkAIStatus();
   loadSpaces();
-  
+
   // Sidebar AI status click handler
   elements.aiStatus.addEventListener('click', () => {
     if (state.aiConfigured) {
       openModelSelectorModal();
     }
   });
-  
+
   // Mobile AI status click handler
   if (elements.mobileAiStatus) {
     elements.mobileAiStatus.addEventListener('click', () => {

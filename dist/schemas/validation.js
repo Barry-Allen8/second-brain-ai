@@ -231,15 +231,24 @@ const chatMessageItemSchema = zod_1.z.object({
     role: zod_1.z.enum(['system', 'user', 'assistant']),
     content: zod_1.z.string().min(1).max(10000),
 });
+// Chat attachment schema
+const chatAttachmentSchema = zod_1.z.object({
+    type: zod_1.z.enum(['image', 'file']),
+    url: zod_1.z.string(),
+    name: zod_1.z.string(),
+    mimeType: zod_1.z.string(),
+});
 const simpleChatRequestSchema = zod_1.z.object({
     message: zod_1.z.string().min(1).max(10000),
     spaceId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
     sessionId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
+    attachments: zod_1.z.array(chatAttachmentSchema).optional(),
 });
 const structuredChatRequestSchema = zod_1.z.object({
     spaceId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
     messages: zod_1.z.array(chatMessageItemSchema).min(1),
     sessionId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
+    attachments: zod_1.z.array(chatAttachmentSchema).optional(),
 });
 exports.chatRequestSchema = zod_1.z.union([
     simpleChatRequestSchema,

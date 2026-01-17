@@ -954,14 +954,42 @@ export declare const chatRequestSchema: z.ZodUnion<[z.ZodObject<{
     message: z.ZodString;
     spaceId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     sessionId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        type: z.ZodEnum<["image", "file"]>;
+        url: z.ZodString;
+        name: z.ZodString;
+        mimeType: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        type: "image" | "file";
+        name: string;
+        url: string;
+        mimeType: string;
+    }, {
+        type: "image" | "file";
+        name: string;
+        url: string;
+        mimeType: string;
+    }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     message: string;
     spaceId?: string | undefined;
     sessionId?: string | undefined;
+    attachments?: {
+        type: "image" | "file";
+        name: string;
+        url: string;
+        mimeType: string;
+    }[] | undefined;
 }, {
     message: string;
     spaceId?: unknown;
     sessionId?: unknown;
+    attachments?: {
+        type: "image" | "file";
+        name: string;
+        url: string;
+        mimeType: string;
+    }[] | undefined;
 }>, z.ZodObject<{
     spaceId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
     messages: z.ZodArray<z.ZodObject<{
@@ -975,6 +1003,22 @@ export declare const chatRequestSchema: z.ZodUnion<[z.ZodObject<{
         role: "system" | "user" | "assistant";
     }>, "many">;
     sessionId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        type: z.ZodEnum<["image", "file"]>;
+        url: z.ZodString;
+        name: z.ZodString;
+        mimeType: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        type: "image" | "file";
+        name: string;
+        url: string;
+        mimeType: string;
+    }, {
+        type: "image" | "file";
+        name: string;
+        url: string;
+        mimeType: string;
+    }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     messages: {
         content: string;
@@ -982,6 +1026,12 @@ export declare const chatRequestSchema: z.ZodUnion<[z.ZodObject<{
     }[];
     spaceId?: string | undefined;
     sessionId?: string | undefined;
+    attachments?: {
+        type: "image" | "file";
+        name: string;
+        url: string;
+        mimeType: string;
+    }[] | undefined;
 }, {
     messages: {
         content: string;
@@ -989,5 +1039,11 @@ export declare const chatRequestSchema: z.ZodUnion<[z.ZodObject<{
     }[];
     spaceId?: unknown;
     sessionId?: unknown;
+    attachments?: {
+        type: "image" | "file";
+        name: string;
+        url: string;
+        mimeType: string;
+    }[] | undefined;
 }>]>;
 //# sourceMappingURL=validation.d.ts.map

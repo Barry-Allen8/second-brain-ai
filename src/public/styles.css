@@ -1836,3 +1836,61 @@ body {
 .chat-bubble em {
   font-style: italic;
 }
+
+/* Attachments */
+.chat-attachments {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  margin-bottom: var(--space-xs);
+  overflow-x: auto;
+}
+
+.chat-attachment-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.attachment-preview {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.attachment-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 4px;
+  padding: 0;
+}
+
+.attachment-remove:hover {
+  color: var(--danger);
+}
+
+.chat-attach {
+  padding: var(--space-xs);
+  margin-right: var(--space-xs);
+  color: var(--text-muted);
+}
+
+.chat-attach:hover {
+  color: var(--accent-primary);
+  background: var(--bg-hover);
+}

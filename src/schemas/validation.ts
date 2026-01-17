@@ -259,6 +259,14 @@ const chatMessageItemSchema = z.object({
   content: z.string().min(1).max(10000),
 });
 
+// Chat attachment schema
+const chatAttachmentSchema = z.object({
+  type: z.enum(['image', 'file']),
+  url: z.string(),
+  name: z.string(),
+  mimeType: z.string(),
+});
+
 const simpleChatRequestSchema = z.object({
   message: z.string().min(1).max(10000),
   spaceId: z.preprocess(
@@ -269,6 +277,7 @@ const simpleChatRequestSchema = z.object({
     (val) => (val === null || val === undefined) ? undefined : val,
     z.string().uuid().optional()
   ),
+  attachments: z.array(chatAttachmentSchema).optional(),
 });
 
 const structuredChatRequestSchema = z.object({
@@ -281,6 +290,7 @@ const structuredChatRequestSchema = z.object({
     (val) => (val === null || val === undefined) ? undefined : val,
     z.string().uuid().optional()
   ),
+  attachments: z.array(chatAttachmentSchema).optional(),
 });
 
 export const chatRequestSchema = z.union([

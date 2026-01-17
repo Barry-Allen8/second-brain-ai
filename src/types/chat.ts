@@ -13,8 +13,18 @@ export interface ChatMessage {
   role: MessageRole;
   content: string;
   timestamp: string;
+  /** File attachments */
+  attachments?: ChatAttachment[];
   /** Extracted facts/notes from this message */
   extractedData?: ExtractedMemory;
+}
+
+/** Chat attachment */
+export interface ChatAttachment {
+  type: 'image' | 'file';
+  url: string;
+  name: string;
+  mimeType: string;
 }
 
 /** Chat session */
@@ -72,6 +82,7 @@ export interface AIProviderConfig {
 export interface ChatRequest {
   spaceId: EntityId;
   message: string;
+  attachments?: ChatAttachment[];
   sessionId?: EntityId;
 }
 
