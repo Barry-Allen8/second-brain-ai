@@ -1791,35 +1791,108 @@ body {
 }
 
 /* Chat Input */
+/* Chat Input Composer */
 .chat-input-container {
-  border-top: 1px solid var(--border-secondary);
-  padding: var(--space-md);
+  padding: 0 var(--space-md) var(--space-md) var(--space-md);
+  background: transparent;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.chat-composer-inner {
+  display: flex;
+  align-items: flex-end;
   background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 26px;
+  padding: 6px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  position: relative;
 }
 
-.chat-context-info {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-bottom: var(--space-sm);
-  display: flex;
-  gap: var(--space-md);
+.chat-composer-inner:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
-.chat-context-info span {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.chat-form {
+/* Internal Areas */
+.chat-input-area {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
+  min-width: 0;
+  margin-right: 8px;
+}
+
+.chat-attachments {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 0 8px;
+  max-width: 100%;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.chat-attachments::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari */
+}
+
+.chat-attachments:not(:empty) {
+  padding-top: 8px;
+  padding-bottom: 4px;
+}
+
+/* Attachment Chips */
+.chat-attachment-item {
+  position: relative;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
   overflow: hidden;
-  transition: all var(--transition-fast);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attachment-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-name {
+  display: none;
+  /* Hide name for small chips */
+}
+
+.attachment-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.attachment-remove:hover {
+  background: var(--danger);
 }
 
 /* Chat Input Main Area */
@@ -1832,18 +1905,19 @@ body {
 }
 
 /* Input Field */
+/* Input Field */
 .chat-input {
-  flex: 1;
-  padding: 12px;
+  width: 100%;
+  padding: 10px 12px;
   font-family: var(--font-sans);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   color: var(--text-primary);
   background: transparent;
   border: none;
   resize: none;
-  min-height: 48px;
+  min-height: 44px;
+  /* Matches button height approx */
   max-height: 200px;
-  transition: none;
   line-height: 1.5;
 }
 
@@ -1857,13 +1931,12 @@ body {
   color: var(--text-muted);
 }
 
-/* Attachment Button */
+/* Buttons */
 .chat-attach {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 4px;
-  /* Align with bottom of input */
-  margin-left: 4px;
+  width: 36px;
+  height: 36px;
+  margin: 0 0 4px 4px;
+  /* Align to bottom */
   border-radius: 50%;
   padding: 0;
   display: flex;
@@ -1874,31 +1947,40 @@ body {
   background: transparent;
   cursor: pointer;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .chat-attach:hover {
-  color: var(--accent-primary);
+  color: var(--text-primary);
   background: var(--bg-hover);
 }
 
 /* Send Button */
 .chat-send {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  margin-bottom: 4px;
-  /* Align with bottom of input */
-  margin-right: 4px;
+  width: 36px;
+  height: 36px;
+  margin: 0 0 4px 0;
+  /* Align to bottom */
+  border-radius: 50%;
+  /* Rounded circle for send */
   padding: 0;
-  border-radius: var(--radius-md);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-elevated);
-  /* Default subtle background */
+  background: var(--bg-tertiary);
   color: var(--text-muted);
   transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.chat-send.btn-primary {
+  background: var(--text-primary);
+  /* White/Light for send button usually */
+  color: var(--bg-primary);
+  /* Or stick to brand: */
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: #000;
 }
 
 /* Use primary color effectively for send button */
