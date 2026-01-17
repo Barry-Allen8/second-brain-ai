@@ -941,33 +941,63 @@ async function sendChatMessage(message) {
     return;
   }
 
-  // Add message to state and DOM
-  // If there are files but no text, we just say "Attached x files".
-  const displayContent = message || (selectedFiles.length > 0 ? `[Attached ${selectedFiles.length} files]` : '');
 
-  state.currentChatMessages.push({ role: 'user', content: displayContent });
-
-  // Render user message with attachments (simple preview)
-  // For proper preview, we should render them in DOM.
-  // But reusing addChatMessageToDOM for now.
-  let contentHtml = escapeHtml(message);
-  if (selectedFiles.length > 0) {
-    const filesHtml = selectedFiles.map(f => {
-      if (f.type.startsWith('image/')) {
-        return `<div class="chat-file-preview">📷 ${escapeHtml(f.name)}</div>`; // Simple preview for now
+  // 1. Read files as Data URLs for immediate UI rendering
+  const filePromises = selectedFiles.map(file => {
+    return new Promise((resolve) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve({
+          type: 'image_url',
+          image_url: { url: e.target.result },
+          file // store original file for FormData
+        });
+        reader.readAsDataURL(file);
+      } else {
+        // For non-images (PDFs), just return text representation or handled differently
+        resolve({
+          type: 'text',
+          text: `[Attached file: ${file.name}]`,
+          file
+        });
       }
-      return `<div class="chat-file-preview">📄 ${escapeHtml(f.name)}</div>`;
-    }).join('');
-    contentHtml += `<div class="chat-files-list">${filesHtml}</div>`;
+    });
+  });
+
+  const filesData = await Promise.all(filePromises);
+
+  // 2. Construct mixed content message for UI
+  // If there's text, add it as a text part
+  const contentParts = [];
+  if (message.trim()) {
+    contentParts.push({ type: 'text', text: message });
   }
+  // Add image parts
+  filesData.forEach(f => {
+    if (f.type === 'image_url') {
+      contentParts.push({ type: 'image_url', image_url: f.image_url });
+    } else if (f.type === 'text' && !message.includes(f.text)) {
+      // Append non-image file info if not already in message (optional logic)
+      contentParts.push(f);
+    }
+  });
 
-  // Use existing simple render, but we might want to enhance addChatMessageToDOM later.
-  // For now, simple text content.
-  addChatMessageToDOM('user', displayContent);
+  // If no parts (empty text, no files - shouldn't happen due to check above), return
+  if (contentParts.length === 0) return;
 
+  // 3. Add to local state and Render
+  state.currentChatMessages.push({ role: 'user', content: contentParts });
+  addChatMessageToDOM('user', contentParts);
+
+  // 4. Clear input state
   elements.chatInput.value = '';
   elements.chatInput.style.height = 'auto';
   elements.chatSend.disabled = true;
+
+  // Clear attachments from UI
+  const filesToSend = [...selectedFiles]; // Copy for upload
+  selectedFiles = [];
+  renderAttachments();
 
   showTypingIndicator();
 
@@ -981,13 +1011,9 @@ async function sendChatMessage(message) {
       formData.append('sessionId', state.currentChatId);
     }
 
-    selectedFiles.forEach(file => {
+    filesToSend.forEach(file => {
       formData.append('attachments', file);
     });
-
-    // Clear files immediately after sending starts
-    selectedFiles = [];
-    renderAttachments();
 
     const response = await chatApi.send(formData);
 
@@ -1007,6 +1033,7 @@ async function sendChatMessage(message) {
   } finally {
     elements.chatSend.disabled = false;
   }
+
 }
 
 // ═══════════════════════════════════════════════════════════
