@@ -46,7 +46,7 @@ export async function buildContextParts(spaceId: EntityId): Promise<SystemPrompt
 /** Build complete system prompt */
 export async function buildSystemPrompt(spaceId: EntityId): Promise<string> {
   const parts = await buildContextParts(spaceId);
-  
+
   return `${parts.baseInstructions}
 
 ${parts.spaceContext}
@@ -73,6 +73,7 @@ function buildBaseInstructions(metadata: SpaceMetadata): string {
 
   return `Ти — AI-асистент з персистентною пам'яттю. 
 Ти маєш доступ до структурованої інформації про користувача.
+Ти можеш бачити та аналізувати зображення, які користувач надсилає.
 Використовуй цю інформацію для персоналізованих відповідей.
 
 ПРАВИЛА:

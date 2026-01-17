@@ -176,14 +176,20 @@ chatRouter.post(
     // Append attachments info to message for AI context
     if (attachments.length > 0) {
       // Logic to append file content to the message
+      let hasFileContent = false;
       let attachmentsContext = '\n\n[Attached Files]:\n';
+
       for (const att of attachments) {
         if (att.type === 'file' && (att as any).content) {
           attachmentsContext += `File: ${att.name}\nContent:\n${(att as any).content}\n---\n`;
+          hasFileContent = true;
         }
         // Images are now handled via native Vision API in ChatService
       }
-      normalized.message += attachmentsContext;
+
+      if (hasFileContent) {
+        normalized.message += attachmentsContext;
+      }
     }
 
     const resolvedSpaceId = await resolveSpaceId(normalized.spaceId);
