@@ -9,7 +9,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.chatRouter = void 0;
 const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
-// @ts-ignore
 const index_js_1 = require("../../utils/index.js");
 // CHANGE: Added setModel and SUPPORTED_MODELS imports
 const index_js_2 = require("../../ai/index.js");

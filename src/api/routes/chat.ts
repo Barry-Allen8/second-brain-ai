@@ -6,7 +6,6 @@ import { Router } from 'express';
 import type { z } from 'zod';
 import type { ChatSession, EntityId, ChatAttachment } from '../../types/index.js';
 import multer from 'multer';
-// @ts-ignore
 import { extractTextFromPdf } from '../../utils/index.js';
 
 // CHANGE: Added setModel and SUPPORTED_MODELS imports
