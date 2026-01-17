@@ -941,67 +941,71 @@ async function sendChatMessage(message) {
     return;
   }
 
-
-  // 1. Read files as Data URLs for immediate UI rendering
-  const filePromises = selectedFiles.map(file => {
-    return new Promise((resolve) => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve({
-          type: 'image_url',
-          image_url: { url: e.target.result },
-          file // store original file for FormData
-        });
-        reader.readAsDataURL(file);
-      } else {
-        // For non-images (PDFs), just return text representation or handled differently
-        resolve({
-          type: 'text',
-          text: `[Attached file: ${file.name}]`,
-          file
-        });
-      }
-    });
-  });
-
-  const filesData = await Promise.all(filePromises);
-
-  // 2. Construct mixed content message for UI
-  // If there's text, add it as a text part
-  const contentParts = [];
-  if (message.trim()) {
-    contentParts.push({ type: 'text', text: message });
-  }
-  // Add image parts
-  filesData.forEach(f => {
-    if (f.type === 'image_url') {
-      contentParts.push({ type: 'image_url', image_url: f.image_url });
-    } else if (f.type === 'text' && !message.includes(f.text)) {
-      // Append non-image file info if not already in message (optional logic)
-      contentParts.push(f);
-    }
-  });
-
-  // If no parts (empty text, no files - shouldn't happen due to check above), return
-  if (contentParts.length === 0) return;
-
-  // 3. Add to local state and Render
-  state.currentChatMessages.push({ role: 'user', content: contentParts });
-  addChatMessageToDOM('user', contentParts);
-
-  // 4. Clear input state
-  elements.chatInput.value = '';
-  elements.chatInput.style.height = 'auto';
-  elements.chatSend.disabled = true;
-
-  // Clear attachments from UI
-  const filesToSend = [...selectedFiles]; // Copy for upload
+  // 1. Prepare data for UI and Upload
+  const filesToSend = [...selectedFiles];
+  // Clear file state immediately to prevent double-send or sticky UI
   selectedFiles = [];
+
+  // 2. Clear Input UI immediately (Optimistic update)
+  const inputEl = elements.chatInput || document.getElementById('chat-input');
+  if (inputEl) {
+    inputEl.value = '';
+    inputEl.style.height = 'auto'; // Reset height
+    inputEl.focus(); // Keep focus for rapid typing
+  }
+
+  // Clear attachments UI
   renderAttachments();
 
-  showTypingIndicator();
+  // Disable send button temporarily
+  if (elements.chatSend) elements.chatSend.disabled = true;
 
   try {
+    // 3. Process files for Display (Base64/DataURL)
+    const filePromises = filesToSend.map(file => {
+      return new Promise((resolve) => {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve({
+            type: 'image_url',
+            image_url: { url: e.target.result },
+            file
+          });
+          reader.readAsDataURL(file);
+        } else {
+          resolve({
+            type: 'text',
+            text: `[Attached file: ${file.name}]`,
+            file
+          });
+        }
+      });
+    });
+
+    const filesData = await Promise.all(filePromises);
+
+    // 4. Construct mixed content message for UI
+    const contentParts = [];
+    if (message.trim()) {
+      contentParts.push({ type: 'text', text: message });
+    }
+    filesData.forEach(f => {
+      if (f.type === 'image_url') {
+        contentParts.push({ type: 'image_url', image_url: f.image_url });
+      } else if (f.type === 'text' && !message.includes(f.text)) {
+        contentParts.push(f);
+      }
+    });
+
+    // Add User Message to DOM
+    if (contentParts.length > 0) {
+      state.currentChatMessages.push({ role: 'user', content: contentParts });
+      addChatMessageToDOM('user', contentParts);
+    }
+
+    showTypingIndicator();
+
+    // 5. Send to API
     const formData = new FormData();
     formData.append('message', message);
     if (state.currentSpaceId) {
@@ -1017,23 +1021,32 @@ async function sendChatMessage(message) {
 
     const response = await chatApi.send(formData);
 
-    // Update current chat ID if it's a new chat
+    // Update session if needed
     if (!state.currentChatId) {
       state.currentChatId = response.sessionId;
       await loadChats();
-      elements.chatSelect.value = state.currentChatId;
+      // Ensure specific chat is selected in dropdown
+      if (elements.chatSelect) elements.chatSelect.value = state.currentChatId;
     }
 
+    // Add Assistant Message to DOM
     state.currentChatMessages.push({ role: 'assistant', content: response.message.content });
     hideTypingIndicator();
     addChatMessageToDOM('assistant', response.message.content);
+
   } catch (error) {
     hideTypingIndicator();
+    console.error('Send error:', error);
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
-  } finally {
-    elements.chatSend.disabled = false;
-  }
 
+    // Optional: Restore input on error? 
+    // Usually better to keep it cleared but show error, or let user retry. 
+    // For now, we leave it cleared as per "ChatGPT-like" behavior which rarely restores input unless fatal.
+  } finally {
+    if (elements.chatSend) elements.chatSend.disabled = false;
+    // Ensure focus is back on input
+    if (inputEl) inputEl.focus();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
