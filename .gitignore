@@ -13,3 +13,4 @@ data/spaces/*/
 
 # Use pnpm lockfile instead of npm
 package-lock.json
+.vercel
