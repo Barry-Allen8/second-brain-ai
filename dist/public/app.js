@@ -1067,17 +1067,31 @@ function clearChatInput() {
   // Clear text input state
   state.chatInputValue = '';
   
-  // Clear DOM textarea value and reset height
-  if (elements.chatInput) {
-    elements.chatInput.value = '';
-    elements.chatInput.style.height = 'auto';
-    // Force a reflow to ensure the browser updates the display
-    elements.chatInput.offsetHeight;
+  // Clear DOM textarea value and reset height - multiple methods for reliability
+  const textarea = elements.chatInput || document.getElementById('chat-input');
+  if (textarea) {
+    // Method 1: Direct value assignment
+    textarea.value = '';
+    // Method 2: setAttribute for extra reliability
+    textarea.setAttribute('value', '');
+    // Reset height
+    textarea.style.height = 'auto';
+    textarea.style.height = '';
+    // Force reflow
+    void textarea.offsetHeight;
+    // Dispatch input event to trigger any listeners
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
   }
   
   // Clear file attachments
   selectedFiles = [];
   renderAttachments();
+  
+  // Also clear the file input
+  const fileInput = document.getElementById('file-input');
+  if (fileInput) {
+    fileInput.value = '';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
