@@ -289,7 +289,7 @@ body {
 
 /* Space Content */
 .space-content {
-  padding: var(--space-xl);
+  padding: var(--space-lg) var(--space-xl);
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -298,8 +298,8 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
   border-bottom: 1px solid var(--border-secondary);
 }
 
@@ -1284,7 +1284,7 @@ body {
 
   /* === SPACE CONTENT === */
   .space-content {
-    padding: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
   }
 
   /* === SPACE HEADER === */
@@ -1292,8 +1292,8 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-md);
-    padding-bottom: var(--space-sm);
-    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-xs);
+    margin-bottom: var(--space-sm);
   }
 
   .space-info h1 {
@@ -1334,7 +1334,7 @@ body {
 
   /* === CHAT HEADER === */
   .chat-header {
-    padding: var(--space-sm);
+    padding: var(--space-xs);
   }
 
   .chat-selector {
@@ -1363,11 +1363,11 @@ body {
 
   /* === CHAT MESSAGES === */
   .chat-messages {
-    padding: var(--space-sm);
+    padding: var(--space-xs);
     gap: var(--space-sm);
     /* Add safe area for iOS notch */
-    padding-left: max(var(--space-sm), env(safe-area-inset-left));
-    padding-right: max(var(--space-sm), env(safe-area-inset-right));
+    padding-left: max(var(--space-xs), env(safe-area-inset-left));
+    padding-right: max(var(--space-xs), env(safe-area-inset-right));
   }
 
   .chat-message {
@@ -1404,16 +1404,16 @@ body {
 
   /* === CHAT INPUT AREA (CRITICAL FOR MOBILE) === */
   .chat-input-container {
-    padding: var(--space-sm);
+    padding: var(--space-xs);
     background: var(--bg-secondary);
     border-top: 1px solid var(--border-secondary);
     /* Stick to bottom */
     position: sticky;
     bottom: 0;
     /* Respect mobile safe areas - increased padding for visibility */
-    padding-bottom: max(var(--space-md), calc(env(safe-area-inset-bottom) + var(--space-sm)));
-    padding-left: max(var(--space-sm), env(safe-area-inset-left));
-    padding-right: max(var(--space-sm), env(safe-area-inset-right));
+    padding-bottom: max(var(--space-sm), calc(env(safe-area-inset-bottom) + var(--space-xs)));
+    padding-left: max(var(--space-xs), env(safe-area-inset-left));
+    padding-right: max(var(--space-xs), env(safe-area-inset-right));
   }
 
   /* === CHAT CONTAINER HEIGHT FIX === */
@@ -1559,7 +1559,7 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 .chat-header {
-  padding: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   border-bottom: 1px solid var(--border-primary);
   background: var(--bg-secondary);
 }
@@ -1614,7 +1614,7 @@ body {
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -1793,7 +1793,7 @@ body {
 /* Chat Input */
 /* Chat Input Composer */
 .chat-input-container {
-  padding: 0 var(--space-md) var(--space-sm) var(--space-md);
+  padding: 0 var(--space-md) var(--space-xs) var(--space-md);
   background: transparent;
   max-width: 900px;
   margin: 0 auto;
