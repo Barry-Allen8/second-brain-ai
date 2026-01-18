@@ -951,7 +951,11 @@ document.getElementById('file-input').addEventListener('change', handleFileSelec
 
 
 async function sendChatMessage(messageOverride) {
-  const message = typeof messageOverride === 'string' ? messageOverride : state.chatInputValue;
+  // Read directly from DOM for reliability, fallback to state
+  const message = typeof messageOverride === 'string' 
+    ? messageOverride 
+    : (elements.chatInput?.value ?? state.chatInputValue ?? '');
+  
   if (!message.trim() && selectedFiles.length === 0) return;
   if (!state.aiConfigured) {
     showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'error');
@@ -959,7 +963,12 @@ async function sendChatMessage(messageOverride) {
   }
 
   // Clear input immediately after a valid submit (do not wait for async response)
-  setChatInputValue('', { resetHeight: true, focus: true });
+  // Use direct DOM manipulation for guaranteed clearing
+  if (elements.chatInput) {
+    elements.chatInput.value = '';
+    elements.chatInput.style.height = 'auto';
+  }
+  state.chatInputValue = '';
 
   // 1. Prepare data for UI and Upload
   const filesToSend = [...selectedFiles];
