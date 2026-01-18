@@ -10,3 +10,6 @@ coverage/
 *.swo
 data/spaces/*/
 !data/spaces/.gitkeep
+
+# Use pnpm lockfile instead of npm
+package-lock.json

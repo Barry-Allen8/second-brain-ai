@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "description": "Persistent memory system for AI assistant with isolated context spaces",
   "main": "dist/index.js",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "build": "tsc && cp -r src/public dist/",
-    "vercel-build": "npm run build",
+    "vercel-build": "pnpm run build",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "lint": "eslint src --ext .ts",
-    "test": "vitest"
+    "test": "vitest run --passWithNoTests"
   },
   "keywords": [
     "ai",
