@@ -966,10 +966,6 @@ async function sendChatMessage(messageOverride) {
   const filesToSend = [...selectedFiles];
   const messageToSend = message.trim();
 
-  // CRITICAL: Clear input and attachments IMMEDIATELY after validation
-  // This ensures the UI is reset before any async operations
-  clearChatInput();
-
   // Disable send button temporarily
   if (elements.chatSend) elements.chatSend.disabled = true;
 
@@ -1047,11 +1043,15 @@ async function sendChatMessage(messageOverride) {
     hideTypingIndicator();
     addChatMessageToDOM('assistant', response.message.content);
 
+    // CRITICAL: Clear input and attachments AFTER successful response
+    // This ensures proper UX - input is only cleared when message was sent successfully
+    clearChatInput();
+
   } catch (error) {
     hideTypingIndicator();
     console.error('Send error:', error);
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
-    // Input remains cleared even on error - user can retype if needed
+    // On error, keep the input so user can retry without retyping
   } finally {
     if (elements.chatSend) elements.chatSend.disabled = false;
     // Ensure focus is back on input
