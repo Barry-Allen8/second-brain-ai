@@ -962,23 +962,19 @@ async function sendChatMessage(messageOverride) {
     return;
   }
 
-  // Clear input immediately after a valid submit (do not wait for async response)
-  // Use direct DOM manipulation for guaranteed clearing
-  if (elements.chatInput) {
-    elements.chatInput.value = '';
-    elements.chatInput.style.height = 'auto';
-  }
-  state.chatInputValue = '';
-
-  // 1. Prepare data for UI and Upload
+  // Capture files BEFORE clearing
   const filesToSend = [...selectedFiles];
-  // Note: We don't clear state/UI yet, waiting for successful "add to history" step
+  const messageToSend = message.trim();
+
+  // CRITICAL: Clear input and attachments IMMEDIATELY after validation
+  // This ensures the UI is reset before any async operations
+  clearChatInput();
 
   // Disable send button temporarily
   if (elements.chatSend) elements.chatSend.disabled = true;
 
   try {
-    // 2. Process files for Display (Base64/DataURL)
+    // Process files for Display (Base64/DataURL)
     const filePromises = filesToSend.map(file => {
       return new Promise((resolve) => {
         if (file.type.startsWith('image/')) {
@@ -1001,34 +997,30 @@ async function sendChatMessage(messageOverride) {
 
     const filesData = await Promise.all(filePromises);
 
-    // 3. Construct mixed content message for UI
+    // Construct mixed content message for UI
     const contentParts = [];
-    if (message.trim()) {
-      contentParts.push({ type: 'text', text: message });
+    if (messageToSend) {
+      contentParts.push({ type: 'text', text: messageToSend });
     }
     filesData.forEach(f => {
       if (f.type === 'image_url') {
         contentParts.push({ type: 'image_url', image_url: f.image_url });
-      } else if (f.type === 'text' && !message.includes(f.text)) {
+      } else if (f.type === 'text' && !messageToSend.includes(f.text)) {
         contentParts.push(f);
       }
     });
 
-    // 4. Add User Message to DOM (Optimistic)
+    // Add User Message to DOM (Optimistic)
     if (contentParts.length > 0) {
       state.currentChatMessages.push({ role: 'user', content: contentParts });
       addChatMessageToDOM('user', contentParts);
-
-      // 5. Clear file state and attachments UI
-      selectedFiles = [];
-      renderAttachments();
     }
 
     showTypingIndicator();
 
-    // 6. Send to API
+    // Send to API
     const formData = new FormData();
-    formData.append('message', message);
+    formData.append('message', messageToSend);
     if (state.currentSpaceId) {
       formData.append('spaceId', state.currentSpaceId);
     }
@@ -1059,13 +1051,33 @@ async function sendChatMessage(messageOverride) {
     hideTypingIndicator();
     console.error('Send error:', error);
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
-
-    // Note: Input is cleared immediately after submit (before async work).
+    // Input remains cleared even on error - user can retype if needed
   } finally {
     if (elements.chatSend) elements.chatSend.disabled = false;
     // Ensure focus is back on input
     if (elements.chatInput) elements.chatInput.focus();
   }
+}
+
+/**
+ * Clear chat input, reset textarea height, clear attachments
+ * This is the single source of truth for resetting the chat input state
+ */
+function clearChatInput() {
+  // Clear text input state
+  state.chatInputValue = '';
+  
+  // Clear DOM textarea value and reset height
+  if (elements.chatInput) {
+    elements.chatInput.value = '';
+    elements.chatInput.style.height = 'auto';
+    // Force a reflow to ensure the browser updates the display
+    elements.chatInput.offsetHeight;
+  }
+  
+  // Clear file attachments
+  selectedFiles = [];
+  renderAttachments();
 }
 
 // ═══════════════════════════════════════════════════════════
