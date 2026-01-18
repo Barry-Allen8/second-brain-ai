@@ -1012,6 +1012,10 @@ async function sendChatMessage(messageOverride) {
       addChatMessageToDOM('user', contentParts);
     }
 
+    // CRITICAL FIX: Clear input IMMEDIATELY after message is sent to UI
+    // User can now type new message while AI is responding
+    clearChatInput();
+
     showTypingIndicator();
 
     // Send to API
@@ -1043,15 +1047,12 @@ async function sendChatMessage(messageOverride) {
     hideTypingIndicator();
     addChatMessageToDOM('assistant', response.message.content);
 
-    // CRITICAL: Clear input and attachments AFTER successful response
-    // This ensures proper UX - input is only cleared when message was sent successfully
-    clearChatInput();
-
   } catch (error) {
     hideTypingIndicator();
     console.error('Send error:', error);
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
-    // On error, keep the input so user can retry without retyping
+    // On error, the input was already cleared - user needs to retype
+    // This is acceptable trade-off for immediate clearing behavior
   } finally {
     if (elements.chatSend) elements.chatSend.disabled = false;
     // Ensure focus is back on input
