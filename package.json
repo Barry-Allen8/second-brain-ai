@@ -1,11 +1,12 @@
 {
   "name": "second-brain-ai",
   "version": "1.0.0",
+  "type": "module",
   "description": "Persistent memory system for AI assistant with isolated context spaces",
   "main": "dist/index.js",
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "build": "tsc && cp -r src/public dist/",
+    "build": "tsc && node scripts/copy-public.cjs",
     "vercel-build": "pnpm run build",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",

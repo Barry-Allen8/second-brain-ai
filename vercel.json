@@ -2,30 +2,27 @@
   "version": 2,
   "builds": [
     {
-      "src": "dist/index.js",
+      "src": "dist/api/serverless.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "dist/public/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "dist/index.js"
+      "dest": "dist/api/serverless.js"
     },
     {
       "src": "/health",
-      "dest": "dist/index.js"
+      "dest": "dist/api/serverless.js"
     },
     {
-      "src": "/(.*\\.(js|css|ico|png|jpg|svg))",
+      "src": "/(.*\\.(js|css|ico|png|jpg|svg|json|webmanifest))",
       "dest": "dist/public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "dist/public/index.html"
+      "dest": "dist/api/serverless.js"
     }
-  ]
+  ],
+  "outputDirectory": "dist"
 }

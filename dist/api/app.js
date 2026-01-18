@@ -1,31 +1,41 @@
-"use strict";
 /**
  * Express application setup.
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.createApp = createApp;
-const express_1 = __importDefault(require("express"));
-const node_path_1 = __importDefault(require("node:path"));
-const index_js_1 = require("./routes/index.js");
-const middleware_js_1 = require("./middleware.js");
-function createApp() {
-    const app = (0, express_1.default)();
+import express from 'express';
+import path from 'node:path';
+import { spacesRouter, chatRouter } from './routes/index.js';
+import { errorHandler, createSuccessResponse } from './middleware.js';
+import { isAIConfigured, getAIConfig } from '../ai/index.js';
+export function createApp() {
+    const app = express();
     // Middleware
-    app.use(express_1.default.json());
+    app.use(express.json());
     // Serve static files from public directory
     // In production, public folder is copied to dist/public
-    const publicPath = node_path_1.default.join(process.cwd(), 'dist', 'public');
-    app.use(express_1.default.static(publicPath));
-    // Health check
+    const publicPath = path.join(process.cwd(), 'dist', 'public');
+    app.use(express.static(publicPath));
+    // Health check with AI readiness
     app.get('/health', (_req, res) => {
-        res.json((0, middleware_js_1.createSuccessResponse)({ status: 'ok', version: '1.0.0' }));
+        const aiConfigured = isAIConfigured();
+        const aiConfig = getAIConfig();
+        res.json(createSuccessResponse({
+            status: 'ok',
+            version: '1.0.0',
+            services: {
+                ai: {
+                    ready: aiConfigured,
+                    provider: aiConfigured ? aiConfig.provider : null,
+                    model: aiConfigured ? aiConfig.model : null,
+                    message: aiConfigured
+                        ? 'AI service is ready'
+                        : 'AI service unavailable - OPENAI_API_KEY not configured',
+                },
+            },
+        }));
     });
     // API info endpoint
     app.get('/api', (_req, res) => {
-        res.json((0, middleware_js_1.createSuccessResponse)({
+        res.json(createSuccessResponse({
             name: 'Second Brain AI',
             version: '1.0.0',
             description: 'Persistent memory system for AI assistants',
@@ -38,10 +48,10 @@ function createApp() {
         }));
     });
     // API routes
-    app.use('/api/v1/spaces', index_js_1.spacesRouter);
-    app.use('/api/v1/chat', index_js_1.chatRouter);
+    app.use('/api/v1/spaces', spacesRouter);
+    app.use('/api/v1/chat', chatRouter);
     // Error handling
-    app.use(middleware_js_1.errorHandler);
+    app.use(errorHandler);
     return app;
 }
 //# sourceMappingURL=app.js.map

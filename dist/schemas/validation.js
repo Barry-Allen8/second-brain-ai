@@ -1,100 +1,97 @@
-"use strict";
 /**
  * Zod validation schemas for all memory entities.
  * These provide runtime validation and type inference.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.chatRequestSchema = exports.paginationParamsSchema = exports.queryContextRequestSchema = exports.addTimelineEntryRequestSchema = exports.updateProfileEntryRequestSchema = exports.addProfileEntryRequestSchema = exports.promoteNoteRequestSchema = exports.updateNoteRequestSchema = exports.addNoteRequestSchema = exports.updateFactRequestSchema = exports.addFactRequestSchema = exports.updateSpaceRequestSchema = exports.createSpaceRequestSchema = exports.timelineSchema = exports.timelineEntrySchema = exports.timelineEventTypeSchema = exports.notesSchema = exports.noteSchema = exports.noteImportanceSchema = exports.factsSchema = exports.factSchema = exports.profileSchema = exports.profileEntrySchema = exports.spaceMetadataSchema = exports.spaceRulesSchema = exports.sourceSchema = exports.sourceTypeSchema = exports.confidenceLevelSchema = exports.timestampSchema = exports.entityIdSchema = void 0;
-const zod_1 = require("zod");
+import { z } from 'zod';
 // Base schemas
-exports.entityIdSchema = zod_1.z.string().uuid();
-exports.timestampSchema = zod_1.z.string().datetime();
-exports.confidenceLevelSchema = zod_1.z.enum(['low', 'medium', 'high', 'verified']);
-exports.sourceTypeSchema = zod_1.z.enum(['user_input', 'inference', 'external', 'observation']);
-exports.sourceSchema = zod_1.z.object({
-    type: exports.sourceTypeSchema,
-    reference: zod_1.z.string().optional(),
-    timestamp: exports.timestampSchema,
+export const entityIdSchema = z.string().uuid();
+export const timestampSchema = z.string().datetime();
+export const confidenceLevelSchema = z.enum(['low', 'medium', 'high', 'verified']);
+export const sourceTypeSchema = z.enum(['user_input', 'inference', 'external', 'observation']);
+export const sourceSchema = z.object({
+    type: sourceTypeSchema,
+    reference: z.string().optional(),
+    timestamp: timestampSchema,
 });
 // Space rules
-exports.spaceRulesSchema = zod_1.z.object({
-    allowHealthData: zod_1.z.boolean(),
-    noteRetentionDays: zod_1.z.number().int().min(0),
-    requireFactConfirmation: zod_1.z.boolean(),
-    customInstructions: zod_1.z.string().max(2000).optional(),
+export const spaceRulesSchema = z.object({
+    allowHealthData: z.boolean(),
+    noteRetentionDays: z.number().int().min(0),
+    requireFactConfirmation: z.boolean(),
+    customInstructions: z.string().max(2000).optional(),
 });
 // Space metadata
-exports.spaceMetadataSchema = zod_1.z.object({
-    id: exports.entityIdSchema,
-    createdAt: exports.timestampSchema,
-    updatedAt: exports.timestampSchema,
-    name: zod_1.z.string().min(1).max(100),
-    description: zod_1.z.string().max(20000),
-    icon: zod_1.z.string().max(50).optional(),
-    color: zod_1.z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20),
-    rules: exports.spaceRulesSchema,
-    isActive: zod_1.z.boolean(),
+export const spaceMetadataSchema = z.object({
+    id: entityIdSchema,
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema,
+    name: z.string().min(1).max(100),
+    description: z.string().max(20000),
+    icon: z.string().max(50).optional(),
+    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    tags: z.array(z.string().max(50)).max(20),
+    rules: spaceRulesSchema,
+    isActive: z.boolean(),
 });
 // Profile
-exports.profileEntrySchema = zod_1.z.object({
-    id: exports.entityIdSchema,
-    createdAt: exports.timestampSchema,
-    updatedAt: exports.timestampSchema,
-    category: zod_1.z.string().min(1).max(50),
-    key: zod_1.z.string().min(1).max(100),
-    value: zod_1.z.union([
-        zod_1.z.string(),
-        zod_1.z.number(),
-        zod_1.z.boolean(),
-        zod_1.z.array(zod_1.z.string()),
+export const profileEntrySchema = z.object({
+    id: entityIdSchema,
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema,
+    category: z.string().min(1).max(50),
+    key: z.string().min(1).max(100),
+    value: z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.array(z.string()),
     ]),
-    source: exports.sourceSchema,
-    validFrom: exports.timestampSchema.optional(),
-    validUntil: exports.timestampSchema.optional(),
+    source: sourceSchema,
+    validFrom: timestampSchema.optional(),
+    validUntil: timestampSchema.optional(),
 });
-exports.profileSchema = zod_1.z.object({
-    entries: zod_1.z.array(exports.profileEntrySchema),
-    lastUpdated: exports.timestampSchema,
+export const profileSchema = z.object({
+    entries: z.array(profileEntrySchema),
+    lastUpdated: timestampSchema,
 });
 // Facts
-exports.factSchema = zod_1.z.object({
-    id: exports.entityIdSchema,
-    createdAt: exports.timestampSchema,
-    updatedAt: exports.timestampSchema,
-    category: zod_1.z.string().min(1).max(50),
-    statement: zod_1.z.string().min(1).max(1000),
-    confidence: exports.confidenceLevelSchema,
-    source: exports.sourceSchema,
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20),
-    relatedFactIds: zod_1.z.array(exports.entityIdSchema),
-    embedding: zod_1.z.array(zod_1.z.number()).optional(),
+export const factSchema = z.object({
+    id: entityIdSchema,
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema,
+    category: z.string().min(1).max(50),
+    statement: z.string().min(1).max(1000),
+    confidence: confidenceLevelSchema,
+    source: sourceSchema,
+    tags: z.array(z.string().max(50)).max(20),
+    relatedFactIds: z.array(entityIdSchema),
+    embedding: z.array(z.number()).optional(),
 });
-exports.factsSchema = zod_1.z.object({
-    items: zod_1.z.array(exports.factSchema),
-    lastUpdated: exports.timestampSchema,
+export const factsSchema = z.object({
+    items: z.array(factSchema),
+    lastUpdated: timestampSchema,
 });
 // Notes
-exports.noteImportanceSchema = zod_1.z.enum(['low', 'medium', 'high']);
-exports.noteSchema = zod_1.z.object({
-    id: exports.entityIdSchema,
-    createdAt: exports.timestampSchema,
-    updatedAt: exports.timestampSchema,
-    content: zod_1.z.string().min(1).max(5000),
-    category: zod_1.z.string().max(50).optional(),
-    importance: exports.noteImportanceSchema,
-    source: exports.sourceSchema,
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20),
-    factCandidate: zod_1.z.boolean(),
-    promotedToFactId: exports.entityIdSchema.optional(),
-    embedding: zod_1.z.array(zod_1.z.number()).optional(),
+export const noteImportanceSchema = z.enum(['low', 'medium', 'high']);
+export const noteSchema = z.object({
+    id: entityIdSchema,
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema,
+    content: z.string().min(1).max(5000),
+    category: z.string().max(50).optional(),
+    importance: noteImportanceSchema,
+    source: sourceSchema,
+    tags: z.array(z.string().max(50)).max(20),
+    factCandidate: z.boolean(),
+    promotedToFactId: entityIdSchema.optional(),
+    embedding: z.array(z.number()).optional(),
 });
-exports.notesSchema = zod_1.z.object({
-    items: zod_1.z.array(exports.noteSchema),
-    lastUpdated: exports.timestampSchema,
+export const notesSchema = z.object({
+    items: z.array(noteSchema),
+    lastUpdated: timestampSchema,
 });
 // Timeline
-exports.timelineEventTypeSchema = zod_1.z.enum([
+export const timelineEventTypeSchema = z.enum([
     'fact_added',
     'fact_updated',
     'fact_removed',
@@ -105,152 +102,152 @@ exports.timelineEventTypeSchema = zod_1.z.enum([
     'observation',
     'custom',
 ]);
-exports.timelineEntrySchema = zod_1.z.object({
-    id: exports.entityIdSchema,
-    createdAt: exports.timestampSchema,
-    updatedAt: exports.timestampSchema,
-    timestamp: exports.timestampSchema,
-    eventType: exports.timelineEventTypeSchema,
-    title: zod_1.z.string().min(1).max(200),
-    description: zod_1.z.string().max(1000).optional(),
-    relatedEntityId: exports.entityIdSchema.optional(),
-    relatedEntityType: zod_1.z.enum(['fact', 'note', 'profile']).optional(),
-    metadata: zod_1.z.record(zod_1.z.unknown()).optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20),
+export const timelineEntrySchema = z.object({
+    id: entityIdSchema,
+    createdAt: timestampSchema,
+    updatedAt: timestampSchema,
+    timestamp: timestampSchema,
+    eventType: timelineEventTypeSchema,
+    title: z.string().min(1).max(200),
+    description: z.string().max(1000).optional(),
+    relatedEntityId: entityIdSchema.optional(),
+    relatedEntityType: z.enum(['fact', 'note', 'profile']).optional(),
+    metadata: z.record(z.unknown()).optional(),
+    tags: z.array(z.string().max(50)).max(20),
 });
-exports.timelineSchema = zod_1.z.object({
-    entries: zod_1.z.array(exports.timelineEntrySchema),
-    lastUpdated: exports.timestampSchema,
+export const timelineSchema = z.object({
+    entries: z.array(timelineEntrySchema),
+    lastUpdated: timestampSchema,
 });
 // API Request schemas
-exports.createSpaceRequestSchema = zod_1.z.object({
-    name: zod_1.z.string().min(1).max(100),
-    description: zod_1.z.string().max(20000),
-    icon: zod_1.z.string().max(50).optional(),
-    color: zod_1.z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
-    rules: exports.spaceRulesSchema.partial().optional(),
+export const createSpaceRequestSchema = z.object({
+    name: z.string().min(1).max(100),
+    description: z.string().max(20000),
+    icon: z.string().max(50).optional(),
+    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    tags: z.array(z.string().max(50)).max(20).optional(),
+    rules: spaceRulesSchema.partial().optional(),
 });
-exports.updateSpaceRequestSchema = zod_1.z.object({
-    name: zod_1.z.string().min(1).max(100).optional(),
-    description: zod_1.z.string().max(20000).optional(),
-    icon: zod_1.z.string().max(50).optional(),
-    color: zod_1.z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
-    rules: exports.spaceRulesSchema.partial().optional(),
-    isActive: zod_1.z.boolean().optional(),
+export const updateSpaceRequestSchema = z.object({
+    name: z.string().min(1).max(100).optional(),
+    description: z.string().max(20000).optional(),
+    icon: z.string().max(50).optional(),
+    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    tags: z.array(z.string().max(50)).max(20).optional(),
+    rules: spaceRulesSchema.partial().optional(),
+    isActive: z.boolean().optional(),
 });
-exports.addFactRequestSchema = zod_1.z.object({
-    category: zod_1.z.string().min(1).max(50),
-    statement: zod_1.z.string().min(1).max(1000),
-    confidence: exports.confidenceLevelSchema.optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
-    relatedFactIds: zod_1.z.array(exports.entityIdSchema).optional(),
-    sourceType: exports.sourceTypeSchema.optional(),
-    sourceReference: zod_1.z.string().max(500).optional(),
+export const addFactRequestSchema = z.object({
+    category: z.string().min(1).max(50),
+    statement: z.string().min(1).max(1000),
+    confidence: confidenceLevelSchema.optional(),
+    tags: z.array(z.string().max(50)).max(20).optional(),
+    relatedFactIds: z.array(entityIdSchema).optional(),
+    sourceType: sourceTypeSchema.optional(),
+    sourceReference: z.string().max(500).optional(),
 });
-exports.updateFactRequestSchema = zod_1.z.object({
-    category: zod_1.z.string().min(1).max(50).optional(),
-    statement: zod_1.z.string().min(1).max(1000).optional(),
-    confidence: exports.confidenceLevelSchema.optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
-    relatedFactIds: zod_1.z.array(exports.entityIdSchema).optional(),
+export const updateFactRequestSchema = z.object({
+    category: z.string().min(1).max(50).optional(),
+    statement: z.string().min(1).max(1000).optional(),
+    confidence: confidenceLevelSchema.optional(),
+    tags: z.array(z.string().max(50)).max(20).optional(),
+    relatedFactIds: z.array(entityIdSchema).optional(),
 });
-exports.addNoteRequestSchema = zod_1.z.object({
-    content: zod_1.z.string().min(1).max(5000),
-    category: zod_1.z.string().max(50).optional(),
-    importance: exports.noteImportanceSchema.optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
-    factCandidate: zod_1.z.boolean().optional(),
-    sourceType: exports.sourceTypeSchema.optional(),
-    sourceReference: zod_1.z.string().max(500).optional(),
+export const addNoteRequestSchema = z.object({
+    content: z.string().min(1).max(5000),
+    category: z.string().max(50).optional(),
+    importance: noteImportanceSchema.optional(),
+    tags: z.array(z.string().max(50)).max(20).optional(),
+    factCandidate: z.boolean().optional(),
+    sourceType: sourceTypeSchema.optional(),
+    sourceReference: z.string().max(500).optional(),
 });
-exports.updateNoteRequestSchema = zod_1.z.object({
-    content: zod_1.z.string().min(1).max(5000).optional(),
-    category: zod_1.z.string().max(50).optional(),
-    importance: exports.noteImportanceSchema.optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
-    factCandidate: zod_1.z.boolean().optional(),
+export const updateNoteRequestSchema = z.object({
+    content: z.string().min(1).max(5000).optional(),
+    category: z.string().max(50).optional(),
+    importance: noteImportanceSchema.optional(),
+    tags: z.array(z.string().max(50)).max(20).optional(),
+    factCandidate: z.boolean().optional(),
 });
-exports.promoteNoteRequestSchema = zod_1.z.object({
-    category: zod_1.z.string().min(1).max(50),
-    statement: zod_1.z.string().min(1).max(1000),
-    confidence: exports.confidenceLevelSchema.optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
+export const promoteNoteRequestSchema = z.object({
+    category: z.string().min(1).max(50),
+    statement: z.string().min(1).max(1000),
+    confidence: confidenceLevelSchema.optional(),
+    tags: z.array(z.string().max(50)).max(20).optional(),
 });
-exports.addProfileEntryRequestSchema = zod_1.z.object({
-    category: zod_1.z.string().min(1).max(50),
-    key: zod_1.z.string().min(1).max(100),
-    value: zod_1.z.union([
-        zod_1.z.string(),
-        zod_1.z.number(),
-        zod_1.z.boolean(),
-        zod_1.z.array(zod_1.z.string()),
+export const addProfileEntryRequestSchema = z.object({
+    category: z.string().min(1).max(50),
+    key: z.string().min(1).max(100),
+    value: z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.array(z.string()),
     ]),
-    sourceType: exports.sourceTypeSchema.optional(),
-    sourceReference: zod_1.z.string().max(500).optional(),
-    validFrom: exports.timestampSchema.optional(),
-    validUntil: exports.timestampSchema.optional(),
+    sourceType: sourceTypeSchema.optional(),
+    sourceReference: z.string().max(500).optional(),
+    validFrom: timestampSchema.optional(),
+    validUntil: timestampSchema.optional(),
 });
-exports.updateProfileEntryRequestSchema = zod_1.z.object({
-    value: zod_1.z.union([
-        zod_1.z.string(),
-        zod_1.z.number(),
-        zod_1.z.boolean(),
-        zod_1.z.array(zod_1.z.string()),
+export const updateProfileEntryRequestSchema = z.object({
+    value: z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.array(z.string()),
     ]).optional(),
-    validFrom: exports.timestampSchema.optional(),
-    validUntil: exports.timestampSchema.optional(),
+    validFrom: timestampSchema.optional(),
+    validUntil: timestampSchema.optional(),
 });
-exports.addTimelineEntryRequestSchema = zod_1.z.object({
-    eventType: exports.timelineEventTypeSchema,
-    title: zod_1.z.string().min(1).max(200),
-    description: zod_1.z.string().max(1000).optional(),
-    relatedEntityId: exports.entityIdSchema.optional(),
-    relatedEntityType: zod_1.z.enum(['fact', 'note', 'profile']).optional(),
-    metadata: zod_1.z.record(zod_1.z.unknown()).optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).max(20).optional(),
-    timestamp: exports.timestampSchema.optional(),
+export const addTimelineEntryRequestSchema = z.object({
+    eventType: timelineEventTypeSchema,
+    title: z.string().min(1).max(200),
+    description: z.string().max(1000).optional(),
+    relatedEntityId: entityIdSchema.optional(),
+    relatedEntityType: z.enum(['fact', 'note', 'profile']).optional(),
+    metadata: z.record(z.unknown()).optional(),
+    tags: z.array(z.string().max(50)).max(20).optional(),
+    timestamp: timestampSchema.optional(),
 });
-exports.queryContextRequestSchema = zod_1.z.object({
-    spaceId: exports.entityIdSchema,
-    query: zod_1.z.string().max(1000).optional(),
-    categories: zod_1.z.array(zod_1.z.string().max(50)).optional(),
-    tags: zod_1.z.array(zod_1.z.string().max(50)).optional(),
-    includeNotes: zod_1.z.boolean().optional(),
-    maxFacts: zod_1.z.number().int().min(1).max(100).optional(),
-    maxNotes: zod_1.z.number().int().min(1).max(50).optional(),
-    maxTimelineEntries: zod_1.z.number().int().min(1).max(50).optional(),
+export const queryContextRequestSchema = z.object({
+    spaceId: entityIdSchema,
+    query: z.string().max(1000).optional(),
+    categories: z.array(z.string().max(50)).optional(),
+    tags: z.array(z.string().max(50)).optional(),
+    includeNotes: z.boolean().optional(),
+    maxFacts: z.number().int().min(1).max(100).optional(),
+    maxNotes: z.number().int().min(1).max(50).optional(),
+    maxTimelineEntries: z.number().int().min(1).max(50).optional(),
 });
-exports.paginationParamsSchema = zod_1.z.object({
-    limit: zod_1.z.number().int().min(1).max(100).default(20),
-    offset: zod_1.z.number().int().min(0).default(0),
+export const paginationParamsSchema = z.object({
+    limit: z.number().int().min(1).max(100).default(20),
+    offset: z.number().int().min(0).default(0),
 });
 // Chat request schema (accepts legacy and simplified payloads)
-const chatMessageItemSchema = zod_1.z.object({
-    role: zod_1.z.enum(['system', 'user', 'assistant']),
-    content: zod_1.z.string().min(1).max(10000),
+const chatMessageItemSchema = z.object({
+    role: z.enum(['system', 'user', 'assistant']),
+    content: z.string().min(1).max(10000),
 });
 // Chat attachment schema
-const chatAttachmentSchema = zod_1.z.object({
-    type: zod_1.z.enum(['image', 'file']),
-    url: zod_1.z.string(),
-    name: zod_1.z.string(),
-    mimeType: zod_1.z.string(),
+const chatAttachmentSchema = z.object({
+    type: z.enum(['image', 'file']),
+    url: z.string(),
+    name: z.string(),
+    mimeType: z.string(),
 });
-const simpleChatRequestSchema = zod_1.z.object({
-    message: zod_1.z.string().min(1).max(10000),
-    spaceId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
-    sessionId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
-    attachments: zod_1.z.array(chatAttachmentSchema).optional(),
+const simpleChatRequestSchema = z.object({
+    message: z.string().min(1).max(10000),
+    spaceId: z.preprocess((val) => (val === null || val === undefined) ? undefined : val, z.string().uuid().optional()),
+    sessionId: z.preprocess((val) => (val === null || val === undefined) ? undefined : val, z.string().uuid().optional()),
+    attachments: z.array(chatAttachmentSchema).optional(),
 });
-const structuredChatRequestSchema = zod_1.z.object({
-    spaceId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
-    messages: zod_1.z.array(chatMessageItemSchema).min(1),
-    sessionId: zod_1.z.preprocess((val) => (val === null || val === undefined) ? undefined : val, zod_1.z.string().uuid().optional()),
-    attachments: zod_1.z.array(chatAttachmentSchema).optional(),
+const structuredChatRequestSchema = z.object({
+    spaceId: z.preprocess((val) => (val === null || val === undefined) ? undefined : val, z.string().uuid().optional()),
+    messages: z.array(chatMessageItemSchema).min(1),
+    sessionId: z.preprocess((val) => (val === null || val === undefined) ? undefined : val, z.string().uuid().optional()),
+    attachments: z.array(chatAttachmentSchema).optional(),
 });
-exports.chatRequestSchema = zod_1.z.union([
+export const chatRequestSchema = z.union([
     simpleChatRequestSchema,
     structuredChatRequestSchema,
 ]);

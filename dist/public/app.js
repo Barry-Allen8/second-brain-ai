@@ -202,6 +202,7 @@ const state = {
   chats: [], // List of chats in current space
   currentChatId: null,
   currentChatMessages: [],
+  chatInputValue: '',
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -807,6 +808,21 @@ function addChatMessageToDOM(role, content) {
   elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 }
 
+function setChatInputValue(value, { resetHeight = false, focus = false } = {}) {
+  state.chatInputValue = value;
+  if (!elements.chatInput) return;
+
+  elements.chatInput.value = value;
+
+  if (resetHeight) {
+    elements.chatInput.style.height = 'auto';
+  }
+
+  if (focus) {
+    elements.chatInput.focus();
+  }
+}
+
 function formatChatContent(content) {
   // Handle array content (multimodal)
   if (Array.isArray(content)) {
@@ -891,7 +907,7 @@ function renderAttachments() {
     let preview = '';
     if (file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file);
-      preview = `<img src="${url}" class="attachment-preview" alt="Preview">`;
+      preview = `<img src="${url}" class="attachment-preview" alt="Preview" style="cursor: pointer">`;
     } else {
       // PDF or other file icon
       preview = `<div class="attachment-preview">📄</div>`;
@@ -934,44 +950,74 @@ document.getElementById('chat-attach').addEventListener('click', () => {
 document.getElementById('file-input').addEventListener('change', handleFileSelect);
 
 
-async function sendChatMessage(message) {
+async function sendChatMessage(messageOverride) {
+  const message = typeof messageOverride === 'string' ? messageOverride : state.chatInputValue;
   if (!message.trim() && selectedFiles.length === 0) return;
   if (!state.aiConfigured) {
     showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'error');
     return;
   }
 
-  // Add message to state and DOM
-  // If there are files but no text, we just say "Attached x files".
-  const displayContent = message || (selectedFiles.length > 0 ? `[Attached ${selectedFiles.length} files]` : '');
+  // Clear input immediately after a valid submit (do not wait for async response)
+  setChatInputValue('', { resetHeight: true, focus: true });
 
-  state.currentChatMessages.push({ role: 'user', content: displayContent });
+  // 1. Prepare data for UI and Upload
+  const filesToSend = [...selectedFiles];
+  // Note: We don't clear state/UI yet, waiting for successful "add to history" step
 
-  // Render user message with attachments (simple preview)
-  // For proper preview, we should render them in DOM.
-  // But reusing addChatMessageToDOM for now.
-  let contentHtml = escapeHtml(message);
-  if (selectedFiles.length > 0) {
-    const filesHtml = selectedFiles.map(f => {
-      if (f.type.startsWith('image/')) {
-        return `<div class="chat-file-preview">📷 ${escapeHtml(f.name)}</div>`; // Simple preview for now
-      }
-      return `<div class="chat-file-preview">📄 ${escapeHtml(f.name)}</div>`;
-    }).join('');
-    contentHtml += `<div class="chat-files-list">${filesHtml}</div>`;
-  }
-
-  // Use existing simple render, but we might want to enhance addChatMessageToDOM later.
-  // For now, simple text content.
-  addChatMessageToDOM('user', displayContent);
-
-  elements.chatInput.value = '';
-  elements.chatInput.style.height = 'auto';
-  elements.chatSend.disabled = true;
-
-  showTypingIndicator();
+  // Disable send button temporarily
+  if (elements.chatSend) elements.chatSend.disabled = true;
 
   try {
+    // 2. Process files for Display (Base64/DataURL)
+    const filePromises = filesToSend.map(file => {
+      return new Promise((resolve) => {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve({
+            type: 'image_url',
+            image_url: { url: e.target.result },
+            file
+          });
+          reader.readAsDataURL(file);
+        } else {
+          resolve({
+            type: 'text',
+            text: `[Attached file: ${file.name}]`,
+            file
+          });
+        }
+      });
+    });
+
+    const filesData = await Promise.all(filePromises);
+
+    // 3. Construct mixed content message for UI
+    const contentParts = [];
+    if (message.trim()) {
+      contentParts.push({ type: 'text', text: message });
+    }
+    filesData.forEach(f => {
+      if (f.type === 'image_url') {
+        contentParts.push({ type: 'image_url', image_url: f.image_url });
+      } else if (f.type === 'text' && !message.includes(f.text)) {
+        contentParts.push(f);
+      }
+    });
+
+    // 4. Add User Message to DOM (Optimistic)
+    if (contentParts.length > 0) {
+      state.currentChatMessages.push({ role: 'user', content: contentParts });
+      addChatMessageToDOM('user', contentParts);
+
+      // 5. Clear file state and attachments UI
+      selectedFiles = [];
+      renderAttachments();
+    }
+
+    showTypingIndicator();
+
+    // 6. Send to API
     const formData = new FormData();
     formData.append('message', message);
     if (state.currentSpaceId) {
@@ -981,31 +1027,35 @@ async function sendChatMessage(message) {
       formData.append('sessionId', state.currentChatId);
     }
 
-    selectedFiles.forEach(file => {
+    filesToSend.forEach(file => {
       formData.append('attachments', file);
     });
 
-    // Clear files immediately after sending starts
-    selectedFiles = [];
-    renderAttachments();
-
     const response = await chatApi.send(formData);
 
-    // Update current chat ID if it's a new chat
+    // Update session if needed
     if (!state.currentChatId) {
       state.currentChatId = response.sessionId;
       await loadChats();
-      elements.chatSelect.value = state.currentChatId;
+      // Ensure specific chat is selected in dropdown
+      if (elements.chatSelect) elements.chatSelect.value = state.currentChatId;
     }
 
+    // Add Assistant Message to DOM
     state.currentChatMessages.push({ role: 'assistant', content: response.message.content });
     hideTypingIndicator();
     addChatMessageToDOM('assistant', response.message.content);
+
   } catch (error) {
     hideTypingIndicator();
+    console.error('Send error:', error);
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
+
+    // Note: Input is cleared immediately after submit (before async work).
   } finally {
-    elements.chatSend.disabled = false;
+    if (elements.chatSend) elements.chatSend.disabled = false;
+    // Ensure focus is back on input
+    if (elements.chatInput) elements.chatInput.focus();
   }
 }
 
@@ -1040,11 +1090,12 @@ elements.chatSelect.addEventListener('change', (e) => selectChat(e.target.value)
 // Chat form
 elements.chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  sendChatMessage(elements.chatInput.value);
+  sendChatMessage();
 });
 
 // Auto-resize chat input
 elements.chatInput.addEventListener('input', () => {
+  setChatInputValue(elements.chatInput.value);
   elements.chatInput.style.height = 'auto';
   elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 200) + 'px';
 });
@@ -1053,7 +1104,7 @@ elements.chatInput.addEventListener('input', () => {
 elements.chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
-    sendChatMessage(elements.chatInput.value);
+    sendChatMessage();
   }
 });
 
@@ -1083,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Image modal handler (delegated)
   document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('chat-content-image')) {
+    if ((e.target.classList.contains('chat-content-image') || e.target.classList.contains('attachment-preview')) && e.target.tagName === 'IMG') {
       const src = e.target.src;
       const modal = document.createElement('div');
       modal.className = 'image-modal';

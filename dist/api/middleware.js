@@ -1,23 +1,29 @@
-"use strict";
 /**
  * Express middleware for validation and error handling.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.asyncHandler = asyncHandler;
-exports.validateBody = validateBody;
-exports.validateQuery = validateQuery;
-exports.createSuccessResponse = createSuccessResponse;
-exports.createErrorResponse = createErrorResponse;
-exports.errorHandler = errorHandler;
-const index_js_1 = require("../domain/index.js");
+import { StorageError } from '../domain/index.js';
+import { isAIConfigured } from '../ai/index.js';
 /** Wrap async route handlers to catch errors */
-function asyncHandler(fn) {
+export function asyncHandler(fn) {
     return (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch(next);
     };
 }
+/** Middleware to require AI configuration - returns 503 if not configured */
+export function requireAI() {
+    return (_req, res, next) => {
+        if (!isAIConfigured()) {
+            res.status(503).json(createErrorResponse({
+                code: 'AI_NOT_CONFIGURED',
+                message: 'AI service unavailable. OPENAI_API_KEY environment variable is not set.',
+            }));
+            return;
+        }
+        next();
+    };
+}
 /** Validate request body against Zod schema */
-function validateBody(schema) {
+export function validateBody(schema) {
     return (req, res, next) => {
         const result = schema.safeParse(req.body);
         if (!result.success) {
@@ -36,7 +42,7 @@ function validateBody(schema) {
     };
 }
 /** Validate request query against Zod schema */
-function validateQuery(schema) {
+export function validateQuery(schema) {
     return (req, res, next) => {
         const result = schema.safeParse(req.query);
         if (!result.success) {
@@ -60,14 +66,14 @@ function formatZodError(error) {
         details,
     };
 }
-function createSuccessResponse(data) {
+export function createSuccessResponse(data) {
     return {
         success: true,
         data,
         timestamp: new Date().toISOString(),
     };
 }
-function createErrorResponse(error) {
+export function createErrorResponse(error) {
     return {
         success: false,
         error,
@@ -75,7 +81,7 @@ function createErrorResponse(error) {
     };
 }
 /** Global error handler middleware */
-function errorHandler(err, req, res, _next) {
+export function errorHandler(err, req, res, _next) {
     console.error('[error] Unhandled error:', {
         message: err.message,
         stack: err.stack,
@@ -83,7 +89,7 @@ function errorHandler(err, req, res, _next) {
         method: req.method,
         body: req.body,
     });
-    if (err instanceof index_js_1.StorageError) {
+    if (err instanceof StorageError) {
         const statusMap = {
             NOT_FOUND: 404,
             ALREADY_EXISTS: 409,

@@ -1,28 +1,22 @@
-"use strict";
 /**
  * Chat API routes
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.chatRouter = void 0;
-const express_1 = require("express");
-const multer_1 = __importDefault(require("multer"));
-const index_js_1 = require("../../utils/index.js");
+import { Router } from 'express';
+import multer from 'multer';
+import { extractTextFromPdf } from '../../utils/index.js';
 // CHANGE: Added setModel and SUPPORTED_MODELS imports
-const index_js_2 = require("../../ai/index.js");
-const middleware_js_1 = require("../middleware.js");
-const index_js_3 = require("../../domain/index.js");
-const upload = (0, multer_1.default)({
+import { chat, getSession, listSessions, updateSession, deleteSession, getChatHistory, isAIConfigured, getAIConfig, setModel, SUPPORTED_MODELS, } from '../../ai/index.js';
+import { asyncHandler, createSuccessResponse, createErrorResponse, requireAI, } from '../middleware.js';
+import { spaceService, storage } from '../../domain/index.js';
+const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
-exports.chatRouter = (0, express_1.Router)();
+export const chatRouter = Router();
 async function resolveSpaceId(preferredSpaceId) {
-    if (preferredSpaceId && await index_js_3.storage.spaceExists(preferredSpaceId)) {
+    if (preferredSpaceId && await storage.spaceExists(preferredSpaceId)) {
         return preferredSpaceId;
     }
-    const spaces = await index_js_3.spaceService.listSpaces();
+    const spaces = await spaceService.listSpaces();
     const activeSpace = spaces.find((space) => space.isActive);
     if (activeSpace) {
         return activeSpace.id;
@@ -30,7 +24,7 @@ async function resolveSpaceId(preferredSpaceId) {
     if (spaces.length > 0) {
         return spaces[0].id;
     }
-    const defaultSpace = await index_js_3.spaceService.createSpace({
+    const defaultSpace = await spaceService.createSpace({
         name: 'Default Space',
         description: 'Auto-created for chat requests without a space.',
         icon: 'chat',
@@ -69,25 +63,18 @@ function logParsedChatRequest(request) {
 }
 // Check AI status
 // CHANGE: Added supportedModels to status response
-exports.chatRouter.get('/status', (0, middleware_js_1.asyncHandler)(async (_req, res) => {
-    const configured = (0, index_js_2.isAIConfigured)();
-    const config = (0, index_js_2.getAIConfig)();
-    res.json((0, middleware_js_1.createSuccessResponse)({
+chatRouter.get('/status', asyncHandler(async (_req, res) => {
+    const configured = isAIConfigured();
+    const config = getAIConfig();
+    res.json(createSuccessResponse({
         configured,
         provider: config.provider,
         model: config.model,
-        supportedModels: index_js_2.SUPPORTED_MODELS,
+        supportedModels: SUPPORTED_MODELS,
     }));
 }));
 // Send chat message
-exports.chatRouter.post('/', upload.array('attachments'), (0, middleware_js_1.asyncHandler)(async (req, res) => {
-    if (!(0, index_js_2.isAIConfigured)()) {
-        res.status(503).json((0, middleware_js_1.createErrorResponse)({
-            code: 'AI_NOT_CONFIGURED',
-            message: 'AI provider not configured. Please set OPENAI_API_KEY environment variable.',
-        }));
-        return;
-    }
+chatRouter.post('/', upload.array('attachments'), requireAI(), asyncHandler(async (req, res) => {
     const { messages, message, spaceId, sessionId } = req.body;
     // Manual validation since multer parses body
     if (!message && (!messages || !messages.length)) {
@@ -99,7 +86,7 @@ exports.chatRouter.post('/', upload.array('attachments'), (0, middleware_js_1.as
         for (const file of req.files) {
             if (file.mimetype === 'application/pdf') {
                 try {
-                    const text = await (0, index_js_1.extractTextFromPdf)(file.buffer);
+                    const text = await extractTextFromPdf(file.buffer);
                     attachments.push({
                         type: 'file',
                         name: file.originalname,
@@ -127,80 +114,84 @@ exports.chatRouter.post('/', upload.array('attachments'), (0, middleware_js_1.as
     // Append attachments info to message for AI context
     if (attachments.length > 0) {
         // Logic to append file content to the message
+        let hasFileContent = false;
         let attachmentsContext = '\n\n[Attached Files]:\n';
         for (const att of attachments) {
             if (att.type === 'file' && att.content) {
                 attachmentsContext += `File: ${att.name}\nContent:\n${att.content}\n---\n`;
+                hasFileContent = true;
             }
             // Images are now handled via native Vision API in ChatService
         }
-        normalized.message += attachmentsContext;
+        if (hasFileContent) {
+            normalized.message += attachmentsContext;
+        }
     }
     const resolvedSpaceId = await resolveSpaceId(normalized.spaceId);
     // Pass image URLs if needed. For now simple text append.
     // If we want real vision support, we need to pass message array to ChatService.
     // But ChatService builds `ChatMessage` which has `content` string.
     // So modifying content is the way for now unless I refactor ChatService significantly.
-    const response = await (0, index_js_2.chat)({
+    const response = await chat({
         ...normalized,
         spaceId: resolvedSpaceId,
         attachments // passing attachments just in case
     });
     logParsedChatRequest({ ...normalized, spaceId: resolvedSpaceId });
-    res.json((0, middleware_js_1.createSuccessResponse)(response));
+    res.json(createSuccessResponse(response));
 }));
 // Get session history
-exports.chatRouter.get('/sessions/:sessionId', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+chatRouter.get('/sessions/:sessionId', asyncHandler(async (req, res) => {
     const sessionId = req.params['sessionId'];
-    const session = (0, index_js_2.getSession)(sessionId);
+    const session = getSession(sessionId);
     if (!session) {
-        res.status(404).json((0, middleware_js_1.createErrorResponse)({
+        res.status(404).json(createErrorResponse({
             code: 'SESSION_NOT_FOUND',
             message: 'Chat session not found',
         }));
         return;
     }
-    res.json((0, middleware_js_1.createSuccessResponse)(session));
+    res.json(createSuccessResponse(session));
 }));
 // Update session (e.g., rename)
-exports.chatRouter.patch('/sessions/:sessionId', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+chatRouter.patch('/sessions/:sessionId', asyncHandler(async (req, res) => {
     const sessionId = req.params['sessionId'];
     const { name } = req.body;
     if (!name || typeof name !== 'string') {
-        res.status(400).json((0, middleware_js_1.createErrorResponse)({
+        res.status(400).json(createErrorResponse({
             code: 'INVALID_REQUEST',
             message: 'Name is required',
         }));
         return;
     }
-    const updated = (0, index_js_2.updateSession)(sessionId, { name });
+    const updated = updateSession(sessionId, { name });
     if (!updated) {
-        res.status(404).json((0, middleware_js_1.createErrorResponse)({
+        res.status(404).json(createErrorResponse({
             code: 'SESSION_NOT_FOUND',
             message: 'Chat session not found',
         }));
         return;
     }
-    res.json((0, middleware_js_1.createSuccessResponse)(updated));
+    res.json(createSuccessResponse(updated));
 }));
 // Get chat history for session
-exports.chatRouter.get('/sessions/:sessionId/messages', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+chatRouter.get('/sessions/:sessionId/messages', asyncHandler(async (req, res) => {
     const sessionId = req.params['sessionId'];
-    const messages = (0, index_js_2.getChatHistory)(sessionId);
-    res.json((0, middleware_js_1.createSuccessResponse)(messages));
+    const messages = getChatHistory(sessionId);
+    res.json(createSuccessResponse(messages));
 }));
 // List sessions (can filter by spaceId via query param)
-exports.chatRouter.get('/sessions', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+chatRouter.get('/sessions', asyncHandler(async (req, res) => {
     const spaceId = req.query['spaceId'];
     if (!spaceId) {
-        res.status(400).json((0, middleware_js_1.createErrorResponse)({
+        res.status(400).json(createErrorResponse({
             code: 'INVALID_REQUEST',
             message: 'spaceId query parameter is required',
         }));
         return;
     }
-    const sessions = (0, index_js_2.listSessions)(spaceId);
-    res.json((0, middleware_js_1.createSuccessResponse)(sessions.map((s) => ({
+    const sessions = listSessions(spaceId);
+    res.json(createSuccessResponse(sessions.map((s) => ({
         sessionId: s.id,
         name: s.name,
         messageCount: s.messages.length,
@@ -209,10 +200,10 @@ exports.chatRouter.get('/sessions', (0, middleware_js_1.asyncHandler)(async (req
     }))));
 }));
 // List sessions for a space (legacy route for compatibility)
-exports.chatRouter.get('/spaces/:spaceId/sessions', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+chatRouter.get('/spaces/:spaceId/sessions', asyncHandler(async (req, res) => {
     const spaceId = req.params['spaceId'];
-    const sessions = (0, index_js_2.listSessions)(spaceId);
-    res.json((0, middleware_js_1.createSuccessResponse)(sessions.map((s) => ({
+    const sessions = listSessions(spaceId);
+    res.json(createSuccessResponse(sessions.map((s) => ({
         sessionId: s.id,
         name: s.name,
         messageCount: s.messages.length,
@@ -221,39 +212,39 @@ exports.chatRouter.get('/spaces/:spaceId/sessions', (0, middleware_js_1.asyncHan
     }))));
 }));
 // Delete session
-exports.chatRouter.delete('/sessions/:sessionId', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+chatRouter.delete('/sessions/:sessionId', asyncHandler(async (req, res) => {
     const sessionId = req.params['sessionId'];
-    const deleted = (0, index_js_2.deleteSession)(sessionId);
+    const deleted = deleteSession(sessionId);
     if (!deleted) {
-        res.status(404).json((0, middleware_js_1.createErrorResponse)({
+        res.status(404).json(createErrorResponse({
             code: 'SESSION_NOT_FOUND',
             message: 'Chat session not found',
         }));
         return;
     }
-    res.json((0, middleware_js_1.createSuccessResponse)({ deleted: true }));
+    res.json(createSuccessResponse({ deleted: true }));
 }));
 // CHANGE: New endpoint to change OpenAI model dynamically
 // Set AI model
-exports.chatRouter.put('/model', (0, middleware_js_1.asyncHandler)(async (req, res) => {
+chatRouter.put('/model', requireAI(), asyncHandler(async (req, res) => {
     const { model } = req.body;
     if (!model || typeof model !== 'string') {
-        res.status(400).json((0, middleware_js_1.createErrorResponse)({
+        res.status(400).json(createErrorResponse({
             code: 'INVALID_REQUEST',
             message: 'Model name is required',
         }));
         return;
     }
     try {
-        (0, index_js_2.setModel)(model);
-        const config = (0, index_js_2.getAIConfig)();
-        res.json((0, middleware_js_1.createSuccessResponse)({
+        setModel(model);
+        const config = getAIConfig();
+        res.json(createSuccessResponse({
             model: config.model,
             message: `Model changed to ${model}`,
         }));
     }
     catch (error) {
-        res.status(400).json((0, middleware_js_1.createErrorResponse)({
+        res.status(400).json(createErrorResponse({
             code: 'UNSUPPORTED_MODEL',
             message: error instanceof Error ? error.message : 'Invalid model',
         }));

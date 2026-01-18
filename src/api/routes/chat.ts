@@ -26,6 +26,7 @@ import {
   validateBody,
   createSuccessResponse,
   createErrorResponse,
+  requireAI,
 } from '../middleware.js';
 import { chatRequestSchema } from '../../schemas/index.js';
 import { spaceService, storage } from '../../domain/index.js';
@@ -126,15 +127,8 @@ chatRouter.get(
 chatRouter.post(
   '/',
   upload.array('attachments'),
+  requireAI(),
   asyncHandler(async (req, res) => {
-    if (!isAIConfigured()) {
-      res.status(503).json(createErrorResponse({
-        code: 'AI_NOT_CONFIGURED',
-        message: 'AI provider not configured. Please set OPENAI_API_KEY environment variable.',
-      }));
-      return;
-    }
-
     const { messages, message, spaceId, sessionId } = req.body;
 
     // Manual validation since multer parses body
@@ -335,6 +329,7 @@ chatRouter.delete(
 // Set AI model
 chatRouter.put(
   '/model',
+  requireAI(),
   asyncHandler(async (req, res) => {
     const { model } = req.body as { model?: string };
 

@@ -6,6 +6,7 @@ import express from 'express';
 import path from 'node:path';
 import { spacesRouter, chatRouter } from './routes/index.js';
 import { errorHandler, createSuccessResponse } from './middleware.js';
+import { isAIConfigured, getAIConfig } from '../ai/index.js';
 
 export function createApp() {
   const app = express();
@@ -18,9 +19,25 @@ export function createApp() {
   const publicPath = path.join(process.cwd(), 'dist', 'public');
   app.use(express.static(publicPath));
 
-  // Health check
+  // Health check with AI readiness
   app.get('/health', (_req, res) => {
-    res.json(createSuccessResponse({ status: 'ok', version: '1.0.0' }));
+    const aiConfigured = isAIConfigured();
+    const aiConfig = getAIConfig();
+    
+    res.json(createSuccessResponse({
+      status: 'ok',
+      version: '1.0.0',
+      services: {
+        ai: {
+          ready: aiConfigured,
+          provider: aiConfigured ? aiConfig.provider : null,
+          model: aiConfigured ? aiConfig.model : null,
+          message: aiConfigured 
+            ? 'AI service is ready' 
+            : 'AI service unavailable - OPENAI_API_KEY not configured',
+        },
+      },
+    }));
   });
 
   // API info endpoint

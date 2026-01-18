@@ -6,6 +6,7 @@ import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import type { ZodSchema, ZodError } from 'zod';
 import type { ApiResponse, ApiError } from '../types/index.js';
 import { StorageError } from '../domain/index.js';
+import { isAIConfigured } from '../ai/index.js';
 
 /** Wrap async route handlers to catch errors */
 export function asyncHandler(
@@ -13,6 +14,20 @@ export function asyncHandler(
 ): RequestHandler {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+/** Middleware to require AI configuration - returns 503 if not configured */
+export function requireAI(): RequestHandler {
+  return (_req, res, next) => {
+    if (!isAIConfigured()) {
+      res.status(503).json(createErrorResponse({
+        code: 'AI_NOT_CONFIGURED',
+        message: 'AI service unavailable. OPENAI_API_KEY environment variable is not set.',
+      }));
+      return;
+    }
+    next();
   };
 }
 

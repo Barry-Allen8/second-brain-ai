@@ -1,26 +1,32 @@
-"use strict";
 /**
  * Second Brain AI - Persistent Memory System
  * Main entry point.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-require("dotenv/config");
-const index_js_1 = require("./api/index.js");
-const index_js_2 = require("./domain/index.js");
-const index_js_3 = require("./ai/index.js");
+import 'dotenv/config';
+import { createApp } from './api/index.js';
+import { spaceService } from './domain/index.js';
+import { initializeAI, isAIConfigured } from './ai/index.js';
 const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
 async function main() {
     // Initialize services
-    await index_js_2.spaceService.init();
+    await spaceService.init();
     // Initialize AI provider
-    (0, index_js_3.initializeAI)();
+    initializeAI();
     // Create and start server
-    const app = (0, index_js_1.createApp)();
+    const app = createApp();
     app.listen(PORT, () => {
         console.log(`🧠 Second Brain AI server running on port ${PORT}`);
         console.log(`   Health check: http://localhost:${PORT}/health`);
         console.log(`   API base: http://localhost:${PORT}/api/v1`);
         console.log(`   Web UI: http://localhost:${PORT}`);
+        // Warn if AI is not configured
+        if (!isAIConfigured()) {
+            console.log('');
+            console.log('⚠️  WARNING: AI service is NOT configured!');
+            console.log('   Set OPENAI_API_KEY environment variable to enable AI features.');
+            console.log('   AI endpoints will return HTTP 503 until configured.');
+            console.log('   Non-AI endpoints (spaces, sessions) will work normally.');
+        }
     });
 }
 main().catch((error) => {

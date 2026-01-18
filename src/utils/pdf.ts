@@ -1,4 +1,7 @@
-// @ts-ignore
+import { createRequire } from 'node:module';
+
+// pdf-parse is a CommonJS module, use createRequire for ESM compatibility
+const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
