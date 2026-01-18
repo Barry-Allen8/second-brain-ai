@@ -202,6 +202,7 @@ const state = {
   chats: [], // List of chats in current space
   currentChatId: null,
   currentChatMessages: [],
+  chatInputValue: '',
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -807,6 +808,21 @@ function addChatMessageToDOM(role, content) {
   elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 }
 
+function setChatInputValue(value, { resetHeight = false, focus = false } = {}) {
+  state.chatInputValue = value;
+  if (!elements.chatInput) return;
+
+  elements.chatInput.value = value;
+
+  if (resetHeight) {
+    elements.chatInput.style.height = 'auto';
+  }
+
+  if (focus) {
+    elements.chatInput.focus();
+  }
+}
+
 function formatChatContent(content) {
   // Handle array content (multimodal)
   if (Array.isArray(content)) {
@@ -934,12 +950,16 @@ document.getElementById('chat-attach').addEventListener('click', () => {
 document.getElementById('file-input').addEventListener('change', handleFileSelect);
 
 
-async function sendChatMessage(message) {
+async function sendChatMessage(messageOverride) {
+  const message = typeof messageOverride === 'string' ? messageOverride : state.chatInputValue;
   if (!message.trim() && selectedFiles.length === 0) return;
   if (!state.aiConfigured) {
     showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'error');
     return;
   }
+
+  // Clear input immediately after a valid submit (do not wait for async response)
+  setChatInputValue('', { resetHeight: true, focus: true });
 
   // 1. Prepare data for UI and Upload
   const filesToSend = [...selectedFiles];
@@ -990,15 +1010,7 @@ async function sendChatMessage(message) {
       state.currentChatMessages.push({ role: 'user', content: contentParts });
       addChatMessageToDOM('user', contentParts);
 
-      // 5. Clear Input UI NOW (After adding to history, as consistent with ChatGPT)
-      const inputEl = document.getElementById('chat-input');
-      if (inputEl) {
-        inputEl.value = '';
-        inputEl.style.height = 'auto'; // Reset height
-        inputEl.focus(); // Keep focus for rapid typing
-      }
-
-      // Clear file state and attachments UI
+      // 5. Clear file state and attachments UI
       selectedFiles = [];
       renderAttachments();
     }
@@ -1039,13 +1051,11 @@ async function sendChatMessage(message) {
     console.error('Send error:', error);
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
 
-    // Note: Input is already cleared if we reached step 5. 
-    // If error happened before step 5 (e.g. file processing), input remains (which is good behavior).
+    // Note: Input is cleared immediately after submit (before async work).
   } finally {
     if (elements.chatSend) elements.chatSend.disabled = false;
     // Ensure focus is back on input
-    const inputEl = document.getElementById('chat-input');
-    if (inputEl) inputEl.focus();
+    if (elements.chatInput) elements.chatInput.focus();
   }
 }
 
@@ -1080,11 +1090,12 @@ elements.chatSelect.addEventListener('change', (e) => selectChat(e.target.value)
 // Chat form
 elements.chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  sendChatMessage(elements.chatInput.value);
+  sendChatMessage();
 });
 
 // Auto-resize chat input
 elements.chatInput.addEventListener('input', () => {
+  setChatInputValue(elements.chatInput.value);
   elements.chatInput.style.height = 'auto';
   elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 200) + 'px';
 });
@@ -1093,7 +1104,7 @@ elements.chatInput.addEventListener('input', () => {
 elements.chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
-    sendChatMessage(elements.chatInput.value);
+    sendChatMessage();
   }
 });
 
