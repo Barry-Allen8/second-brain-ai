@@ -3,23 +3,23 @@
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* Colors - Midnight with Cyan accents */
-  --bg-primary: #0a0e14;
-  --bg-secondary: #0d1117;
-  --bg-tertiary: #161b22;
-  --bg-elevated: #1c2128;
-  --bg-hover: #21262d;
+  /* Colors - ChatGPT-style Dark */
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #171717;
+  --bg-tertiary: #1f1f1f;
+  --bg-elevated: #222222;
+  --bg-hover: #2a2a2a;
 
-  --border-primary: #30363d;
-  --border-secondary: #21262d;
+  --border-primary: #2a2a2a;
+  --border-secondary: #242424;
 
-  --text-primary: #e6edf3;
-  --text-secondary: #8b949e;
-  --text-muted: #6e7681;
+  --text-primary: #e5e5e5;
+  --text-secondary: #b3b3b3;
+  --text-muted: #8a8a8a;
 
-  --accent-primary: #00d9ff;
-  --accent-secondary: #0ea5e9;
-  --accent-glow: rgba(0, 217, 255, 0.15);
+  --accent-primary: #10a37f;
+  --accent-secondary: #0b8f6d;
+  --accent-glow: rgba(16, 163, 127, 0.2);
 
   --success: #3fb950;
   --success-bg: rgba(63, 185, 80, 0.15);
@@ -43,7 +43,7 @@
   --space-2xl: 48px;
 
   /* Sizing */
-  --sidebar-width: 280px;
+  --sidebar-width: 260px;
   --header-height: 64px;
 
   /* Radius */
@@ -53,10 +53,10 @@
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--accent-glow);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 16px var(--accent-glow);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -126,17 +126,16 @@ body {
 }
 
 .logo-icon {
-  font-size: 1.75rem;
-  filter: drop-shadow(0 0 8px var(--accent-glow));
+  font-size: 1.5rem;
+  filter: none;
 }
 
 .logo-text {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
+  background: none;
+  -webkit-text-fill-color: var(--text-primary);
 }
 
 .spaces-section {
@@ -252,10 +251,7 @@ body {
   flex: 1;
   margin-left: var(--sidebar-width);
   min-height: 100vh;
-  background:
-    radial-gradient(ellipse at top right, rgba(0, 217, 255, 0.03), transparent 50%),
-    radial-gradient(ellipse at bottom left, rgba(14, 165, 233, 0.03), transparent 50%),
-    var(--bg-primary);
+  background: var(--bg-primary);
 }
 
 /* Empty State */
@@ -267,24 +263,38 @@ body {
   height: 100vh;
   text-align: center;
   padding: var(--space-xl);
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: var(--space-lg);
-  opacity: 0.5;
+  display: none;
 }
 
 .empty-state h2 {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 600;
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
+  color: var(--text-primary);
 }
 
 .empty-state p {
   color: var(--text-secondary);
   margin-bottom: var(--space-xl);
-  max-width: 400px;
+  max-width: 520px;
+}
+
+.empty-state .btn-primary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.empty-state .btn-primary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  transform: none;
 }
 
 /* Space Content */
@@ -304,13 +314,10 @@ body {
 }
 
 .space-info h1 {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 600;
   margin-bottom: var(--space-xs);
-  background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
 }
 
 #space-description {
@@ -760,20 +767,20 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: var(--bg-primary);
-  box-shadow: var(--shadow-sm), 0 0 16px var(--accent-glow);
+  background: var(--accent-primary);
+  color: #0f0f0f;
+  box-shadow: none;
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md), 0 0 24px var(--accent-glow);
+  background: var(--accent-secondary);
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border-secondary);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -783,8 +790,8 @@ body {
 
 .btn-danger-ghost {
   background: transparent;
-  color: var(--danger);
-  border: 1px solid rgba(248, 81, 73, 0.3);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .btn-danger-ghost:hover:not(:disabled) {
@@ -1139,16 +1146,15 @@ body {
 
   .mobile-logo .logo-icon {
     font-size: 1.5rem;
-    filter: drop-shadow(0 0 8px var(--accent-glow));
+    filter: none;
   }
 
   .mobile-logo .logo-text {
     font-size: 1.125rem;
     font-weight: 600;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-primary);
+    background: none;
+    -webkit-text-fill-color: var(--text-primary);
   }
 
   /* === MOBILE AI STATUS === */
@@ -1683,7 +1689,8 @@ body {
 }
 
 .chat-message.user .chat-avatar {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
 }
 
 .chat-message.assistant .chat-avatar {
@@ -1693,20 +1700,21 @@ body {
 
 .chat-bubble {
   padding: var(--space-md);
-  border-radius: var(--radius-lg);
+  border-radius: 18px;
   line-height: 1.6;
 }
 
 .chat-message.user .chat-bubble {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: var(--bg-primary);
-  border-bottom-right-radius: var(--radius-sm);
+  background: #2a2a2a;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-bottom-right-radius: 10px;
 }
 
 .chat-message.assistant .chat-bubble {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-secondary);
-  border-bottom-left-radius: var(--radius-sm);
+  border-bottom-left-radius: 10px;
   color: var(--text-primary);
 }
 
@@ -1800,9 +1808,9 @@ body {
 /* Chat Input */
 /* Chat Input Composer */
 .chat-input-container {
-  padding: 0 var(--space-md) var(--space-xs) var(--space-md);
+  padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
   background: transparent;
-  max-width: 900px;
+  max-width: 760px;
   margin: 0 auto;
   width: 100%;
 }
@@ -1810,11 +1818,11 @@ body {
 .chat-composer-inner {
   display: flex;
   align-items: flex-end;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
-  border-radius: 26px;
-  padding: 6px;
-  box-shadow: var(--shadow-sm);
+  border-radius: 22px;
+  padding: 8px 10px;
+  box-shadow: none;
   transition: all var(--transition-fast);
   position: relative;
 }
@@ -1942,9 +1950,9 @@ body {
 .chat-attach {
   width: 36px;
   height: 36px;
-  margin: 0 0 4px 4px;
+  margin: 0 0 4px 2px;
   /* Align to bottom */
-  border-radius: 50%;
+  border-radius: 999px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -1966,35 +1974,31 @@ body {
 .chat-send {
   width: 36px;
   height: 36px;
-  margin: 0 0 4px 0;
+  margin: 0 2px 4px 0;
   /* Align to bottom */
-  border-radius: 50%;
+  border-radius: 999px;
   /* Rounded circle for send */
   padding: 0;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   color: var(--text-muted);
   transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .chat-send.btn-primary {
-  background: var(--text-primary);
-  /* White/Light for send button usually */
-  color: var(--bg-primary);
-  /* Or stick to brand: */
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: #000;
+  background: var(--accent-primary);
+  color: #0f0f0f;
 }
 
 /* Use primary color effectively for send button */
 .chat-send.btn-primary {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
+  background: var(--accent-primary);
+  color: #0f0f0f;
+  box-shadow: none;
   opacity: 1;
 }
 
