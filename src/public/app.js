@@ -286,12 +286,12 @@ function showContextMenu(event, type, id) {
 
   if (type === 'space') {
     menu.innerHTML = `
-      <button class="context-menu-item" data-action="rename-space" data-id="${id}">
+      <button class="context-menu-item" data-action="edit-space" data-id="${id}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
         </svg>
-        <span>Перейменувати</span>
+        <span>Редагувати</span>
       </button>
       <div class="context-menu-divider"></div>
       <button class="context-menu-item danger" data-action="delete-space" data-id="${id}">
@@ -383,7 +383,7 @@ async function handleContextMenuAction(action, id) {
   closeContextMenu();
 
   switch (action) {
-    case 'rename-space':
+    case 'edit-space':
       // First select the space, then open edit modal
       if (state.currentSpaceId !== id) {
         await selectSpace(id);
