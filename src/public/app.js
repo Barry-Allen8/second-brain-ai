@@ -278,6 +278,150 @@ function escapeHtml(str) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Context Menu
+// ═══════════════════════════════════════════════════════════
+
+let activeContextMenu = null;
+
+function showContextMenu(event, type, id) {
+  // Close any existing context menu
+  closeContextMenu();
+
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.id = 'context-menu';
+
+  if (type === 'space') {
+    menu.innerHTML = `
+      <button class="context-menu-item" data-action="rename-space" data-id="${id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <span>Перейменувати</span>
+      </button>
+      <div class="context-menu-divider"></div>
+      <button class="context-menu-item danger" data-action="delete-space" data-id="${id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Видалити</span>
+      </button>
+    `;
+  } else if (type === 'chat') {
+    menu.innerHTML = `
+      <button class="context-menu-item" data-action="rename-chat" data-id="${id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <span>Перейменувати</span>
+      </button>
+      <div class="context-menu-divider"></div>
+      <button class="context-menu-item danger" data-action="delete-chat" data-id="${id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Видалити</span>
+      </button>
+    `;
+  }
+
+  document.body.appendChild(menu);
+  activeContextMenu = menu;
+
+  // Position the menu near the click
+  const rect = event.target.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  
+  let x = rect.right + 4;
+  let y = rect.top;
+
+  // Ensure menu doesn't go off-screen
+  if (x + menuRect.width > window.innerWidth) {
+    x = rect.left - menuRect.width - 4;
+  }
+  if (y + menuRect.height > window.innerHeight) {
+    y = window.innerHeight - menuRect.height - 8;
+  }
+
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
+
+  // Add click handlers for menu items
+  menu.querySelectorAll('.context-menu-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleContextMenuAction(item.dataset.action, item.dataset.id);
+    });
+  });
+
+  // Add event listener to close on click outside or Escape
+  setTimeout(() => {
+    document.addEventListener('click', handleClickOutsideContextMenu);
+    document.addEventListener('keydown', handleEscapeContextMenu);
+  }, 0);
+}
+
+function closeContextMenu() {
+  if (activeContextMenu) {
+    activeContextMenu.remove();
+    activeContextMenu = null;
+  }
+  document.removeEventListener('click', handleClickOutsideContextMenu);
+  document.removeEventListener('keydown', handleEscapeContextMenu);
+}
+
+function handleClickOutsideContextMenu(e) {
+  if (activeContextMenu && !activeContextMenu.contains(e.target)) {
+    closeContextMenu();
+  }
+}
+
+function handleEscapeContextMenu(e) {
+  if (e.key === 'Escape') {
+    closeContextMenu();
+  }
+}
+
+async function handleContextMenuAction(action, id) {
+  closeContextMenu();
+
+  switch (action) {
+    case 'rename-space':
+      // First select the space, then open edit modal
+      if (state.currentSpaceId !== id) {
+        await selectSpace(id);
+      }
+      openEditSpaceModal();
+      break;
+    case 'delete-space':
+      // First select the space, then delete
+      if (state.currentSpaceId !== id) {
+        await selectSpace(id);
+      }
+      deleteSpace();
+      break;
+    case 'rename-chat':
+      // Set current chat and rename
+      if (state.currentChatId !== id) {
+        await selectChat(id);
+      }
+      renameChat();
+      break;
+    case 'delete-chat':
+      // Set current chat and delete
+      if (state.currentChatId !== id) {
+        state.currentChatId = id;
+      }
+      deleteChat();
+      break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // DOM Elements
 // ═══════════════════════════════════════════════════════════
 
@@ -565,16 +709,108 @@ async function loadSpaces() {
 }
 
 function renderSpacesList() {
-  elements.spacesList.innerHTML = state.spaces.map(space => `
-    <li class="space-item ${space.id === state.currentSpaceId ? 'active' : ''}" 
-        data-id="${space.id}">
-      <span class="space-item-icon">${escapeHtml(space.icon || '📁')}</span>
-      <span class="space-item-name">${escapeHtml(space.name)}</span>
-    </li>
-  `).join('');
+  elements.spacesList.innerHTML = state.spaces.map(space => {
+    const isActive = space.id === state.currentSpaceId;
+    const spaceChats = isActive ? state.chats : [];
+    
+    return `
+      <li class="sidebar-item-wrapper" data-space-id="${space.id}">
+        <div class="sidebar-item ${isActive ? 'active' : ''}" data-id="${space.id}">
+          <span class="sidebar-item-icon">${escapeHtml(space.icon || '📁')}</span>
+          <span class="sidebar-item-name">${escapeHtml(space.name)}</span>
+          <button class="sidebar-item-menu" data-space-id="${space.id}" title="Дії">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="5" r="1"></circle>
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="12" cy="19" r="1"></circle>
+            </svg>
+          </button>
+        </div>
+        ${isActive && spaceChats.length > 0 ? `
+          <ul class="sidebar-chats">
+            ${spaceChats.map(chat => `
+              <li class="sidebar-chat-item ${chat.sessionId === state.currentChatId ? 'active' : ''}" 
+                  data-chat-id="${chat.sessionId}">
+                <span class="sidebar-chat-item-icon">💬</span>
+                <span class="sidebar-chat-item-name">${escapeHtml(chat.name || `Чат ${new Date(chat.createdAt).toLocaleDateString('uk-UA')}`)}</span>
+                <button class="sidebar-chat-item-menu" data-chat-id="${chat.sessionId}" title="Дії">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="5" r="1"></circle>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                  </svg>
+                </button>
+              </li>
+            `).join('')}
+            <li class="sidebar-new-chat" data-space-id="${space.id}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Новий чат</span>
+            </li>
+          </ul>
+        ` : isActive ? `
+          <ul class="sidebar-chats">
+            <li class="sidebar-new-chat" data-space-id="${space.id}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Новий чат</span>
+            </li>
+          </ul>
+        ` : ''}
+      </li>
+    `;
+  }).join('');
 
-  elements.spacesList.querySelectorAll('.space-item').forEach(item => {
-    item.addEventListener('click', () => selectSpace(item.dataset.id));
+  // Add click handlers for space items
+  elements.spacesList.querySelectorAll('.sidebar-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      // Don't select space if clicking on menu button
+      if (e.target.closest('.sidebar-item-menu')) return;
+      selectSpace(item.dataset.id);
+    });
+  });
+
+  // Add click handlers for space menu buttons
+  elements.spacesList.querySelectorAll('.sidebar-item-menu').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const spaceId = btn.dataset.spaceId;
+      showContextMenu(e, 'space', spaceId);
+    });
+  });
+
+  // Add click handlers for chat items
+  elements.spacesList.querySelectorAll('.sidebar-chat-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      // Don't select chat if clicking on menu button
+      if (e.target.closest('.sidebar-chat-item-menu')) return;
+      const chatId = item.dataset.chatId;
+      selectChat(chatId);
+      // Close sidebar on mobile
+      if (isMobile()) closeSidebar();
+    });
+  });
+
+  // Add click handlers for chat menu buttons
+  elements.spacesList.querySelectorAll('.sidebar-chat-item-menu').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const chatId = btn.dataset.chatId;
+      showContextMenu(e, 'chat', chatId);
+    });
+  });
+
+  // Add click handlers for new chat buttons
+  elements.spacesList.querySelectorAll('.sidebar-new-chat').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      createNewChat();
+      if (isMobile()) closeSidebar();
+    });
   });
 }
 
@@ -725,10 +961,13 @@ async function loadChats() {
     const sessions = await chatApi.listSessions(state.currentSpaceId);
     state.chats = sessions || [];
     renderChatSelector();
+    // Re-render spaces list to show nested chats
+    renderSpacesList();
   } catch (error) {
     console.error('Error loading chats:', error);
     state.chats = [];
     renderChatSelector();
+    renderSpacesList();
   }
 }
 
@@ -779,6 +1018,7 @@ async function createNewChat() {
   elements.chatSelect.value = '';
   renderChatWelcome();
   updateChatButtonStates();
+  renderSpacesList();
   showToast('Новий чат створено', 'info');
 }
 
@@ -794,6 +1034,10 @@ async function selectChat(sessionId) {
     state.currentChatMessages = session.messages || [];
     renderChatMessages();
     updateChatButtonStates();
+    // Update sidebar to show active chat
+    renderSpacesList();
+    // Update dropdown selection
+    if (elements.chatSelect) elements.chatSelect.value = sessionId;
   } catch (error) {
     showToast('Не вдалося завантажити чат', 'error');
   }
@@ -816,6 +1060,7 @@ async function renameChat() {
     await chatApi.renameSession(state.currentChatId, data.name);
     showToast('Чат перейменовано', 'success');
     await loadChats();
+    // Sidebar is already updated by loadChats
   });
 }
 
@@ -835,6 +1080,7 @@ async function deleteChat() {
     await loadChats();
     renderChatWelcome();
     updateChatButtonStates();
+    // Sidebar is already updated by loadChats
   } catch (error) {
     showToast('Не вдалося видалити чат', 'error');
   }
