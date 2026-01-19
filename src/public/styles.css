@@ -239,6 +239,15 @@ body {
 .sidebar-item-icon {
   font-size: 1.125rem;
   flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.sidebar-item-icon.clickable {
+  cursor: pointer;
+}
+
+.sidebar-item-icon.clickable:hover {
+  transform: scale(1.1);
 }
 
 .sidebar-item-name {
@@ -424,6 +433,80 @@ body {
   height: 1px;
   background: var(--border-secondary);
   margin: var(--space-xs) 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Model Dropdown (ChatGPT-style)
+   ═══════════════════════════════════════════════════════════ */
+
+.model-dropdown {
+  position: fixed;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  min-width: 220px;
+  padding: var(--space-xs);
+  z-index: 1000;
+  animation: modelDropdownFadeIn var(--transition-fast);
+}
+
+@keyframes modelDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.model-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.model-dropdown-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.model-dropdown-item.selected {
+  color: var(--text-primary);
+}
+
+.model-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-dropdown-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: inherit;
+}
+
+.model-dropdown-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.model-dropdown-check {
+  color: var(--accent-primary);
+  flex-shrink: 0;
 }
 
 /* New Chat button in sidebar */

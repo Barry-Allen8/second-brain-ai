@@ -123,18 +123,9 @@ function isPWAInstalled() {
 // Online/Offline Status Handler
 function updateOnlineStatus() {
   const isOnline = navigator.onLine;
-  const aiStatusEl = document.getElementById('ai-status');
   const mobileAiStatusEl = document.getElementById('mobile-ai-status');
 
   if (isOnline) {
-    // Update sidebar status
-    if (aiStatusEl) {
-      aiStatusEl.querySelector('.ai-status-text').textContent = 'AI: перевірка...';
-      aiStatusEl.classList.remove('disconnected');
-      aiStatusEl.classList.add('connected');
-      aiStatusEl.style.cursor = 'default';
-      aiStatusEl.title = '';
-    }
     // Update mobile status
     if (mobileAiStatusEl) {
       mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = '...';
@@ -143,19 +134,19 @@ function updateOnlineStatus() {
     }
     checkAIStatus();
   } else {
-    // Update sidebar status
-    if (aiStatusEl) {
-      aiStatusEl.classList.remove('connected');
-      aiStatusEl.classList.add('disconnected');
-      aiStatusEl.querySelector('.ai-status-text').textContent = 'Офлайн';
-      aiStatusEl.style.cursor = 'default';
-      aiStatusEl.title = '';
-    }
     // Update mobile status
     if (mobileAiStatusEl) {
       mobileAiStatusEl.classList.remove('connected');
       mobileAiStatusEl.classList.add('disconnected');
       mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = 'Офлайн';
+    }
+    // Update header model selector
+    if (elements.headerModelSelector) {
+      elements.headerModelSelector.classList.add('disconnected');
+      elements.headerModelSelector.classList.remove('connected');
+    }
+    if (elements.headerModelText) {
+      elements.headerModelText.textContent = 'Офлайн';
     }
   }
 
@@ -203,6 +194,8 @@ const state = {
   currentChatId: null,
   currentChatMessages: [],
   chatInputValue: '',
+  // UI state
+  collapsedSpaces: new Set(), // Track collapsed spaces
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -446,7 +439,6 @@ const elements = {
   chatInput: $('#chat-input'),
   chatSend: $('#chat-send'),
   chatSelect: $('#chat-select'),
-  aiStatus: $('#ai-status'),
   mobileAiStatus: $('#mobile-ai-status'),
   // Header model selector
   headerModelSelector: $('#header-model-selector'),
@@ -576,13 +568,6 @@ async function checkAIStatus() {
     state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
 
     if (status.configured) {
-      // Update sidebar AI status
-      elements.aiStatus.classList.add('connected');
-      elements.aiStatus.classList.remove('disconnected');
-      elements.aiStatus.querySelector('.ai-status-text').textContent = `AI: ${status.model}`;
-      elements.aiStatus.style.cursor = 'pointer';
-      elements.aiStatus.title = 'Клікніть для зміни моделі';
-
       // Update mobile AI status
       if (elements.mobileAiStatus) {
         elements.mobileAiStatus.classList.add('connected');
@@ -600,12 +585,6 @@ async function checkAIStatus() {
         elements.headerModelText.textContent = status.model;
       }
     } else {
-      elements.aiStatus.classList.add('disconnected');
-      elements.aiStatus.classList.remove('connected');
-      elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: не налаштовано';
-      elements.aiStatus.style.cursor = 'default';
-      elements.aiStatus.title = '';
-
       // Update mobile AI status
       if (elements.mobileAiStatus) {
         elements.mobileAiStatus.classList.add('disconnected');
@@ -624,9 +603,6 @@ async function checkAIStatus() {
       }
     }
   } catch (error) {
-    elements.aiStatus.classList.add('disconnected');
-    elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: помилка';
-
     // Update mobile AI status on error
     if (elements.mobileAiStatus) {
       elements.mobileAiStatus.classList.add('disconnected');
@@ -645,47 +621,116 @@ async function checkAIStatus() {
   }
 }
 
-function openModelSelectorModal() {
+// Model info for dropdown
+const MODEL_INFO = {
+  'gpt-4o-mini': {
+    name: 'gpt-4o-mini',
+    description: 'Швидка та економна'
+  },
+  'gpt-4o': {
+    name: 'gpt-4o',
+    description: 'Найпотужніша модель'
+  }
+};
+
+let activeModelDropdown = null;
+
+function openModelSelectorDropdown() {
   if (!state.aiConfigured) {
     showToast('AI не налаштовано', 'warning');
     return;
   }
 
-  const modelOptions = state.supportedModels
-    .map(model => `
-      <option value="${model}" ${model === state.aiModel ? 'selected' : ''}>
-        ${model}
-      </option>
-    `)
-    .join('');
+  // Close if already open
+  if (activeModelDropdown) {
+    closeModelDropdown();
+    return;
+  }
 
-  openModal('Вибрати модель OpenAI', `
-    <div class="form-group">
-      <label class="form-label">Модель *</label>
-      <select name="model" class="form-select">
-        ${modelOptions}
-      </select>
-      <p class="form-hint">Поточна модель: ${state.aiModel}</p>
-    </div>
-    <div class="form-group">
-      <p style="color: var(--text-secondary); font-size: 0.875rem;">
-        <strong>Доступні моделі:</strong><br>
-        • gpt-4o-mini - швидка, економна (за замовчуванням)<br>
-        • gpt-4o - найпотужніша модель від OpenAI
-      </p>
-    </div>
-  `, async (data) => {
-    if (!data.model) throw new Error("Оберіть модель");
+  const dropdown = document.createElement('div');
+  dropdown.className = 'model-dropdown';
+  dropdown.id = 'model-dropdown';
 
-    try {
-      await chatApi.setModel(data.model);
-      state.aiModel = data.model;
-      showToast(`Модель змінено на ${data.model}`, 'success');
-      await checkAIStatus();
-    } catch (error) {
-      throw new Error(error.message || 'Не вдалося змінити модель');
-    }
+  dropdown.innerHTML = state.supportedModels.map(model => {
+    const info = MODEL_INFO[model] || { name: model, description: '' };
+    const isSelected = model === state.aiModel;
+    return `
+      <button class="model-dropdown-item ${isSelected ? 'selected' : ''}" data-model="${model}">
+        <div class="model-dropdown-info">
+          <span class="model-dropdown-name">${info.name}</span>
+          <span class="model-dropdown-desc">${info.description}</span>
+        </div>
+        ${isSelected ? `
+          <svg class="model-dropdown-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        ` : ''}
+      </button>
+    `;
+  }).join('');
+
+  document.body.appendChild(dropdown);
+  activeModelDropdown = dropdown;
+
+  // Position dropdown below the header model selector
+  const trigger = elements.headerModelSelector;
+  if (trigger) {
+    const rect = trigger.getBoundingClientRect();
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.minWidth = `${Math.max(rect.width, 200)}px`;
+  }
+
+  // Add click handlers
+  dropdown.querySelectorAll('.model-dropdown-item').forEach(item => {
+    item.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const model = item.dataset.model;
+      if (model !== state.aiModel) {
+        try {
+          await chatApi.setModel(model);
+          state.aiModel = model;
+          showToast(`Модель змінено на ${model}`, 'success');
+          await checkAIStatus();
+        } catch (error) {
+          showToast(error.message || 'Не вдалося змінити модель', 'error');
+        }
+      }
+      closeModelDropdown();
+    });
   });
+
+  // Close on click outside
+  setTimeout(() => {
+    document.addEventListener('click', handleClickOutsideModelDropdown);
+    document.addEventListener('keydown', handleEscapeModelDropdown);
+  }, 0);
+}
+
+function closeModelDropdown() {
+  if (activeModelDropdown) {
+    activeModelDropdown.remove();
+    activeModelDropdown = null;
+  }
+  document.removeEventListener('click', handleClickOutsideModelDropdown);
+  document.removeEventListener('keydown', handleEscapeModelDropdown);
+}
+
+function handleClickOutsideModelDropdown(e) {
+  if (activeModelDropdown && !activeModelDropdown.contains(e.target) && !elements.headerModelSelector.contains(e.target)) {
+    closeModelDropdown();
+  }
+}
+
+function handleEscapeModelDropdown(e) {
+  if (e.key === 'Escape') {
+    closeModelDropdown();
+  }
+}
+
+// Keep the old function name for backwards compatibility
+function openModelSelectorModal() {
+  openModelSelectorDropdown();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -711,12 +756,14 @@ async function loadSpaces() {
 function renderSpacesList() {
   elements.spacesList.innerHTML = state.spaces.map(space => {
     const isActive = space.id === state.currentSpaceId;
+    const isCollapsed = state.collapsedSpaces.has(space.id);
     const spaceChats = isActive ? state.chats : [];
+    const hasChats = spaceChats.length > 0;
     
     return `
       <li class="sidebar-item-wrapper" data-space-id="${space.id}">
         <div class="sidebar-item ${isActive ? 'active' : ''}" data-id="${space.id}">
-          <span class="sidebar-item-icon">${escapeHtml(space.icon || '📁')}</span>
+          <span class="sidebar-item-icon ${isActive && hasChats ? 'clickable' : ''}" data-space-id="${space.id}" title="${isActive && hasChats ? (isCollapsed ? 'Розгорнути чати' : 'Згорнути чати') : ''}">${escapeHtml(space.icon || '📁')}</span>
           <span class="sidebar-item-name">${escapeHtml(space.name)}</span>
           <button class="sidebar-item-menu" data-space-id="${space.id}" title="Дії">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -726,7 +773,7 @@ function renderSpacesList() {
             </svg>
           </button>
         </div>
-        ${isActive && spaceChats.length > 0 ? `
+        ${isActive && !isCollapsed && hasChats ? `
           <ul class="sidebar-chats">
             ${spaceChats.map(chat => `
               <li class="sidebar-chat-item ${chat.sessionId === state.currentChatId ? 'active' : ''}" 
@@ -750,7 +797,7 @@ function renderSpacesList() {
               <span>Новий чат</span>
             </li>
           </ul>
-        ` : isActive ? `
+        ` : isActive && !isCollapsed ? `
           <ul class="sidebar-chats">
             <li class="sidebar-new-chat" data-space-id="${space.id}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -770,6 +817,15 @@ function renderSpacesList() {
     item.addEventListener('click', (e) => {
       // Don't select space if clicking on menu button
       if (e.target.closest('.sidebar-item-menu')) return;
+      
+      // Check if clicking on the icon to toggle chats
+      const icon = e.target.closest('.sidebar-item-icon');
+      if (icon && icon.classList.contains('clickable')) {
+        const spaceId = icon.dataset.spaceId;
+        toggleSpaceChats(spaceId);
+        return;
+      }
+      
       selectSpace(item.dataset.id);
     });
   });
@@ -812,6 +868,15 @@ function renderSpacesList() {
       if (isMobile()) closeSidebar();
     });
   });
+}
+
+function toggleSpaceChats(spaceId) {
+  if (state.collapsedSpaces.has(spaceId)) {
+    state.collapsedSpaces.delete(spaceId);
+  } else {
+    state.collapsedSpaces.add(spaceId);
+  }
+  renderSpacesList();
 }
 
 async function selectSpace(spaceId) {
@@ -1434,8 +1499,6 @@ document.addEventListener('keydown', (e) => {
 // Spaces
 $('#add-space-btn').addEventListener('click', openCreateSpaceModal);
 $('#create-first-space').addEventListener('click', openCreateSpaceModal);
-$('#edit-space-btn').addEventListener('click', openEditSpaceModal);
-$('#delete-space-btn').addEventListener('click', deleteSpace);
 
 // Chat management
 $('#new-chat-btn').addEventListener('click', createNewChat);
@@ -1472,18 +1535,11 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAIStatus();
   loadSpaces();
 
-  // Sidebar AI status click handler
-  elements.aiStatus.addEventListener('click', () => {
-    if (state.aiConfigured) {
-      openModelSelectorModal();
-    }
-  });
-
   // Mobile AI status click handler
   if (elements.mobileAiStatus) {
     elements.mobileAiStatus.addEventListener('click', () => {
       if (state.aiConfigured) {
-        openModelSelectorModal();
+        openModelSelectorDropdown();
       }
     });
   }
@@ -1492,7 +1548,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (elements.headerModelSelector) {
     elements.headerModelSelector.addEventListener('click', () => {
       if (state.aiConfigured) {
-        openModelSelectorModal();
+        openModelSelectorDropdown();
       } else {
         showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'warning');
       }
