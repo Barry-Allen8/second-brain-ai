@@ -438,7 +438,6 @@ const elements = {
   chatForm: $('#chat-form'),
   chatInput: $('#chat-input'),
   chatSend: $('#chat-send'),
-  chatSelect: $('#chat-select'),
   mobileAiStatus: $('#mobile-ai-status'),
   // Header model selector
   headerModelSelector: $('#header-model-selector'),
@@ -1025,52 +1024,16 @@ async function loadChats() {
   try {
     const sessions = await chatApi.listSessions(state.currentSpaceId);
     state.chats = sessions || [];
-    renderChatSelector();
     // Re-render spaces list to show nested chats
     renderSpacesList();
   } catch (error) {
     console.error('Error loading chats:', error);
     state.chats = [];
-    renderChatSelector();
     renderSpacesList();
   }
 }
 
-function renderChatSelector() {
-  const select = elements.chatSelect;
-  select.innerHTML = '<option value="">Новий чат</option>';
 
-  state.chats.forEach(chat => {
-    const option = document.createElement('option');
-    option.value = chat.sessionId;
-    option.textContent = chat.name || `Чат ${new Date(chat.createdAt).toLocaleString('uk-UA')}`;
-    if (chat.sessionId === state.currentChatId) {
-      option.selected = true;
-    }
-    select.appendChild(option);
-  });
-
-  // Update button states
-  updateChatButtonStates();
-}
-
-function updateChatButtonStates() {
-  const hasActiveChat = !!state.currentChatId;
-  const renameBtn = $('#rename-chat-btn');
-  const deleteBtn = $('#delete-chat-btn');
-
-  if (renameBtn) {
-    renameBtn.disabled = !hasActiveChat;
-    renameBtn.style.opacity = hasActiveChat ? '1' : '0.5';
-    renameBtn.style.cursor = hasActiveChat ? 'pointer' : 'not-allowed';
-  }
-
-  if (deleteBtn) {
-    deleteBtn.disabled = !hasActiveChat;
-    deleteBtn.style.opacity = hasActiveChat ? '1' : '0.5';
-    deleteBtn.style.cursor = hasActiveChat ? 'pointer' : 'not-allowed';
-  }
-}
 
 async function createNewChat() {
   if (state.chats.length >= MAX_CHATS_PER_SPACE) {
@@ -1080,9 +1043,7 @@ async function createNewChat() {
 
   state.currentChatId = null;
   state.currentChatMessages = [];
-  elements.chatSelect.value = '';
   renderChatWelcome();
-  updateChatButtonStates();
   renderSpacesList();
   showToast('Новий чат створено', 'info');
 }
@@ -1098,11 +1059,8 @@ async function selectChat(sessionId) {
     state.currentChatId = sessionId;
     state.currentChatMessages = session.messages || [];
     renderChatMessages();
-    updateChatButtonStates();
     // Update sidebar to show active chat
     renderSpacesList();
-    // Update dropdown selection
-    if (elements.chatSelect) elements.chatSelect.value = sessionId;
   } catch (error) {
     showToast('Не вдалося завантажити чат', 'error');
   }
@@ -1144,7 +1102,6 @@ async function deleteChat() {
     state.currentChatMessages = [];
     await loadChats();
     renderChatWelcome();
-    updateChatButtonStates();
     // Sidebar is already updated by loadChats
   } catch (error) {
     showToast('Не вдалося видалити чат', 'error');
@@ -1499,12 +1456,6 @@ document.addEventListener('keydown', (e) => {
 // Spaces
 $('#add-space-btn').addEventListener('click', openCreateSpaceModal);
 $('#create-first-space').addEventListener('click', openCreateSpaceModal);
-
-// Chat management
-$('#new-chat-btn').addEventListener('click', createNewChat);
-$('#rename-chat-btn').addEventListener('click', renameChat);
-$('#delete-chat-btn').addEventListener('click', deleteChat);
-elements.chatSelect.addEventListener('change', (e) => selectChat(e.target.value));
 
 // Chat form
 elements.chatForm.addEventListener('submit', (e) => {

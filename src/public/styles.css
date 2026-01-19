@@ -1798,25 +1798,6 @@ body {
     font-size: 0.8125rem;
   }
 
-  /* === CHAT HEADER === */
-  .chat-header {
-    padding: var(--space-xs);
-    background: transparent;
-    border: none;
-  }
-
-  .chat-selector {
-    flex-wrap: wrap;
-    gap: var(--space-xs);
-  }
-
-  .chat-select {
-    width: 100%;
-    flex: none;
-    padding: var(--space-sm);
-    font-size: 0.875rem;
-  }
-
   .btn-sm {
     min-width: 40px;
     height: 40px;
@@ -2044,43 +2025,6 @@ body {
   flex: 1;
   height: 100%;
   overflow: hidden;
-}
-
-.chat-header {
-  padding: var(--space-xs) var(--space-sm);
-  /* Clean flat style - no boxed container */
-  background: transparent;
-  border: none;
-}
-
-.chat-selector {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: center;
-}
-
-.chat-select {
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-sm) var(--space-md);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.chat-select:hover {
-  border-color: var(--accent-primary);
-}
-
-.chat-select:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .btn-sm {
