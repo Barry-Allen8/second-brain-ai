@@ -594,8 +594,10 @@ function openCreateSpaceModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>
-      <input type="text" name="icon" class="form-input" placeholder="📁" maxlength="2">
-      <p class="form-hint">Emoji або символ</p>
+      <div class="icon-picker" id="icon-picker">
+        <span class="icon-picker-value" id="icon-picker-value">📁</span>
+      </div>
+      <input type="hidden" name="icon" id="icon-input" value="📁">
     </div>
   `, async (data) => {
     if (!data.name) throw new Error("Назва обов'язкова");
@@ -603,10 +605,29 @@ function openCreateSpaceModal() {
     showToast('Простір створено', 'success');
     await loadSpaces();
   });
+  
+  // Add click handler for icon picker
+  setTimeout(() => {
+    const iconPicker = document.getElementById('icon-picker');
+    const iconInput = document.getElementById('icon-input');
+    const iconValue = document.getElementById('icon-picker-value');
+    
+    if (iconPicker) {
+      iconPicker.addEventListener('click', () => {
+        const newIcon = prompt('Введіть emoji або символ:', iconInput.value || '📁');
+        if (newIcon && newIcon.trim()) {
+          const icon = newIcon.trim().substring(0, 2);
+          iconInput.value = icon;
+          iconValue.textContent = icon;
+        }
+      });
+    }
+  }, 100);
 }
 
 function openEditSpaceModal() {
   const space = state.currentSpace;
+  const currentIcon = space.icon || '📁';
   openModal('Редагувати простір', `
     <div class="form-group">
       <label class="form-label">Назва *</label>
@@ -618,7 +639,10 @@ function openEditSpaceModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>
-      <input type="text" name="icon" class="form-input" value="${escapeHtml(space.icon || '')}" maxlength="2">
+      <div class="icon-picker" id="icon-picker">
+        <span class="icon-picker-value" id="icon-picker-value">${escapeHtml(currentIcon)}</span>
+      </div>
+      <input type="hidden" name="icon" id="icon-input" value="${escapeHtml(currentIcon)}">
     </div>
   `, async (data) => {
     if (!data.name) throw new Error("Назва обов'язкова");
@@ -627,6 +651,24 @@ function openEditSpaceModal() {
     await selectSpace(state.currentSpaceId);
     await loadSpaces();
   });
+  
+  // Add click handler for icon picker
+  setTimeout(() => {
+    const iconPicker = document.getElementById('icon-picker');
+    const iconInput = document.getElementById('icon-input');
+    const iconValue = document.getElementById('icon-picker-value');
+    
+    if (iconPicker) {
+      iconPicker.addEventListener('click', () => {
+        const newIcon = prompt('Введіть emoji або символ:', iconInput.value || '📁');
+        if (newIcon && newIcon.trim()) {
+          const icon = newIcon.trim().substring(0, 2);
+          iconInput.value = icon;
+          iconValue.textContent = icon;
+        }
+      });
+    }
+  }, 100);
 }
 
 async function deleteSpace() {

@@ -960,8 +960,8 @@ body {
 .form-textarea.description-textarea {
   min-height: 200px;
   max-height: 40vh;
-  overflow-y: auto;
-  resize: vertical;
+  overflow-y: hidden;
+  resize: none;
 }
 
 .form-select {
@@ -990,6 +990,31 @@ body {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: var(--space-xs);
+}
+
+/* Icon Picker */
+.icon-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--bg-tertiary);
+  border: 2px dashed var(--border-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.icon-picker:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-hover);
+  border-style: solid;
+}
+
+.icon-picker-value {
+  font-size: 1.75rem;
+  line-height: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1512,6 +1537,8 @@ body {
   .form-textarea.description-textarea {
     min-height: 150px;
     max-height: 35vh;
+    overflow-y: hidden;
+    resize: none;
   }
 
   .modal-footer {
