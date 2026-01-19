@@ -1393,6 +1393,8 @@ body {
   /* === CHAT HEADER === */
   .chat-header {
     padding: var(--space-xs);
+    background: transparent;
+    border: none;
   }
 
   .chat-selector {
@@ -1638,8 +1640,9 @@ body {
 
 .chat-header {
   padding: var(--space-xs) var(--space-sm);
-  border-bottom: 1px solid var(--border-primary);
-  background: var(--bg-secondary);
+  /* Clean flat style - no boxed container */
+  background: transparent;
+  border: none;
 }
 
 .chat-selector {
