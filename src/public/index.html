@@ -49,8 +49,8 @@
 
 <body>
   <div class="app">
-    <!-- Mobile Header with Hamburger -->
-    <div class="mobile-header">
+    <!-- Mobile Header with Hamburger (ChatGPT-style) -->
+    <header class="mobile-header" id="mobile-header">
       <button class="hamburger-btn" id="hamburger-btn" aria-label="Меню">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -58,15 +58,17 @@
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
       </button>
-      <div class="mobile-logo">
-        <span class="logo-icon">🧠</span>
-        <span class="logo-text">Second Brain</span>
+      <div class="mobile-header-title" id="mobile-header-title">
+        <span class="mobile-title-text">Second Brain AI</span>
       </div>
-      <div class="mobile-ai-status" id="mobile-ai-status">
-        <span class="mobile-ai-dot"></span>
-        <span class="mobile-ai-text">AI: ...</span>
-      </div>
-    </div>
+      <button class="mobile-header-menu" id="mobile-header-menu" aria-label="Меню">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="5" r="1.5"></circle>
+          <circle cx="12" cy="12" r="1.5"></circle>
+          <circle cx="12" cy="19" r="1.5"></circle>
+        </svg>
+      </button>
+    </header>
 
     <!-- Sidebar Overlay (for mobile) -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>

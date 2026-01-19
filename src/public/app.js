@@ -123,23 +123,10 @@ function isPWAInstalled() {
 // Online/Offline Status Handler
 function updateOnlineStatus() {
   const isOnline = navigator.onLine;
-  const mobileAiStatusEl = document.getElementById('mobile-ai-status');
 
   if (isOnline) {
-    // Update mobile status
-    if (mobileAiStatusEl) {
-      mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = '...';
-      mobileAiStatusEl.classList.remove('disconnected');
-      mobileAiStatusEl.classList.add('connected');
-    }
     checkAIStatus();
   } else {
-    // Update mobile status
-    if (mobileAiStatusEl) {
-      mobileAiStatusEl.classList.remove('connected');
-      mobileAiStatusEl.classList.add('disconnected');
-      mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = 'Офлайн';
-    }
     // Update header model selector
     if (elements.headerModelSelector) {
       elements.headerModelSelector.classList.add('disconnected');
@@ -438,7 +425,6 @@ const elements = {
   chatForm: $('#chat-form'),
   chatInput: $('#chat-input'),
   chatSend: $('#chat-send'),
-  mobileAiStatus: $('#mobile-ai-status'),
   // Header model selector
   headerModelSelector: $('#header-model-selector'),
   headerModelText: $('#header-model-text'),
@@ -447,10 +433,13 @@ const elements = {
   sidebarOverlay: $('#sidebar-overlay'),
   hamburgerBtn: $('#hamburger-btn'),
   sidebarClose: $('#sidebar-close'),
+  mobileHeader: $('#mobile-header'),
+  mobileHeaderTitle: $('#mobile-header-title'),
+  mobileHeaderMenu: $('#mobile-header-menu'),
 };
 
 // ═══════════════════════════════════════════════════════════
-// Mobile Sidebar Management
+// Mobile Sidebar Management (ChatGPT-style)
 // ═══════════════════════════════════════════════════════════
 
 function openSidebar() {
@@ -467,6 +456,117 @@ function closeSidebar() {
 
 function isMobile() {
   return window.innerWidth <= 768;
+}
+
+function isTablet() {
+  return window.innerWidth > 768 && window.innerWidth <= 1024;
+}
+
+function isMobileOrTablet() {
+  return window.innerWidth <= 1024;
+}
+
+/**
+ * Update mobile header title based on current state
+ * Shows: Space name > Chat name, or just Space name, or default "Second Brain AI"
+ */
+function updateMobileHeaderTitle() {
+  if (!elements.mobileHeaderTitle) return;
+  
+  const titleText = elements.mobileHeaderTitle.querySelector('.mobile-title-text');
+  if (!titleText) return;
+  
+  let title = 'Second Brain AI';
+  
+  if (state.currentSpace) {
+    title = state.currentSpace.name;
+    
+    // If we have an active chat, show it
+    if (state.currentChatId && state.chats.length > 0) {
+      const currentChat = state.chats.find(c => c.sessionId === state.currentChatId);
+      if (currentChat && currentChat.name) {
+        // Truncate chat name if too long
+        const chatName = currentChat.name.length > 20 
+          ? currentChat.name.substring(0, 20) + '...' 
+          : currentChat.name;
+        title = chatName;
+      }
+    }
+  }
+  
+  titleText.textContent = title;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Swipe Gesture Support for Sidebar
+// ═══════════════════════════════════════════════════════════
+
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+const SWIPE_THRESHOLD = 50;
+const SWIPE_VELOCITY_THRESHOLD = 0.3;
+let touchStartTime = 0;
+
+function initSwipeGestures() {
+  document.addEventListener('touchstart', handleTouchStart, { passive: true });
+  document.addEventListener('touchend', handleTouchEnd, { passive: true });
+}
+
+function handleTouchStart(e) {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+  touchStartTime = Date.now();
+}
+
+function handleTouchEnd(e) {
+  touchEndX = e.changedTouches[0].screenX;
+  touchEndY = e.changedTouches[0].screenY;
+  handleSwipe();
+}
+
+function handleSwipe() {
+  const diffX = touchEndX - touchStartX;
+  const diffY = touchEndY - touchStartY;
+  const duration = Date.now() - touchStartTime;
+  const velocity = Math.abs(diffX) / duration;
+  
+  // Only handle horizontal swipes (more horizontal than vertical)
+  if (Math.abs(diffX) < Math.abs(diffY)) return;
+  
+  // Check if swipe is significant enough
+  const isSignificantSwipe = Math.abs(diffX) > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY_THRESHOLD;
+  if (!isSignificantSwipe) return;
+  
+  // Only handle swipes on mobile/tablet
+  if (!isMobileOrTablet()) return;
+  
+  const sidebarOpen = elements.sidebar.classList.contains('open');
+  
+  // Swipe right to open (from left edge)
+  if (diffX > 0 && touchStartX < 50 && !sidebarOpen) {
+    openSidebar();
+  }
+  
+  // Swipe left to close (anywhere when sidebar is open)
+  if (diffX < 0 && sidebarOpen) {
+    closeSidebar();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Mobile Header Menu (context actions)
+// ═══════════════════════════════════════════════════════════
+
+function showMobileHeaderMenu(event) {
+  if (!state.currentSpaceId) {
+    showToast('Спочатку оберіть простір', 'info');
+    return;
+  }
+  
+  // Use existing context menu with space actions
+  showContextMenu(event, 'space', state.currentSpaceId);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -567,13 +667,6 @@ async function checkAIStatus() {
     state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
 
     if (status.configured) {
-      // Update mobile AI status
-      if (elements.mobileAiStatus) {
-        elements.mobileAiStatus.classList.add('connected');
-        elements.mobileAiStatus.classList.remove('disconnected');
-        elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = status.model;
-      }
-
       // Update header model selector (primary position)
       if (elements.headerModelSelector) {
         elements.headerModelSelector.classList.add('connected');
@@ -584,13 +677,6 @@ async function checkAIStatus() {
         elements.headerModelText.textContent = status.model;
       }
     } else {
-      // Update mobile AI status
-      if (elements.mobileAiStatus) {
-        elements.mobileAiStatus.classList.add('disconnected');
-        elements.mobileAiStatus.classList.remove('connected');
-        elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = 'Не налаштовано';
-      }
-
       // Update header model selector
       if (elements.headerModelSelector) {
         elements.headerModelSelector.classList.add('disconnected');
@@ -602,13 +688,6 @@ async function checkAIStatus() {
       }
     }
   } catch (error) {
-    // Update mobile AI status on error
-    if (elements.mobileAiStatus) {
-      elements.mobileAiStatus.classList.add('disconnected');
-      elements.mobileAiStatus.classList.remove('connected');
-      elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = 'Помилка';
-    }
-
     // Update header model selector on error
     if (elements.headerModelSelector) {
       elements.headerModelSelector.classList.add('disconnected');
@@ -845,8 +924,7 @@ function renderSpacesList() {
       if (e.target.closest('.sidebar-chat-item-menu')) return;
       const chatId = item.dataset.chatId;
       selectChat(chatId);
-      // Close sidebar on mobile
-      if (isMobile()) closeSidebar();
+      // Note: closeSidebar is called inside selectChat for mobile/tablet
     });
   });
 
@@ -864,7 +942,7 @@ function renderSpacesList() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       createNewChat();
-      if (isMobile()) closeSidebar();
+      // Note: closeSidebar is called inside createNewChat for mobile/tablet
     });
   });
 }
@@ -893,12 +971,15 @@ async function selectSpace(spaceId) {
     renderSpacesList();
     renderSpaceContent();
     renderChatWelcome();
+    
+    // Update mobile header title
+    updateMobileHeaderTitle();
 
     elements.emptyState.classList.add('hidden');
     elements.spaceContent.classList.remove('hidden');
 
-    // Close sidebar on mobile after selecting a space
-    if (isMobile()) {
+    // Close sidebar on mobile/tablet after selecting a space
+    if (isMobileOrTablet()) {
       closeSidebar();
     }
   } catch (error) {
@@ -1045,7 +1126,13 @@ async function createNewChat() {
   state.currentChatMessages = [];
   renderChatWelcome();
   renderSpacesList();
+  updateMobileHeaderTitle();
   showToast('Новий чат створено', 'info');
+  
+  // Close sidebar on mobile/tablet
+  if (isMobileOrTablet()) {
+    closeSidebar();
+  }
 }
 
 async function selectChat(sessionId) {
@@ -1061,6 +1148,13 @@ async function selectChat(sessionId) {
     renderChatMessages();
     // Update sidebar to show active chat
     renderSpacesList();
+    // Update mobile header title
+    updateMobileHeaderTitle();
+    
+    // Close sidebar on mobile/tablet after selecting a chat
+    if (isMobileOrTablet()) {
+      closeSidebar();
+    }
   } catch (error) {
     showToast('Не вдалося завантажити чат', 'error');
   }
@@ -1446,9 +1540,21 @@ elements.hamburgerBtn.addEventListener('click', openSidebar);
 elements.sidebarClose.addEventListener('click', closeSidebar);
 elements.sidebarOverlay.addEventListener('click', closeSidebar);
 
-// Close sidebar on escape key
+// Mobile header menu button
+if (elements.mobileHeaderMenu) {
+  elements.mobileHeaderMenu.addEventListener('click', showMobileHeaderMenu);
+}
+
+// Close sidebar on escape key (mobile and tablet)
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && isMobile() && elements.sidebar.classList.contains('open')) {
+  if (e.key === 'Escape' && isMobileOrTablet() && elements.sidebar.classList.contains('open')) {
+    closeSidebar();
+  }
+});
+
+// Handle window resize - close sidebar if resizing to desktop
+window.addEventListener('resize', () => {
+  if (!isMobileOrTablet() && elements.sidebar.classList.contains('open')) {
     closeSidebar();
   }
 });
@@ -1485,15 +1591,12 @@ elements.chatInput.addEventListener('keydown', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   checkAIStatus();
   loadSpaces();
-
-  // Mobile AI status click handler
-  if (elements.mobileAiStatus) {
-    elements.mobileAiStatus.addEventListener('click', () => {
-      if (state.aiConfigured) {
-        openModelSelectorDropdown();
-      }
-    });
-  }
+  
+  // Initialize swipe gestures for mobile/tablet sidebar
+  initSwipeGestures();
+  
+  // Initialize mobile header title
+  updateMobileHeaderTitle();
 
   // Header model selector click handler (primary model selector)
   if (elements.headerModelSelector) {
