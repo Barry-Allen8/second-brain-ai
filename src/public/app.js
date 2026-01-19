@@ -304,6 +304,9 @@ const elements = {
   chatSelect: $('#chat-select'),
   aiStatus: $('#ai-status'),
   mobileAiStatus: $('#mobile-ai-status'),
+  // Header model selector
+  headerModelSelector: $('#header-model-selector'),
+  headerModelText: $('#header-model-text'),
   // Mobile elements
   sidebar: $('#sidebar'),
   sidebarOverlay: $('#sidebar-overlay'),
@@ -442,6 +445,16 @@ async function checkAIStatus() {
         elements.mobileAiStatus.classList.remove('disconnected');
         elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = status.model;
       }
+
+      // Update header model selector (primary position)
+      if (elements.headerModelSelector) {
+        elements.headerModelSelector.classList.add('connected');
+        elements.headerModelSelector.classList.remove('disconnected');
+        elements.headerModelSelector.title = 'Клікніть для зміни моделі';
+      }
+      if (elements.headerModelText) {
+        elements.headerModelText.textContent = status.model;
+      }
     } else {
       elements.aiStatus.classList.add('disconnected');
       elements.aiStatus.classList.remove('connected');
@@ -455,6 +468,16 @@ async function checkAIStatus() {
         elements.mobileAiStatus.classList.remove('connected');
         elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = 'Не налаштовано';
       }
+
+      // Update header model selector
+      if (elements.headerModelSelector) {
+        elements.headerModelSelector.classList.add('disconnected');
+        elements.headerModelSelector.classList.remove('connected');
+        elements.headerModelSelector.title = 'AI не налаштовано';
+      }
+      if (elements.headerModelText) {
+        elements.headerModelText.textContent = 'Не налаштовано';
+      }
     }
   } catch (error) {
     elements.aiStatus.classList.add('disconnected');
@@ -465,6 +488,15 @@ async function checkAIStatus() {
       elements.mobileAiStatus.classList.add('disconnected');
       elements.mobileAiStatus.classList.remove('connected');
       elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = 'Помилка';
+    }
+
+    // Update header model selector on error
+    if (elements.headerModelSelector) {
+      elements.headerModelSelector.classList.add('disconnected');
+      elements.headerModelSelector.classList.remove('connected');
+    }
+    if (elements.headerModelText) {
+      elements.headerModelText.textContent = 'Помилка';
     }
   }
 }
@@ -1206,6 +1238,17 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.mobileAiStatus.addEventListener('click', () => {
       if (state.aiConfigured) {
         openModelSelectorModal();
+      }
+    });
+  }
+
+  // Header model selector click handler (primary model selector)
+  if (elements.headerModelSelector) {
+    elements.headerModelSelector.addEventListener('click', () => {
+      if (state.aiConfigured) {
+        openModelSelectorModal();
+      } else {
+        showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'warning');
       }
     });
   }

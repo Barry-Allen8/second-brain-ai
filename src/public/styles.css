@@ -320,11 +320,16 @@ body {
 
 .space-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-md);
   padding-bottom: var(--space-sm);
   border-bottom: 1px solid var(--border-secondary);
+}
+
+.space-info {
+  display: flex;
+  align-items: center;
 }
 
 .space-info h1 {
@@ -336,6 +341,64 @@ body {
 
 #space-description {
   display: none !important;
+}
+
+/* Header Model Selector (ChatGPT-style) */
+.header-model-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.header-model-selector:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-primary);
+}
+
+.header-model-selector:active {
+  background: var(--bg-tertiary);
+}
+
+.header-model-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.header-model-selector.connected .header-model-dot {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  animation: pulse 2s infinite;
+}
+
+.header-model-selector.disconnected .header-model-dot {
+  background: var(--danger);
+}
+
+.header-model-text {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.header-model-chevron {
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.header-model-selector:hover .header-model-chevron {
+  color: var(--text-secondary);
 }
 
 .space-actions {
@@ -1347,11 +1410,17 @@ body {
 
   /* === SPACE HEADER === */
   .space-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-md);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
     padding-bottom: var(--space-xs);
     margin-bottom: var(--space-sm);
+  }
+
+  .space-info {
+    flex: 1;
+    min-width: 0;
   }
 
   .space-info h1 {
@@ -1362,17 +1431,28 @@ body {
     font-size: 0.875rem;
   }
 
+  /* Header Model Selector Mobile */
+  .header-model-selector {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .header-model-text {
+    font-size: 0.875rem;
+  }
+
   .space-actions {
-    width: 100%;
     display: flex;
     gap: var(--space-xs);
+    flex-shrink: 0;
   }
 
   .space-actions .btn {
-    flex: 1;
-    font-size: 0;
     padding: var(--space-sm);
     min-width: 40px;
+  }
+
+  .space-actions .btn .btn-text {
+    display: none;
   }
 
   .space-actions .btn svg {
