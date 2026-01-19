@@ -859,10 +859,13 @@ body {
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 700px;
-  max-height: 95vh;
-  overflow: hidden;
+  max-height: 85vh;
   box-shadow: var(--shadow-lg);
   animation: slideUp var(--transition-base);
+  /* Flexbox layout for fixed header/footer */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 @keyframes slideUp {
@@ -883,6 +886,7 @@ body {
   justify-content: space-between;
   padding: var(--space-lg);
   border-bottom: 1px solid var(--border-secondary);
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -892,8 +896,9 @@ body {
 
 .modal-body {
   padding: var(--space-lg);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  max-height: 70vh;
 }
 
 .modal-footer {
@@ -903,6 +908,7 @@ body {
   padding: var(--space-lg);
   border-top: 1px solid var(--border-secondary);
   background: var(--bg-tertiary);
+  flex-shrink: 0;
 }
 
 /* Form Elements */
@@ -952,8 +958,10 @@ body {
 
 /* Larger textarea for description in modal */
 .form-textarea.description-textarea {
-  min-height: 520px;
-  max-height: 70vh;
+  min-height: 200px;
+  max-height: 40vh;
+  overflow-y: auto;
+  resize: vertical;
 }
 
 .form-select {
@@ -1486,7 +1494,7 @@ body {
   .modal {
     max-width: calc(100% - var(--space-md));
     margin: var(--space-sm);
-    max-height: calc(100vh - var(--space-md));
+    max-height: 90vh;
   }
 
   .modal-header {
@@ -1499,12 +1507,11 @@ body {
 
   .modal-body {
     padding: var(--space-md);
-    max-height: calc(100vh - 160px);
   }
 
   .form-textarea.description-textarea {
-    min-height: 45vh;
-    max-height: 70vh;
+    min-height: 150px;
+    max-height: 35vh;
   }
 
   .modal-footer {
