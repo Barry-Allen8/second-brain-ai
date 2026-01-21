@@ -51,23 +51,24 @@
   <div class="app">
     <!-- Mobile Header with Hamburger (ChatGPT-style) -->
     <header class="mobile-header" id="mobile-header">
-      <button class="hamburger-btn" id="hamburger-btn" aria-label="Меню">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
-      <div class="mobile-header-title" id="mobile-header-title">
-        <span class="mobile-title-text">Second Brain AI</span>
+      <div class="mobile-header-left">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Меню">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="mobile-model-selector" id="mobile-model-selector">
+          <span class="mobile-model-text" id="mobile-model-text">gpt-4o-mini</span>
+          <svg class="mobile-model-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
       </div>
-      <button class="mobile-header-menu" id="mobile-header-menu" aria-label="Меню">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="5" r="1.5"></circle>
-          <circle cx="12" cy="12" r="1.5"></circle>
-          <circle cx="12" cy="19" r="1.5"></circle>
-        </svg>
-      </button>
+      <div class="mobile-header-right">
+        <span class="mobile-space-name" id="mobile-space-name"></span>
+      </div>
     </header>
 
     <!-- Sidebar Overlay (for mobile) -->
@@ -109,7 +110,13 @@
     <main class="main-content">
       <!-- Empty State -->
       <div class="empty-state" id="empty-state">
-        <div class="empty-icon">📂</div>
+        <div class="empty-icon">
+          <svg class="empty-sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L14 8.5L20.5 10L14 11.5L12 18L10 11.5L3.5 10L10 8.5L12 2Z"/>
+            <path d="M19 1L20 3.5L22.5 4.5L20 5.5L19 8L18 5.5L15.5 4.5L18 3.5L19 1Z" opacity="0.7"/>
+            <path d="M5 14L6 16.5L8.5 17.5L6 18.5L5 21L4 18.5L1.5 17.5L4 16.5L5 14Z" opacity="0.7"/>
+          </svg>
+        </div>
         <h2>Що у тебе сьогодні на умі?</h2>
         <p>Створи простір, щоб почати діалог і зберігати контекст</p>
         <button class="btn btn-primary" id="create-first-space">

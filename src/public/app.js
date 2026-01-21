@@ -434,8 +434,10 @@ const elements = {
   hamburgerBtn: $('#hamburger-btn'),
   sidebarClose: $('#sidebar-close'),
   mobileHeader: $('#mobile-header'),
-  mobileHeaderTitle: $('#mobile-header-title'),
-  mobileHeaderMenu: $('#mobile-header-menu'),
+  // New mobile header elements
+  mobileModelSelector: $('#mobile-model-selector'),
+  mobileModelText: $('#mobile-model-text'),
+  mobileSpaceName: $('#mobile-space-name'),
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -467,34 +469,31 @@ function isMobileOrTablet() {
 }
 
 /**
- * Update mobile header title based on current state
- * Shows: Space name > Chat name, or just Space name, or default "Second Brain AI"
+ * Update mobile header space name (displayed on the right side)
+ * Shows: Current space name or empty string if no space selected
  */
 function updateMobileHeaderTitle() {
-  if (!elements.mobileHeaderTitle) return;
+  if (!elements.mobileSpaceName) return;
   
-  const titleText = elements.mobileHeaderTitle.querySelector('.mobile-title-text');
-  if (!titleText) return;
-  
-  let title = 'Second Brain AI';
-  
+  // Show space name on the right side (static text, no interaction)
   if (state.currentSpace) {
-    title = state.currentSpace.name;
-    
-    // If we have an active chat, show it
-    if (state.currentChatId && state.chats.length > 0) {
-      const currentChat = state.chats.find(c => c.sessionId === state.currentChatId);
-      if (currentChat && currentChat.name) {
-        // Truncate chat name if too long
-        const chatName = currentChat.name.length > 20 
-          ? currentChat.name.substring(0, 20) + '...' 
-          : currentChat.name;
-        title = chatName;
-      }
-    }
+    elements.mobileSpaceName.textContent = state.currentSpace.name;
+  } else {
+    elements.mobileSpaceName.textContent = '';
   }
+}
+
+/**
+ * Update mobile model selector text based on current AI model
+ */
+function updateMobileModelSelector() {
+  if (!elements.mobileModelText) return;
   
-  titleText.textContent = title;
+  if (state.aiConfigured) {
+    elements.mobileModelText.textContent = state.aiModel || 'gpt-4o-mini';
+  } else {
+    elements.mobileModelText.textContent = 'Офлайн';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -555,19 +554,6 @@ function handleSwipe() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// Mobile Header Menu (context actions)
-// ═══════════════════════════════════════════════════════════
-
-function showMobileHeaderMenu(event) {
-  if (!state.currentSpaceId) {
-    showToast('Спочатку оберіть простір', 'info');
-    return;
-  }
-  
-  // Use existing context menu with space actions
-  showContextMenu(event, 'space', state.currentSpaceId);
-}
 
 // ═══════════════════════════════════════════════════════════
 // Toast Notifications
@@ -676,6 +662,8 @@ async function checkAIStatus() {
       if (elements.headerModelText) {
         elements.headerModelText.textContent = status.model;
       }
+      // Update mobile model selector
+      updateMobileModelSelector();
     } else {
       // Update header model selector
       if (elements.headerModelSelector) {
@@ -686,6 +674,8 @@ async function checkAIStatus() {
       if (elements.headerModelText) {
         elements.headerModelText.textContent = 'Не налаштовано';
       }
+      // Update mobile model selector
+      updateMobileModelSelector();
     }
   } catch (error) {
     // Update header model selector on error
@@ -695,6 +685,10 @@ async function checkAIStatus() {
     }
     if (elements.headerModelText) {
       elements.headerModelText.textContent = 'Помилка';
+    }
+    // Update mobile model selector on error
+    if (elements.mobileModelText) {
+      elements.mobileModelText.textContent = 'Помилка';
     }
   }
 }
@@ -770,6 +764,8 @@ function openModelSelectorDropdown() {
           state.aiModel = model;
           showToast(`Модель змінено на ${model}`, 'success');
           await checkAIStatus();
+          // Also update mobile model selector
+          updateMobileModelSelector();
         } catch (error) {
           showToast(error.message || 'Не вдалося змінити модель', 'error');
         }
@@ -1546,9 +1542,15 @@ elements.hamburgerBtn.addEventListener('click', openSidebar);
 elements.sidebarClose.addEventListener('click', closeSidebar);
 elements.sidebarOverlay.addEventListener('click', closeSidebar);
 
-// Mobile header menu button
-if (elements.mobileHeaderMenu) {
-  elements.mobileHeaderMenu.addEventListener('click', showMobileHeaderMenu);
+// Mobile model selector (opens same dropdown as desktop)
+if (elements.mobileModelSelector) {
+  elements.mobileModelSelector.addEventListener('click', () => {
+    if (state.aiConfigured) {
+      openModelSelectorDropdown();
+    } else {
+      showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'warning');
+    }
+  });
 }
 
 // Close sidebar on escape key (mobile and tablet)
@@ -1601,8 +1603,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize swipe gestures for mobile/tablet sidebar
   initSwipeGestures();
   
-  // Initialize mobile header title
+  // Initialize mobile header
   updateMobileHeaderTitle();
+  updateMobileModelSelector();
 
   // Header model selector click handler (primary model selector)
   if (elements.headerModelSelector) {
