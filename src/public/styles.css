@@ -2107,42 +2107,9 @@ body {
   }
 
   /* === SPACE HEADER === */
+  /* Hide entire space-header on mobile - mobile header already has model selector and space name */
   .space-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    padding-bottom: var(--space-xs);
-    margin-bottom: var(--space-sm);
-    flex-shrink: 0;
-  }
-
-  .space-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .space-info h1 {
-    font-size: 1.5rem;
-  }
-
-  .space-info p {
-    font-size: 0.875rem;
-  }
-
-  /* Header Model Selector Mobile */
-  .header-model-selector {
-    padding: var(--space-xs) var(--space-sm);
-    min-height: 40px;
-  }
-
-  /* Hide green dot from header on mobile - only show in dropdown */
-  .header-model-dot {
     display: none;
-  }
-
-  .header-model-text {
-    font-size: 0.875rem;
   }
 
   .space-actions {
@@ -2241,7 +2208,8 @@ body {
   .chat-input-container {
     padding: var(--space-sm);
     background: var(--bg-primary);
-    border-top: 1px solid var(--border-secondary);
+    /* No border on mobile for cleaner look */
+    border-top: none;
     /* CRITICAL FIX: flex-shrink ensures input stays visible */
     flex-shrink: 0;
     z-index: 10;
