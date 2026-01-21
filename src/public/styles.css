@@ -115,7 +115,7 @@ body {
 }
 
 .sidebar-header {
-  padding: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
   /* No border - clean look */
 }
 
@@ -291,6 +291,15 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  /* Smooth expand/collapse animation */
+  max-height: 500px;
+  transition: max-height 0.3s ease-out, opacity 0.2s ease;
+  opacity: 1;
+}
+
+.sidebar-chats.collapsed {
+  max-height: 0;
+  opacity: 0;
 }
 
 .sidebar-chat-item {
@@ -1971,13 +1980,13 @@ body {
   }
 
   .sidebar-header {
-    padding: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
     /* iOS safe area */
-    padding-top: max(var(--space-md), env(safe-area-inset-top));
+    padding-top: max(var(--space-sm), env(safe-area-inset-top));
     padding-left: max(var(--space-md), env(safe-area-inset-left));
   }
 
@@ -2014,6 +2023,8 @@ body {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* Reduced top padding */
+    padding-top: var(--space-xs);
     /* iOS safe area */
     padding-left: max(var(--space-md), env(safe-area-inset-left));
     padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));

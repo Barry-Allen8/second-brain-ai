@@ -852,7 +852,7 @@ function renderSpacesList() {
     return `
       <li class="sidebar-item-wrapper" data-space-id="${space.id}">
         <div class="sidebar-item ${isActive ? 'active' : ''}" data-id="${space.id}">
-          <span class="sidebar-item-icon ${isActive && hasChats ? 'clickable' : ''}" data-space-id="${space.id}" title="${isActive && hasChats ? (isCollapsed ? 'Розгорнути чати' : 'Згорнути чати') : ''}">${escapeHtml(space.icon || '📁')}</span>
+          <span class="sidebar-item-icon ${isActive ? 'clickable' : ''}" data-space-id="${space.id}" title="${isActive ? (isCollapsed ? 'Розгорнути чати' : 'Згорнути чати') : ''}">${escapeHtml(space.icon || '📁')}</span>
           <span class="sidebar-item-name">${escapeHtml(space.name)}</span>
           <button class="sidebar-item-menu" data-space-id="${space.id}" title="Дії">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -862,8 +862,8 @@ function renderSpacesList() {
             </svg>
           </button>
         </div>
-        ${isActive && !isCollapsed && hasChats ? `
-          <ul class="sidebar-chats">
+        ${isActive ? `
+          <ul class="sidebar-chats ${isCollapsed ? 'collapsed' : ''}">
             ${spaceChats.map(chat => `
               <li class="sidebar-chat-item ${chat.sessionId === state.currentChatId ? 'active' : ''}" 
                   data-chat-id="${chat.sessionId}">
@@ -878,16 +878,6 @@ function renderSpacesList() {
                 </button>
               </li>
             `).join('')}
-            <li class="sidebar-new-chat" data-space-id="${space.id}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>Новий чат</span>
-            </li>
-          </ul>
-        ` : isActive && !isCollapsed ? `
-          <ul class="sidebar-chats">
             <li class="sidebar-new-chat" data-space-id="${space.id}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
