@@ -2410,9 +2410,16 @@ body {
 }
 
 .chat-welcome-icon {
-  font-size: 3rem;
+  width: 48px;
+  height: 48px;
   margin-bottom: var(--space-md);
   opacity: 0.5;
+  color: var(--text-muted);
+}
+
+.chat-welcome-svg-icon {
+  width: 100%;
+  height: 100%;
 }
 
 .chat-welcome h3 {
