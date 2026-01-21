@@ -728,6 +728,7 @@ function openModelSelectorDropdown() {
     const isSelected = model === state.aiModel;
     return `
       <button class="model-dropdown-item ${isSelected ? 'selected' : ''}" data-model="${model}">
+        ${isSelected ? '<span class="model-dropdown-active-dot"></span>' : ''}
         <div class="model-dropdown-info">
           <span class="model-dropdown-name">${info.name}</span>
           <span class="model-dropdown-desc">${info.description}</span>
@@ -744,13 +745,24 @@ function openModelSelectorDropdown() {
   document.body.appendChild(dropdown);
   activeModelDropdown = dropdown;
 
-  // Position dropdown below the header model selector
-  const trigger = elements.headerModelSelector;
+  // Position dropdown below the appropriate selector (mobile vs desktop)
+  const isMobileView = isMobile();
+  const trigger = isMobileView ? elements.mobileModelSelector : elements.headerModelSelector;
+  
   if (trigger) {
     const rect = trigger.getBoundingClientRect();
-    dropdown.style.left = `${rect.left}px`;
-    dropdown.style.top = `${rect.bottom + 4}px`;
-    dropdown.style.minWidth = `${Math.max(rect.width, 200)}px`;
+    
+    if (isMobileView) {
+      // Mobile: position anchored to mobile model selector in header
+      dropdown.style.left = `${rect.left}px`;
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.minWidth = `${Math.max(rect.width, 180)}px`;
+    } else {
+      // Desktop: position below header model selector
+      dropdown.style.left = `${rect.left}px`;
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.minWidth = `${Math.max(rect.width, 200)}px`;
+    }
   }
 
   // Add click handlers
@@ -791,7 +803,10 @@ function closeModelDropdown() {
 }
 
 function handleClickOutsideModelDropdown(e) {
-  if (activeModelDropdown && !activeModelDropdown.contains(e.target) && !elements.headerModelSelector.contains(e.target)) {
+  if (activeModelDropdown && 
+      !activeModelDropdown.contains(e.target) && 
+      !elements.headerModelSelector?.contains(e.target) &&
+      !elements.mobileModelSelector?.contains(e.target)) {
     closeModelDropdown();
   }
 }

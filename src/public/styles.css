@@ -509,6 +509,17 @@ body {
   flex-shrink: 0;
 }
 
+/* Active model indicator - green dot (only inside dropdown) */
+.model-dropdown-active-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  flex-shrink: 0;
+  margin-right: var(--space-xs);
+}
+
 /* New Chat button in sidebar */
 .sidebar-new-chat {
   display: flex;
@@ -1645,6 +1656,8 @@ body {
     min-width: 0;
     flex-shrink: 1;
     overflow: hidden;
+    /* Shift left from edge for better alignment */
+    padding-right: var(--space-sm);
   }
 
   .mobile-space-name {
@@ -1655,6 +1668,20 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 200px;
+  }
+
+  /* Hide green dot from header on tablet - only show in dropdown */
+  .header-model-dot {
+    display: none;
+  }
+
+  /* Model dropdown anchored to selector on tablet */
+  .model-dropdown {
+    position: fixed;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    min-width: 220px;
   }
 
   /* === SIDEBAR OVERLAY (TABLET) === */
@@ -1896,6 +1923,8 @@ body {
     min-width: 0;
     flex-shrink: 1;
     overflow: hidden;
+    /* Shift left from edge for better alignment */
+    padding-right: var(--space-sm);
   }
 
   .mobile-space-name {
@@ -2105,6 +2134,11 @@ body {
   .header-model-selector {
     padding: var(--space-xs) var(--space-sm);
     min-height: 40px;
+  }
+
+  /* Hide green dot from header on mobile - only show in dropdown */
+  .header-model-dot {
+    display: none;
   }
 
   .header-model-text {
@@ -2377,15 +2411,19 @@ body {
     padding: var(--space-sm) var(--space-md);
   }
 
-  /* === MODEL DROPDOWN (mobile-friendly) === */
+  /* === MODEL DROPDOWN (mobile-friendly, anchored to selector) === */
   .model-dropdown {
     position: fixed;
-    left: var(--space-md) !important;
-    right: var(--space-md);
-    top: auto !important;
-    bottom: max(80px, calc(env(safe-area-inset-bottom) + 80px)) !important;
+    /* Anchored below the mobile header model selector */
+    left: var(--space-sm) !important;
+    top: 56px !important;
+    right: auto !important;
+    bottom: auto !important;
     width: auto;
-    max-width: none;
+    min-width: 200px;
+    max-width: calc(100vw - var(--space-md) * 2);
+    /* Account for safe area */
+    margin-top: max(0px, calc(env(safe-area-inset-top) - 8px));
   }
 
   .model-dropdown-item {
