@@ -1831,10 +1831,11 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 56px;
+    /* Dynamic height based on safe area */
+    min-height: 56px;
     z-index: 150;
-    /* iOS safe area for notch */
-    padding-top: max(var(--space-sm), env(safe-area-inset-top));
+    /* iOS safe area for notch - PWA standalone mode needs more padding */
+    padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-sm));
     padding-left: max(var(--space-sm), env(safe-area-inset-left));
     padding-right: max(var(--space-sm), env(safe-area-inset-right));
   }
@@ -1985,8 +1986,8 @@ body {
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
-    /* iOS safe area */
-    padding-top: max(var(--space-sm), env(safe-area-inset-top));
+    /* iOS safe area - PWA standalone mode needs more padding */
+    padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-sm));
     padding-left: max(var(--space-md), env(safe-area-inset-left));
   }
 
@@ -2056,7 +2057,8 @@ body {
   /* === MAIN CONTENT === */
   .main-content {
     margin-left: 0;
-    padding-top: 56px;
+    /* Account for header + safe area in PWA mode */
+    padding-top: calc(56px + env(safe-area-inset-top, 0px));
     min-height: 100vh;
     min-height: 100dvh;
   }
@@ -2066,8 +2068,9 @@ body {
     padding: var(--space-lg);
     padding-left: max(var(--space-lg), env(safe-area-inset-left));
     padding-right: max(var(--space-lg), env(safe-area-inset-right));
-    height: calc(100vh - 56px);
-    height: calc(100dvh - 56px);
+    /* Account for header + safe area in PWA mode */
+    height: calc(100vh - 56px - env(safe-area-inset-top, 0px));
+    height: calc(100dvh - 56px - env(safe-area-inset-top, 0px));
   }
 
   .empty-icon {
@@ -2097,9 +2100,9 @@ body {
   /* === SPACE CONTENT === */
   .space-content {
     padding: var(--space-sm) var(--space-md) 0 var(--space-md);
-    /* CRITICAL: Full height on mobile minus header */
-    height: calc(100vh - 56px);
-    height: calc(100dvh - 56px);
+    /* CRITICAL: Full height on mobile minus header and safe area */
+    height: calc(100vh - 56px - env(safe-area-inset-top, 0px));
+    height: calc(100dvh - 56px - env(safe-area-inset-top, 0px));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -2217,8 +2220,8 @@ body {
     flex-shrink: 0;
     z-index: 10;
     position: relative;
-    /* iOS safe area - CRITICAL for home indicator */
-    padding-bottom: max(var(--space-sm), calc(env(safe-area-inset-bottom) + 4px));
+    /* iOS safe area - CRITICAL for home indicator in PWA standalone mode */
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-md));
     padding-left: max(var(--space-sm), env(safe-area-inset-left));
     padding-right: max(var(--space-sm), env(safe-area-inset-right));
   }
