@@ -1800,16 +1800,29 @@ body {
     overflow: hidden;
   }
 
-  /* === CHAT INPUT (TABLET) === */
+  /* === CHAT INPUT (TABLET - ChatGPT-style floating pill) === */
   .chat-input-container {
-    padding: var(--space-sm) var(--space-md);
-    background: var(--bg-primary);
+    padding: var(--space-sm) var(--space-lg);
+    background: transparent;
     flex-shrink: 0;
     z-index: 10;
     /* iOS safe area */
-    padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
-    padding-left: max(var(--space-md), env(safe-area-inset-left));
-    padding-right: max(var(--space-md), env(safe-area-inset-right));
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-md));
+    padding-left: max(var(--space-lg), env(safe-area-inset-left));
+    padding-right: max(var(--space-lg), env(safe-area-inset-right));
+  }
+
+  .chat-composer-inner {
+    border-radius: 24px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .chat-composer-inner:focus-within {
+    border-color: var(--border-primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -2210,28 +2223,39 @@ body {
     font-size: 0.875rem;
   }
 
-  /* === CHAT INPUT AREA (CRITICAL FOR MOBILE) === */
+  /* === CHAT INPUT AREA (CRITICAL FOR MOBILE - ChatGPT-style floating pill) === */
   .chat-input-container {
-    padding: var(--space-sm) var(--space-sm);
-    background: var(--bg-primary);
-    /* No border on mobile for cleaner look */
-    border-top: none;
+    /* Horizontal padding creates floating effect - not full width */
+    padding: 0 var(--space-md);
+    background: transparent;
     /* CRITICAL FIX: flex-shrink ensures input stays visible */
     flex-shrink: 0;
     z-index: 10;
     position: relative;
-    /* iOS safe area - CRITICAL for home indicator in PWA standalone mode */
-    /* Much bigger bottom padding to lift input from screen edge */
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-xl));
-    padding-left: max(var(--space-sm), env(safe-area-inset-left));
-    padding-right: max(var(--space-sm), env(safe-area-inset-right));
+    /* iOS safe area - respect home indicator but keep input lifted */
+    /* Use moderate bottom spacing to float above screen edge */
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-md));
+    padding-left: max(var(--space-md), env(safe-area-inset-left));
+    padding-right: max(var(--space-md), env(safe-area-inset-right));
+    /* Add top padding for breathing room */
+    padding-top: var(--space-sm);
   }
 
   .chat-composer-inner {
-    border-radius: 26px;
-    padding: 10px 14px;
-    /* Slightly darker background for better visibility */
-    background: var(--bg-elevated);
+    /* Floating pill style - ChatGPT-like */
+    border-radius: 24px;
+    padding: 8px 12px;
+    /* Soft elevated background for floating effect */
+    background: var(--bg-secondary);
+    /* Subtle border for definition */
+    border: 1px solid var(--border-secondary);
+    /* Soft shadow for floating effect */
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .chat-composer-inner:focus-within {
+    border-color: var(--border-primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 
   .chat-form {
@@ -2239,28 +2263,45 @@ body {
   }
 
   .chat-input {
-    padding: var(--space-sm) var(--space-md);
-    font-size: 1rem;
-    min-height: 48px;
-    max-height: 120px;
-    /* Prevent iOS zoom on focus */
+    padding: var(--space-sm) var(--space-sm);
+    /* Prevent iOS zoom on focus - 16px minimum */
     font-size: 16px;
+    min-height: 44px;
+    max-height: 120px;
+    /* Better line height for pill appearance */
+    line-height: 1.4;
   }
 
   .chat-attach {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+    /* Align with input baseline */
+    margin-bottom: 2px;
   }
 
   .chat-send {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    /* Integrated look - align with attach button */
+    margin-bottom: 2px;
+    /* Smooth rounded for pill integration */
+    border-radius: 50%;
   }
 
   .chat-send svg {
     width: 18px;
     height: 18px;
+  }
+
+  /* Send button active state for better feedback */
+  .chat-send.btn-primary {
+    background: var(--accent-primary);
+    box-shadow: none;
+  }
+
+  .chat-send:active {
+    transform: scale(0.92);
   }
 
   /* === SPACE DESCRIPTION HIDDEN ON MOBILE === */
