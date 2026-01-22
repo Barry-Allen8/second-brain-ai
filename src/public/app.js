@@ -852,7 +852,7 @@ function renderSpacesList() {
     return `
       <li class="sidebar-item-wrapper" data-space-id="${space.id}">
         <div class="sidebar-item ${isActive ? 'active' : ''}" data-id="${space.id}">
-          <span class="sidebar-item-icon ${isActive ? 'clickable' : ''}" data-space-id="${space.id}" title="${isActive ? (isCollapsed ? 'Розгорнути чати' : 'Згорнути чати') : ''}">${escapeHtml(space.icon || '📁')}</span>
+          <span class="sidebar-item-icon">${escapeHtml(space.icon || '📁')}</span>
           <span class="sidebar-item-name">${escapeHtml(space.name)}</span>
           <button class="sidebar-item-menu" data-space-id="${space.id}" title="Дії">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -894,18 +894,19 @@ function renderSpacesList() {
   // Add click handlers for space items
   elements.spacesList.querySelectorAll('.sidebar-item').forEach(item => {
     item.addEventListener('click', (e) => {
-      // Don't select space if clicking on menu button
+      // Don't handle if clicking on menu button (... for editing)
       if (e.target.closest('.sidebar-item-menu')) return;
       
-      // Check if clicking on the icon to toggle chats
-      const icon = e.target.closest('.sidebar-item-icon');
-      if (icon && icon.classList.contains('clickable')) {
-        const spaceId = icon.dataset.spaceId;
+      const spaceId = item.dataset.id;
+      
+      // If clicking on already active space - toggle chats (accordion)
+      if (spaceId === state.currentSpaceId) {
         toggleSpaceChats(spaceId);
         return;
       }
       
-      selectSpace(item.dataset.id);
+      // Otherwise select the new space
+      selectSpace(spaceId);
     });
   });
 
@@ -949,12 +950,20 @@ function renderSpacesList() {
 }
 
 function toggleSpaceChats(spaceId) {
-  if (state.collapsedSpaces.has(spaceId)) {
-    state.collapsedSpaces.delete(spaceId);
-  } else {
-    state.collapsedSpaces.add(spaceId);
+  // Find the chat list element for this space
+  const spaceWrapper = document.querySelector(`.sidebar-item-wrapper[data-space-id="${spaceId}"]`);
+  const chatList = spaceWrapper?.querySelector('.sidebar-chats');
+  
+  if (chatList) {
+    // Toggle collapsed state with animation
+    if (state.collapsedSpaces.has(spaceId)) {
+      state.collapsedSpaces.delete(spaceId);
+      chatList.classList.remove('collapsed');
+    } else {
+      state.collapsedSpaces.add(spaceId);
+      chatList.classList.add('collapsed');
+    }
   }
-  renderSpacesList();
 }
 
 async function selectSpace(spaceId) {
