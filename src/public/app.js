@@ -1246,18 +1246,137 @@ function addChatMessageToDOM(role, content) {
   const messageEl = document.createElement('div');
   messageEl.className = `chat-message ${role}`;
 
-  const avatar = role === 'user' ? '👤' : '🧠';
   const formattedContent = formatChatContent(content);
+  const rawText = extractTextContent(content);
 
-  messageEl.innerHTML = `
-    <div class="chat-avatar">${avatar}</div>
-    <div class="chat-bubble">
-      ${formattedContent}
-    </div>
-  `;
+  if (role === 'assistant') {
+    // Assistant message with copy button
+    messageEl.innerHTML = `
+      <div class="chat-bubble">
+        ${formattedContent}
+      </div>
+      <div class="chat-message-actions visible">
+        <button class="copy-btn" data-text="${escapeHtml(rawText)}" title="Копіювати">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span class="copy-btn-text">Копіювати</span>
+        </button>
+      </div>
+    `;
+    
+    // Add copy handler
+    const copyBtn = messageEl.querySelector('.copy-btn');
+    copyBtn.addEventListener('click', () => copyToClipboard(rawText, copyBtn));
+  } else {
+    // User message with long-press to copy
+    messageEl.innerHTML = `
+      <div class="chat-bubble" data-text="${escapeHtml(rawText)}">
+        ${formattedContent}
+      </div>
+    `;
+    
+    // Add long-press handler for user messages
+    const bubble = messageEl.querySelector('.chat-bubble');
+    setupLongPress(bubble, () => {
+      copyToClipboard(rawText);
+      bubble.classList.add('copying');
+      setTimeout(() => bubble.classList.remove('copying'), 500);
+    });
+  }
 
   elements.chatMessages.appendChild(messageEl);
   elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+}
+
+/**
+ * Extract plain text from content (handles both string and array content)
+ */
+function extractTextContent(content) {
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('\n');
+  }
+  return '';
+}
+
+/**
+ * Copy text to clipboard with visual feedback
+ */
+async function copyToClipboard(text, btn = null) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Скопійовано', 'success');
+    
+    if (btn) {
+      btn.classList.add('copied');
+      const textEl = btn.querySelector('.copy-btn-text');
+      if (textEl) textEl.textContent = 'Скопійовано!';
+      
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        if (textEl) textEl.textContent = 'Копіювати';
+      }, 2000);
+    }
+  } catch (err) {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('Скопійовано', 'success');
+  }
+}
+
+/**
+ * Setup long-press handler for an element
+ */
+function setupLongPress(element, callback, duration = 500) {
+  let timer = null;
+  let isLongPress = false;
+  
+  const start = (e) => {
+    isLongPress = false;
+    timer = setTimeout(() => {
+      isLongPress = true;
+      callback();
+      // Vibrate if supported
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, duration);
+  };
+  
+  const cancel = () => {
+    clearTimeout(timer);
+  };
+  
+  const end = (e) => {
+    clearTimeout(timer);
+    if (isLongPress) {
+      e.preventDefault();
+    }
+  };
+  
+  element.addEventListener('touchstart', start, { passive: true });
+  element.addEventListener('touchend', end);
+  element.addEventListener('touchcancel', cancel);
+  element.addEventListener('touchmove', cancel, { passive: true });
+  
+  // Also support mouse for desktop
+  element.addEventListener('mousedown', start);
+  element.addEventListener('mouseup', end);
+  element.addEventListener('mouseleave', cancel);
 }
 
 function setChatInputValue(value, { resetHeight = false, focus = false } = {}) {
