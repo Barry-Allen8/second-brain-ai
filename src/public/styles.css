@@ -2233,8 +2233,8 @@ body {
     z-index: 10;
     position: relative;
     /* iOS safe area - respect home indicator but keep input lifted */
-    /* Use moderate bottom spacing to float above screen edge */
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-md));
+    /* Lifted 20px higher for better visual separation from bottom edge */
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-md) + 20px);
     padding-left: max(var(--space-md), env(safe-area-inset-left));
     padding-right: max(var(--space-md), env(safe-area-inset-right));
     /* Add top padding for breathing room */
