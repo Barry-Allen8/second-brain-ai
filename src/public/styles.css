@@ -3021,3 +3021,30 @@ body {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE OVERRIDES (must be at end to win cascade)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Override base .chat-input-container - this MUST come last */
+  .chat-input-container {
+    padding: 0 var(--space-md);
+    padding-top: var(--space-sm);
+    /* CRITICAL: Lift input 20px from bottom + safe area */
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-md) + 20px);
+    padding-left: max(var(--space-md), env(safe-area-inset-left));
+    padding-right: max(var(--space-md), env(safe-area-inset-right));
+    background: transparent;
+    max-width: none;
+    margin: 0;
+  }
+
+  .chat-composer-inner {
+    border-radius: 24px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+}
