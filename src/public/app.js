@@ -5,6 +5,48 @@
 const API_BASE = '/api/v1';
 const MAX_CHATS_PER_SPACE = 10;
 
+// #region agent log - DEBUG: CSS and cache diagnostics
+(function debugCSSAndCache() {
+  const runId = 'run_' + Date.now();
+  const endpoint = 'http://127.0.0.1:7243/ingest/0d777e6f-7101-4b4e-a013-0a81d446173d';
+  
+  // Hypothesis A: Check Service Worker cache status
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'ServiceWorker status',data:{hasController:!!navigator.serviceWorker.controller,regScope:reg?.scope,regActive:!!reg?.active},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'A'})}).catch(()=>{});
+    });
+  }
+  
+  // Wait for DOM to check computed styles
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const inputContainer = document.querySelector('.chat-input-container');
+      const composerInner = document.querySelector('.chat-composer-inner');
+      
+      // Hypothesis B & C: Check actual computed CSS values
+      if (inputContainer) {
+        const styles = window.getComputedStyle(inputContainer);
+        fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'Input container computed styles',data:{paddingBottom:styles.paddingBottom,paddingTop:styles.paddingTop,paddingLeft:styles.paddingLeft,paddingRight:styles.paddingRight,background:styles.background,position:styles.position},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'B_C'})}).catch(()=>{});
+      }
+      
+      if (composerInner) {
+        const cStyles = window.getComputedStyle(composerInner);
+        fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'Composer inner styles',data:{borderRadius:cStyles.borderRadius,background:cStyles.background,boxShadow:cStyles.boxShadow,border:cStyles.border},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'B_C'})}).catch(()=>{});
+      }
+      
+      // Hypothesis B: Check viewport width for media query matching
+      fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'Viewport info',data:{innerWidth:window.innerWidth,innerHeight:window.innerHeight,devicePixelRatio:window.devicePixelRatio,isMobile:window.innerWidth<=768},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'B'})}).catch(()=>{});
+      
+      // Hypothesis D: Check CSS file last-modified via fetch
+      fetch('/styles.css', {method:'HEAD'}).then(r => {
+        fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'CSS file headers',data:{lastModified:r.headers.get('last-modified'),etag:r.headers.get('etag'),cacheControl:r.headers.get('cache-control'),fromServiceWorker:r.headers.get('x-sw-cache')||'unknown'},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'D'})}).catch(()=>{});
+      }).catch(()=>{});
+      
+    }, 500);
+  });
+})();
+// #endregion
+
 // ═══════════════════════════════════════════════════════════
 // PWA Service Worker Registration
 // ═══════════════════════════════════════════════════════════

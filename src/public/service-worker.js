@@ -3,7 +3,7 @@
  * Provides offline functionality and caching strategies
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `second-brain-ai-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `second-brain-ai-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `second-brain-ai-dynamic-${CACHE_VERSION}`;
