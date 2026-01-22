@@ -30,6 +30,8 @@ export interface ChatAttachment {
   url: string;
   name: string;
   mimeType: string;
+  /** Extracted text content for file attachments */
+  content?: string;
 }
 
 /** Chat session */

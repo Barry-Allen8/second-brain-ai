@@ -133,8 +133,11 @@ chatRouter.post(
 
     // Manual validation since multer parses body
     if (!message && (!messages || !messages.length)) {
-      // if attachments are present, message can be empty? Let's treat it as empty text.
-      // But normalizedRequest expects message.
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'Message content is required',
+      }));
+      return;
     }
 
     const attachments: ChatAttachment[] = [];
@@ -149,7 +152,7 @@ chatRouter.post(
               mimeType: file.mimetype,
               url: '', // Not storing file permanently for now
               content: text // Attaching extracted text
-            } as any);
+            });
           } catch (e) {
             console.error('Failed to parse PDF', e);
           }

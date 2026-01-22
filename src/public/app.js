@@ -6,45 +6,7 @@ const API_BASE = '/api/v1';
 const MAX_CHATS_PER_SPACE = 10;
 
 // #region agent log - DEBUG: CSS and cache diagnostics
-(function debugCSSAndCache() {
-  const runId = 'run_' + Date.now();
-  const endpoint = 'http://127.0.0.1:7243/ingest/0d777e6f-7101-4b4e-a013-0a81d446173d';
-  
-  // Hypothesis A: Check Service Worker cache status
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistration().then(reg => {
-      fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'ServiceWorker status',data:{hasController:!!navigator.serviceWorker.controller,regScope:reg?.scope,regActive:!!reg?.active},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'A'})}).catch(()=>{});
-    });
-  }
-  
-  // Wait for DOM to check computed styles
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      const inputContainer = document.querySelector('.chat-input-container');
-      const composerInner = document.querySelector('.chat-composer-inner');
-      
-      // Hypothesis B & C: Check actual computed CSS values
-      if (inputContainer) {
-        const styles = window.getComputedStyle(inputContainer);
-        fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'Input container computed styles',data:{paddingBottom:styles.paddingBottom,paddingTop:styles.paddingTop,paddingLeft:styles.paddingLeft,paddingRight:styles.paddingRight,background:styles.background,position:styles.position},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'B_C'})}).catch(()=>{});
-      }
-      
-      if (composerInner) {
-        const cStyles = window.getComputedStyle(composerInner);
-        fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'Composer inner styles',data:{borderRadius:cStyles.borderRadius,background:cStyles.background,boxShadow:cStyles.boxShadow,border:cStyles.border},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'B_C'})}).catch(()=>{});
-      }
-      
-      // Hypothesis B: Check viewport width for media query matching
-      fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'Viewport info',data:{innerWidth:window.innerWidth,innerHeight:window.innerHeight,devicePixelRatio:window.devicePixelRatio,isMobile:window.innerWidth<=768},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'B'})}).catch(()=>{});
-      
-      // Hypothesis D: Check CSS file last-modified via fetch
-      fetch('/styles.css', {method:'HEAD'}).then(r => {
-        fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:DEBUG',message:'CSS file headers',data:{lastModified:r.headers.get('last-modified'),etag:r.headers.get('etag'),cacheControl:r.headers.get('cache-control'),fromServiceWorker:r.headers.get('x-sw-cache')||'unknown'},timestamp:Date.now(),sessionId:'debug-session',runId,hypothesisId:'D'})}).catch(()=>{});
-      }).catch(()=>{});
-      
-    }, 500);
-  });
-})();
+// (Debug code removed)
 // #endregion
 
 // ═══════════════════════════════════════════════════════════
@@ -357,7 +319,7 @@ function showContextMenu(event, type, id) {
   // Position the menu near the click
   const rect = event.target.getBoundingClientRect();
   const menuRect = menu.getBoundingClientRect();
-  
+
   let x = rect.right + 4;
   let y = rect.top;
 
@@ -516,7 +478,7 @@ function isMobileOrTablet() {
  */
 function updateMobileHeaderTitle() {
   if (!elements.mobileSpaceName) return;
-  
+
   // Show space name on the right side (static text, no interaction)
   if (state.currentSpace) {
     elements.mobileSpaceName.textContent = state.currentSpace.name;
@@ -530,7 +492,7 @@ function updateMobileHeaderTitle() {
  */
 function updateMobileModelSelector() {
   if (!elements.mobileModelText) return;
-  
+
   if (state.aiConfigured) {
     elements.mobileModelText.textContent = state.aiModel || 'gpt-4o-mini';
   } else {
@@ -572,24 +534,24 @@ function handleSwipe() {
   const diffY = touchEndY - touchStartY;
   const duration = Date.now() - touchStartTime;
   const velocity = Math.abs(diffX) / duration;
-  
+
   // Only handle horizontal swipes (more horizontal than vertical)
   if (Math.abs(diffX) < Math.abs(diffY)) return;
-  
+
   // Check if swipe is significant enough
   const isSignificantSwipe = Math.abs(diffX) > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY_THRESHOLD;
   if (!isSignificantSwipe) return;
-  
+
   // Only handle swipes on mobile/tablet
   if (!isMobileOrTablet()) return;
-  
+
   const sidebarOpen = elements.sidebar.classList.contains('open');
-  
+
   // Swipe right to open (from left edge)
   if (diffX > 0 && touchStartX < 50 && !sidebarOpen) {
     openSidebar();
   }
-  
+
   // Swipe left to close (anywhere when sidebar is open)
   if (diffX < 0 && sidebarOpen) {
     closeSidebar();
@@ -790,10 +752,10 @@ function openModelSelectorDropdown() {
   // Position dropdown below the appropriate selector (mobile vs desktop)
   const isMobileView = isMobile();
   const trigger = isMobileView ? elements.mobileModelSelector : elements.headerModelSelector;
-  
+
   if (trigger) {
     const rect = trigger.getBoundingClientRect();
-    
+
     if (isMobileView) {
       // Mobile: position anchored to mobile model selector in header
       dropdown.style.left = `${rect.left}px`;
@@ -845,10 +807,10 @@ function closeModelDropdown() {
 }
 
 function handleClickOutsideModelDropdown(e) {
-  if (activeModelDropdown && 
-      !activeModelDropdown.contains(e.target) && 
-      !elements.headerModelSelector?.contains(e.target) &&
-      !elements.mobileModelSelector?.contains(e.target)) {
+  if (activeModelDropdown &&
+    !activeModelDropdown.contains(e.target) &&
+    !elements.headerModelSelector?.contains(e.target) &&
+    !elements.mobileModelSelector?.contains(e.target)) {
     closeModelDropdown();
   }
 }
@@ -890,7 +852,7 @@ function renderSpacesList() {
     const isCollapsed = state.collapsedSpaces.has(space.id);
     const spaceChats = isActive ? state.chats : [];
     const hasChats = spaceChats.length > 0;
-    
+
     return `
       <li class="sidebar-item-wrapper" data-space-id="${space.id}">
         <div class="sidebar-item ${isActive ? 'active' : ''}" data-id="${space.id}">
@@ -938,15 +900,15 @@ function renderSpacesList() {
     item.addEventListener('click', (e) => {
       // Don't handle if clicking on menu button (... for editing)
       if (e.target.closest('.sidebar-item-menu')) return;
-      
+
       const spaceId = item.dataset.id;
-      
+
       // If clicking on already active space - toggle chats (accordion)
       if (spaceId === state.currentSpaceId) {
         toggleSpaceChats(spaceId);
         return;
       }
-      
+
       // Otherwise select the new space
       selectSpace(spaceId);
     });
@@ -995,7 +957,7 @@ function toggleSpaceChats(spaceId) {
   // Find the chat list element for this space
   const spaceWrapper = document.querySelector(`.sidebar-item-wrapper[data-space-id="${spaceId}"]`);
   const chatList = spaceWrapper?.querySelector('.sidebar-chats');
-  
+
   if (chatList) {
     // Toggle collapsed state with animation
     if (state.collapsedSpaces.has(spaceId)) {
@@ -1023,7 +985,7 @@ async function selectSpace(spaceId) {
     renderSpacesList();
     renderSpaceContent();
     renderChatWelcome();
-    
+
     // Update mobile header title
     updateMobileHeaderTitle();
 
@@ -1070,13 +1032,13 @@ function openCreateSpaceModal() {
     showToast('Простір створено', 'success');
     await loadSpaces();
   });
-  
+
   // Add click handler for icon picker
   setTimeout(() => {
     const iconPicker = document.getElementById('icon-picker');
     const iconInput = document.getElementById('icon-input');
     const iconValue = document.getElementById('icon-picker-value');
-    
+
     if (iconPicker) {
       iconPicker.addEventListener('click', () => {
         const newIcon = prompt('Введіть emoji або символ:', iconInput.value || '📁');
@@ -1116,13 +1078,13 @@ function openEditSpaceModal() {
     await selectSpace(state.currentSpaceId);
     await loadSpaces();
   });
-  
+
   // Add click handler for icon picker
   setTimeout(() => {
     const iconPicker = document.getElementById('icon-picker');
     const iconInput = document.getElementById('icon-input');
     const iconValue = document.getElementById('icon-picker-value');
-    
+
     if (iconPicker) {
       iconPicker.addEventListener('click', () => {
         const newIcon = prompt('Введіть emoji або символ:', iconInput.value || '📁');
@@ -1180,7 +1142,7 @@ async function createNewChat() {
   renderSpacesList();
   updateMobileHeaderTitle();
   showToast('Новий чат створено', 'info');
-  
+
   // Close sidebar on mobile/tablet
   if (isMobileOrTablet()) {
     closeSidebar();
@@ -1202,7 +1164,7 @@ async function selectChat(sessionId) {
     renderSpacesList();
     // Update mobile header title
     updateMobileHeaderTitle();
-    
+
     // Close sidebar on mobile/tablet after selecting a chat
     if (isMobileOrTablet()) {
       closeSidebar();
@@ -1307,7 +1269,7 @@ function addChatMessageToDOM(role, content) {
         </button>
       </div>
     `;
-    
+
     // Add copy handler
     const copyBtn = messageEl.querySelector('.copy-btn');
     copyBtn.addEventListener('click', () => copyToClipboard(rawText, copyBtn));
@@ -1318,7 +1280,7 @@ function addChatMessageToDOM(role, content) {
         ${formattedContent}
       </div>
     `;
-    
+
     // Add long-press handler for user messages
     const bubble = messageEl.querySelector('.chat-bubble');
     setupLongPress(bubble, () => {
@@ -1355,12 +1317,12 @@ async function copyToClipboard(text, btn = null) {
   try {
     await navigator.clipboard.writeText(text);
     showToast('Скопійовано', 'success');
-    
+
     if (btn) {
       btn.classList.add('copied');
       const textEl = btn.querySelector('.copy-btn-text');
       if (textEl) textEl.textContent = 'Скопійовано!';
-      
+
       setTimeout(() => {
         btn.classList.remove('copied');
         if (textEl) textEl.textContent = 'Копіювати';
@@ -1386,7 +1348,7 @@ async function copyToClipboard(text, btn = null) {
 function setupLongPress(element, callback, duration = 500) {
   let timer = null;
   let isLongPress = false;
-  
+
   const start = (e) => {
     isLongPress = false;
     timer = setTimeout(() => {
@@ -1398,23 +1360,23 @@ function setupLongPress(element, callback, duration = 500) {
       }
     }, duration);
   };
-  
+
   const cancel = () => {
     clearTimeout(timer);
   };
-  
+
   const end = (e) => {
     clearTimeout(timer);
     if (isLongPress) {
       e.preventDefault();
     }
   };
-  
+
   element.addEventListener('touchstart', start, { passive: true });
   element.addEventListener('touchend', end);
   element.addEventListener('touchcancel', cancel);
   element.addEventListener('touchmove', cancel, { passive: true });
-  
+
   // Also support mouse for desktop
   element.addEventListener('mousedown', start);
   element.addEventListener('mouseup', end);
@@ -1565,10 +1527,10 @@ document.getElementById('file-input').addEventListener('change', handleFileSelec
 
 async function sendChatMessage(messageOverride) {
   // Read directly from DOM for reliability, fallback to state
-  const message = typeof messageOverride === 'string' 
-    ? messageOverride 
+  const message = typeof messageOverride === 'string'
+    ? messageOverride
     : (elements.chatInput?.value ?? state.chatInputValue ?? '');
-  
+
   if (!message.trim() && selectedFiles.length === 0) return;
   if (!state.aiConfigured) {
     showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'error');
@@ -1680,7 +1642,7 @@ async function sendChatMessage(messageOverride) {
 function clearChatInput() {
   // Clear text input state
   state.chatInputValue = '';
-  
+
   // Clear DOM textarea value and reset height - multiple methods for reliability
   const textarea = elements.chatInput || document.getElementById('chat-input');
   if (textarea) {
@@ -1696,11 +1658,11 @@ function clearChatInput() {
     // Dispatch input event to trigger any listeners
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
   }
-  
+
   // Clear file attachments
   selectedFiles = [];
   renderAttachments();
-  
+
   // Also clear the file input
   const fileInput = document.getElementById('file-input');
   if (fileInput) {
@@ -1774,10 +1736,10 @@ elements.chatInput.addEventListener('keydown', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   checkAIStatus();
   loadSpaces();
-  
+
   // Initialize swipe gestures for mobile/tablet sidebar
   initSwipeGestures();
-  
+
   // Initialize mobile header
   updateMobileHeaderTitle();
   updateMobileModelSelector();
