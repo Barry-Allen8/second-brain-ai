@@ -2212,7 +2212,7 @@ body {
 
   /* === CHAT INPUT AREA (CRITICAL FOR MOBILE) === */
   .chat-input-container {
-    padding: var(--space-md);
+    padding: var(--space-sm) var(--space-sm);
     background: var(--bg-primary);
     /* No border on mobile for cleaner look */
     border-top: none;
@@ -2221,14 +2221,17 @@ body {
     z-index: 10;
     position: relative;
     /* iOS safe area - CRITICAL for home indicator in PWA standalone mode */
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-lg));
-    padding-left: max(var(--space-md), env(safe-area-inset-left));
-    padding-right: max(var(--space-md), env(safe-area-inset-right));
+    /* Much bigger bottom padding to lift input from screen edge */
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-xl));
+    padding-left: max(var(--space-sm), env(safe-area-inset-left));
+    padding-right: max(var(--space-sm), env(safe-area-inset-right));
   }
 
   .chat-composer-inner {
-    border-radius: 24px;
-    padding: 8px 12px;
+    border-radius: 26px;
+    padding: 10px 14px;
+    /* Slightly darker background for better visibility */
+    background: var(--bg-elevated);
   }
 
   .chat-form {
@@ -2708,7 +2711,7 @@ body {
 /* Chat Input */
 /* Chat Input Composer */
 .chat-input-container {
-  padding: 0 var(--space-lg) 0 var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
   background: var(--bg-primary);
   max-width: 760px;
   margin: 0 auto;
