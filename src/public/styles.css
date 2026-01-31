@@ -2566,6 +2566,10 @@ body {
 
 .chat-bubble {
   line-height: 1.6;
+  /* Enable native text selection for all messages */
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
 }
 
 /* User messages - rounded frame, right aligned */
@@ -2589,7 +2593,7 @@ body {
   max-width: 100%;
 }
 
-/* Copy button for assistant messages */
+/* Copy button - visible for both assistant and user messages */
 .chat-message-actions {
   display: flex;
   gap: var(--space-xs);
@@ -2598,16 +2602,22 @@ body {
   transition: opacity var(--transition-fast);
 }
 
-.chat-message.assistant:hover .chat-message-actions,
-.chat-message.assistant .chat-message-actions.visible {
+/* Show on hover or when marked visible */
+.chat-message:hover .chat-message-actions,
+.chat-message .chat-message-actions.visible {
   opacity: 1;
 }
 
-/* Always show on mobile */
+/* Always show on mobile for both message types */
 @media (max-width: 768px) {
-  .chat-message.assistant .chat-message-actions {
+  .chat-message .chat-message-actions {
     opacity: 0.7;
   }
+}
+
+/* User message copy button - align to right to match message alignment */
+.chat-message.user .chat-message-actions {
+  justify-content: flex-end;
 }
 
 .copy-btn {
@@ -2645,15 +2655,10 @@ body {
 }
 
 /*
- * User message text selection - MUST allow native copy/paste
- * Do NOT use user-select: none - it breaks iOS Safari copy menu
- * Let the browser handle text selection natively
+ * NOTE: Text selection is handled by .chat-bubble base class
+ * Both user and assistant messages support native copy/paste
+ * Do NOT add user-select: none anywhere - it breaks iOS Safari
  */
-.chat-message.user .chat-bubble {
-  cursor: text;
-  -webkit-user-select: text;
-  user-select: text;
-}
 
 .chat-content-image {
   max-width: 200px;
