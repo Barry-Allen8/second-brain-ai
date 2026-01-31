@@ -104,6 +104,7 @@ function validateProfileUpdates(updates: unknown): ExtractedProfileUpdate[] {
 /** Save extracted memory to storage */
 export async function saveExtractedMemory(
   spaceId: EntityId,
+  ownerId: EntityId,
   memory: ExtractedMemory
 ): Promise<{
   savedFacts: number;
@@ -123,7 +124,7 @@ export async function saveExtractedMemory(
         confidence: fact.confidence,
         sourceType: 'inference',
         sourceReference: `Автоматично витягнуто: ${fact.reason}`,
-      });
+      }, ownerId);
       savedFacts++;
     } catch (error) {
       console.warn('Failed to save extracted fact:', error);
@@ -140,7 +141,7 @@ export async function saveExtractedMemory(
         factCandidate: note.importance === 'high',
         sourceType: 'inference',
         sourceReference: `Автоматично витягнуто: ${note.reason}`,
-      });
+      }, ownerId);
       savedNotes++;
     } catch (error) {
       console.warn('Failed to save extracted note:', error);
@@ -156,7 +157,7 @@ export async function saveExtractedMemory(
         value: update.value,
         sourceType: 'inference',
         sourceReference: `Автоматично витягнуто: ${update.reason}`,
-      });
+      }, ownerId);
       savedProfileUpdates++;
     } catch (error) {
       console.warn('Failed to save profile update:', error);

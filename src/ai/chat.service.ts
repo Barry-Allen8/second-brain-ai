@@ -16,17 +16,18 @@ import type {
 import { buildSystemPrompt, estimateContextTokens } from './context-builder.js';
 import { chatCompletion, isAIConfigured } from './provider.js';
 import { parseMemoryExtract, saveExtractedMemory } from './memory-extractor.js';
-import { storage } from '../domain/index.js';
+import { spaceService } from '../domain/index.js';
 import { now } from '../utils/index.js';
 import { db } from '../lib/firebase.js';
 
 const SESSIONS_COLLECTION = 'sessions';
 
 /** Create a new chat session */
-export async function createSession(spaceId: EntityId): Promise<ChatSession> {
+export async function createSession(spaceId: EntityId, userId: EntityId): Promise<ChatSession> {
   const session: ChatSession = {
     id: uuidv4(),
     spaceId,
+    userId,
     messages: [],
     createdAt: now(),
     updatedAt: now(),
@@ -38,28 +39,35 @@ export async function createSession(spaceId: EntityId): Promise<ChatSession> {
 }
 
 /** Get existing session or create new one */
-export async function getOrCreateSession(spaceId: EntityId, sessionId?: EntityId): Promise<ChatSession> {
+export async function getOrCreateSession(
+  spaceId: EntityId,
+  userId: EntityId,
+  sessionId?: EntityId
+): Promise<ChatSession> {
   if (sessionId) {
-    const existing = await getSession(sessionId);
-    if (existing && existing.spaceId === spaceId) {
+    const existing = await getSession(sessionId, userId);
+    if (existing && existing.spaceId === spaceId && existing.userId === userId) {
       return existing;
     }
   }
-  return createSession(spaceId);
+  return createSession(spaceId, userId);
 }
 
 /** Get session by ID */
-export async function getSession(sessionId: EntityId): Promise<ChatSession | undefined> {
+export async function getSession(sessionId: EntityId, userId?: EntityId): Promise<ChatSession | undefined> {
   const doc = await db.collection(SESSIONS_COLLECTION).doc(sessionId).get();
   if (!doc.exists) return undefined;
-  return doc.data() as ChatSession;
+  const session = doc.data() as ChatSession;
+  if (userId && session.userId !== userId) return undefined;
+  return session;
 }
 
 /** List sessions for a space */
-export async function listSessions(spaceId: EntityId): Promise<ChatSession[]> {
-  console.log(`[Session] Listing sessions for space ${spaceId}`);
+export async function listSessions(spaceId: EntityId, userId: EntityId): Promise<ChatSession[]> {
+  console.log(`[Session] Listing sessions for space ${spaceId} (user ${userId})`);
   const snapshot = await db.collection(SESSIONS_COLLECTION)
     .where('spaceId', '==', spaceId)
+    .where('userId', '==', userId)
     .get(); // We'll sort in memory as Firestore requires composite index for filtering + sorting different fields
 
   console.log(`[Session] Found ${snapshot.size} sessions for space ${spaceId}`);
@@ -68,13 +76,18 @@ export async function listSessions(spaceId: EntityId): Promise<ChatSession[]> {
 }
 
 /** Update session metadata */
-export async function updateSession(sessionId: EntityId, updates: Partial<Pick<ChatSession, 'name'>>): Promise<ChatSession | null> {
+export async function updateSession(
+  sessionId: EntityId,
+  updates: Partial<Pick<ChatSession, 'name'>>,
+  userId: EntityId
+): Promise<ChatSession | null> {
   const ref = db.collection(SESSIONS_COLLECTION).doc(sessionId);
   const doc = await ref.get();
 
   if (!doc.exists) return null;
 
   const session = doc.data() as ChatSession;
+  if (session.userId !== userId) return null;
   const updateData: Partial<ChatSession> = { updatedAt: now() };
 
   if (updates.name !== undefined) {
@@ -89,11 +102,13 @@ export async function updateSession(sessionId: EntityId, updates: Partial<Pick<C
 }
 
 /** Delete a session */
-export async function deleteSession(sessionId: EntityId): Promise<boolean> {
+export async function deleteSession(sessionId: EntityId, userId: EntityId): Promise<boolean> {
   try {
     const ref = db.collection(SESSIONS_COLLECTION).doc(sessionId);
     const doc = await ref.get();
     if (!doc.exists) return false;
+    const session = doc.data() as ChatSession;
+    if (session.userId !== userId) return false;
     await ref.delete();
     return true;
   } catch (e) {
@@ -103,9 +118,10 @@ export async function deleteSession(sessionId: EntityId): Promise<boolean> {
 }
 
 /** Clear all sessions for a space */
-export async function clearSpaceSessions(spaceId: EntityId): Promise<number> {
+export async function clearSpaceSessions(spaceId: EntityId, userId: EntityId): Promise<number> {
   const snapshot = await db.collection(SESSIONS_COLLECTION)
     .where('spaceId', '==', spaceId)
+    .where('userId', '==', userId)
     .get();
 
   if (snapshot.empty) return 0;
@@ -120,12 +136,9 @@ export async function clearSpaceSessions(spaceId: EntityId): Promise<number> {
 }
 
 /** Process a chat message */
-export async function chat(request: ChatRequest): Promise<ChatResponse> {
-  // Validate space exists
-  const spaceExists = await storage.spaceExists(request.spaceId);
-  if (!spaceExists) {
-    throw new Error(`Space not found: ${request.spaceId}`);
-  }
+export async function chat(request: ChatRequest, userId: EntityId): Promise<ChatResponse> {
+  // Validate space exists + ownership
+  await spaceService.getSpace(request.spaceId, userId);
 
   // Check AI configuration
   if (!isAIConfigured()) {
@@ -133,7 +146,7 @@ export async function chat(request: ChatRequest): Promise<ChatResponse> {
   }
 
   // Get or create session
-  const session = await getOrCreateSession(request.spaceId, request.sessionId);
+  const session = await getOrCreateSession(request.spaceId, userId, request.sessionId);
 
   // Create user message
   let content: string | ChatContentPart[] = request.message;
@@ -194,7 +207,7 @@ export async function chat(request: ChatRequest): Promise<ChatResponse> {
 
   // Auto-save extracted memory (can be disabled via settings)
   if (extractedMemory) {
-    await saveExtractedMemory(request.spaceId, extractedMemory);
+    await saveExtractedMemory(request.spaceId, userId, extractedMemory);
   }
 
   return {
@@ -221,13 +234,13 @@ function countSection(prompt: string, sectionName: string): number {
 }
 
 /** Get chat history for a session */
-export async function getChatHistory(sessionId: EntityId): Promise<ChatMessage[]> {
-  const session = await getSession(sessionId);
+export async function getChatHistory(sessionId: EntityId, userId: EntityId): Promise<ChatMessage[]> {
+  const session = await getSession(sessionId, userId);
   return session?.messages || [];
 }
 
 /** Export session for analysis */
-export async function exportSession(sessionId: EntityId): Promise<ChatSession | null> {
-  const session = await getSession(sessionId);
+export async function exportSession(sessionId: EntityId, userId: EntityId): Promise<ChatSession | null> {
+  const session = await getSession(sessionId, userId);
   return session || null;
 }

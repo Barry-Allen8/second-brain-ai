@@ -65,11 +65,19 @@ export class SpaceService {
     await storage.init();
   }
 
+  private async requireOwner(spaceId: EntityId, ownerId: EntityId): Promise<SpaceMetadata> {
+    const metadata = await storage.readMetadata(spaceId);
+    if (metadata.ownerId !== ownerId) {
+      throw new StorageError(`Space not found: ${spaceId}`, 'NOT_FOUND');
+    }
+    return metadata;
+  }
+
   // ─────────────────────────────────────────────────────────────────
   // Space CRUD
   // ─────────────────────────────────────────────────────────────────
 
-  async createSpace(request: CreateSpaceRequest): Promise<SpaceMetadata> {
+  async createSpace(request: CreateSpaceRequest, ownerId: EntityId): Promise<SpaceMetadata> {
     const spaceId = uuidv4();
     const timestamp = now();
 
@@ -84,6 +92,7 @@ export class SpaceService {
       tags: request.tags ?? [],
       rules: { ...createDefaultRules(), ...request.rules },
       isActive: true,
+      ownerId,
     };
 
     await storage.createSpace(
@@ -98,9 +107,9 @@ export class SpaceService {
     return metadata;
   }
 
-  async getSpace(spaceId: EntityId): Promise<ContextSpace> {
-    const [metadata, profile, facts, notes, timeline] = await Promise.all([
-      storage.readMetadata(spaceId),
+  async getSpace(spaceId: EntityId, ownerId: EntityId): Promise<ContextSpace> {
+    const metadata = await this.requireOwner(spaceId, ownerId);
+    const [profile, facts, notes, timeline] = await Promise.all([
       storage.readProfile(spaceId),
       storage.readFacts(spaceId),
       storage.readNotes(spaceId),
@@ -110,8 +119,8 @@ export class SpaceService {
     return { metadata, profile, facts, notes, timeline };
   }
 
-  async updateSpace(spaceId: EntityId, request: UpdateSpaceRequest): Promise<SpaceMetadata> {
-    const metadata = await storage.readMetadata(spaceId);
+  async updateSpace(spaceId: EntityId, request: UpdateSpaceRequest, ownerId: EntityId): Promise<SpaceMetadata> {
+    const metadata = await this.requireOwner(spaceId, ownerId);
     const timestamp = now();
 
     const updated: SpaceMetadata = {
@@ -130,12 +139,13 @@ export class SpaceService {
     return updated;
   }
 
-  async deleteSpace(spaceId: EntityId): Promise<void> {
+  async deleteSpace(spaceId: EntityId, ownerId: EntityId): Promise<void> {
+    await this.requireOwner(spaceId, ownerId);
     await storage.deleteSpace(spaceId);
   }
 
-  async listSpaces(): Promise<SpaceListItem[]> {
-    const spaceIds = await storage.listSpaceIds();
+  async listSpaces(ownerId: EntityId): Promise<SpaceListItem[]> {
+    const spaceIds = await storage.listSpaceIds(ownerId);
     const spaces: SpaceListItem[] = [];
 
     for (const id of spaceIds) {
@@ -169,7 +179,8 @@ export class SpaceService {
   // Facts
   // ─────────────────────────────────────────────────────────────────
 
-  async addFact(spaceId: EntityId, request: AddFactRequest): Promise<Fact> {
+  async addFact(spaceId: EntityId, request: AddFactRequest, ownerId: EntityId): Promise<Fact> {
+    await this.requireOwner(spaceId, ownerId);
     const facts = await storage.readFacts(spaceId);
     const timestamp = now();
 
@@ -199,12 +210,13 @@ export class SpaceService {
       relatedEntityId: fact.id,
       relatedEntityType: 'fact',
       tags: fact.tags,
-    });
+    }, ownerId);
 
     return fact;
   }
 
-  async updateFact(spaceId: EntityId, factId: EntityId, request: UpdateFactRequest): Promise<Fact> {
+  async updateFact(spaceId: EntityId, factId: EntityId, request: UpdateFactRequest, ownerId: EntityId): Promise<Fact> {
+    await this.requireOwner(spaceId, ownerId);
     const facts = await storage.readFacts(spaceId);
     const index = facts.items.findIndex(f => f.id === factId);
 
@@ -235,12 +247,13 @@ export class SpaceService {
       relatedEntityId: updated.id,
       relatedEntityType: 'fact',
       tags: updated.tags,
-    });
+    }, ownerId);
 
     return updated;
   }
 
-  async deleteFact(spaceId: EntityId, factId: EntityId): Promise<void> {
+  async deleteFact(spaceId: EntityId, factId: EntityId, ownerId: EntityId): Promise<void> {
+    await this.requireOwner(spaceId, ownerId);
     const facts = await storage.readFacts(spaceId);
     const index = facts.items.findIndex(f => f.id === factId);
 
@@ -257,10 +270,11 @@ export class SpaceService {
       eventType: 'fact_removed',
       title: `Fact removed: ${removed.statement.slice(0, 50)}...`,
       tags: removed.tags,
-    });
+    }, ownerId);
   }
 
-  async getFacts(spaceId: EntityId): Promise<Fact[]> {
+  async getFacts(spaceId: EntityId, ownerId: EntityId): Promise<Fact[]> {
+    await this.requireOwner(spaceId, ownerId);
     const facts = await storage.readFacts(spaceId);
     return facts.items;
   }
@@ -269,7 +283,8 @@ export class SpaceService {
   // Notes
   // ─────────────────────────────────────────────────────────────────
 
-  async addNote(spaceId: EntityId, request: AddNoteRequest): Promise<Note> {
+  async addNote(spaceId: EntityId, request: AddNoteRequest, ownerId: EntityId): Promise<Note> {
+    await this.requireOwner(spaceId, ownerId);
     const notes = await storage.readNotes(spaceId);
     const timestamp = now();
 
@@ -299,12 +314,13 @@ export class SpaceService {
       relatedEntityId: note.id,
       relatedEntityType: 'note',
       tags: note.tags,
-    });
+    }, ownerId);
 
     return note;
   }
 
-  async updateNote(spaceId: EntityId, noteId: EntityId, request: UpdateNoteRequest): Promise<Note> {
+  async updateNote(spaceId: EntityId, noteId: EntityId, request: UpdateNoteRequest, ownerId: EntityId): Promise<Note> {
+    await this.requireOwner(spaceId, ownerId);
     const notes = await storage.readNotes(spaceId);
     const index = notes.items.findIndex(n => n.id === noteId);
 
@@ -332,7 +348,8 @@ export class SpaceService {
     return updated;
   }
 
-  async deleteNote(spaceId: EntityId, noteId: EntityId): Promise<void> {
+  async deleteNote(spaceId: EntityId, noteId: EntityId, ownerId: EntityId): Promise<void> {
+    await this.requireOwner(spaceId, ownerId);
     const notes = await storage.readNotes(spaceId);
     const index = notes.items.findIndex(n => n.id === noteId);
 
@@ -346,7 +363,8 @@ export class SpaceService {
     await storage.writeNotes(spaceId, notes);
   }
 
-  async getNotes(spaceId: EntityId): Promise<Note[]> {
+  async getNotes(spaceId: EntityId, ownerId: EntityId): Promise<Note[]> {
+    await this.requireOwner(spaceId, ownerId);
     const notes = await storage.readNotes(spaceId);
     return notes.items;
   }
@@ -354,8 +372,10 @@ export class SpaceService {
   async promoteNoteToFact(
     spaceId: EntityId,
     noteId: EntityId,
-    request: PromoteNoteRequest
+    request: PromoteNoteRequest,
+    ownerId: EntityId
   ): Promise<Fact> {
+    await this.requireOwner(spaceId, ownerId);
     const notes = await storage.readNotes(spaceId);
     const noteIndex = notes.items.findIndex(n => n.id === noteId);
 
@@ -374,7 +394,7 @@ export class SpaceService {
       tags: request.tags ?? note.tags,
       sourceType: 'observation',
       sourceReference: `Promoted from note: ${noteId}`,
-    });
+    }, ownerId);
 
     // Update note with reference to fact
     notes.items[noteIndex] = {
@@ -393,7 +413,7 @@ export class SpaceService {
       relatedEntityId: fact.id,
       relatedEntityType: 'fact',
       tags: fact.tags,
-    });
+    }, ownerId);
 
     return fact;
   }
@@ -402,7 +422,8 @@ export class SpaceService {
   // Profile
   // ─────────────────────────────────────────────────────────────────
 
-  async addProfileEntry(spaceId: EntityId, request: AddProfileEntryRequest): Promise<ProfileEntry> {
+  async addProfileEntry(spaceId: EntityId, request: AddProfileEntryRequest, ownerId: EntityId): Promise<ProfileEntry> {
+    await this.requireOwner(spaceId, ownerId);
     const profile = await storage.readProfile(spaceId);
     const timestamp = now();
 
@@ -432,7 +453,7 @@ export class SpaceService {
       relatedEntityId: entry.id,
       relatedEntityType: 'profile',
       tags: [],
-    });
+    }, ownerId);
 
     return entry;
   }
@@ -440,8 +461,10 @@ export class SpaceService {
   async updateProfileEntry(
     spaceId: EntityId,
     entryId: EntityId,
-    request: UpdateProfileEntryRequest
+    request: UpdateProfileEntryRequest,
+    ownerId: EntityId
   ): Promise<ProfileEntry> {
+    await this.requireOwner(spaceId, ownerId);
     const profile = await storage.readProfile(spaceId);
     const index = profile.entries.findIndex(e => e.id === entryId);
 
@@ -470,12 +493,13 @@ export class SpaceService {
       relatedEntityId: updated.id,
       relatedEntityType: 'profile',
       tags: [],
-    });
+    }, ownerId);
 
     return updated;
   }
 
-  async deleteProfileEntry(spaceId: EntityId, entryId: EntityId): Promise<void> {
+  async deleteProfileEntry(spaceId: EntityId, entryId: EntityId, ownerId: EntityId): Promise<void> {
+    await this.requireOwner(spaceId, ownerId);
     const profile = await storage.readProfile(spaceId);
     const index = profile.entries.findIndex(e => e.id === entryId);
 
@@ -489,7 +513,8 @@ export class SpaceService {
     await storage.writeProfile(spaceId, profile);
   }
 
-  async getProfile(spaceId: EntityId): Promise<ProfileEntry[]> {
+  async getProfile(spaceId: EntityId, ownerId: EntityId): Promise<ProfileEntry[]> {
+    await this.requireOwner(spaceId, ownerId);
     const profile = await storage.readProfile(spaceId);
     return profile.entries;
   }
@@ -498,7 +523,8 @@ export class SpaceService {
   // Timeline
   // ─────────────────────────────────────────────────────────────────
 
-  async addTimelineEntry(spaceId: EntityId, request: AddTimelineEntryRequest): Promise<TimelineEntry> {
+  async addTimelineEntry(spaceId: EntityId, request: AddTimelineEntryRequest, ownerId: EntityId): Promise<TimelineEntry> {
+    await this.requireOwner(spaceId, ownerId);
     const timeline = await storage.readTimeline(spaceId);
     const timestamp = now();
 
@@ -523,7 +549,8 @@ export class SpaceService {
     return entry;
   }
 
-  async getTimeline(spaceId: EntityId, limit = 50): Promise<TimelineEntry[]> {
+  async getTimeline(spaceId: EntityId, ownerId: EntityId, limit = 50): Promise<TimelineEntry[]> {
+    await this.requireOwner(spaceId, ownerId);
     const timeline = await storage.readTimeline(spaceId);
     return timeline.entries
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
@@ -534,9 +561,9 @@ export class SpaceService {
   // Context Query
   // ─────────────────────────────────────────────────────────────────
 
-  async queryContext(request: QueryContextRequest): Promise<CompactContext> {
-    const [metadata, profile, facts, notes, timeline] = await Promise.all([
-      storage.readMetadata(request.spaceId),
+  async queryContext(request: QueryContextRequest, ownerId: EntityId): Promise<CompactContext> {
+    const metadata = await this.requireOwner(request.spaceId, ownerId);
+    const [profile, facts, notes, timeline] = await Promise.all([
       storage.readProfile(request.spaceId),
       storage.readFacts(request.spaceId),
       storage.readNotes(request.spaceId),

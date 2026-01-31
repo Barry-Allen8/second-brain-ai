@@ -35,6 +35,7 @@ export interface SpaceMetadata extends BaseEntity {
   tags: string[];
   rules: SpaceRules;
   isActive: boolean;
+  ownerId: EntityId;
 }
 
 /** Rules that govern context space behavior */

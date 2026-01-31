@@ -8,6 +8,8 @@ import type { ApiResponse, ApiError } from '../types/index.js';
 export declare function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler;
 /** Middleware to require AI configuration - returns 503 if not configured */
 export declare function requireAI(): RequestHandler;
+/** Middleware to require authenticated user */
+export declare function requireAuth(): RequestHandler;
 /** Validate request body against Zod schema */
 export declare function validateBody<T>(schema: ZodSchema<T>): RequestHandler;
 /** Validate request query against Zod schema */

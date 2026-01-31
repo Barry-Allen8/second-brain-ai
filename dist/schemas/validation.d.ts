@@ -49,6 +49,7 @@ export declare const spaceMetadataSchema: z.ZodObject<{
         customInstructions: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
     isActive: z.ZodBoolean;
+    ownerId: z.ZodString;
 }, z.core.$strip>;
 export declare const profileEntrySchema: z.ZodObject<{
     id: z.ZodString;

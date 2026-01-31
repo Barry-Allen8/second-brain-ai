@@ -154,6 +154,8 @@ const state = {
   aiConfigured: false,
   aiModel: 'gpt-4o-mini',
   supportedModels: ['gpt-4o-mini', 'gpt-4o'],
+  authUser: null,
+  authReady: false,
   // Chat management
   chats: [], // List of chats in current space
   currentChatId: null,
@@ -162,6 +164,20 @@ const state = {
   // UI state
   collapsedSpaces: new Set(), // Track collapsed spaces
 };
+
+// Firebase client config
+const firebaseConfig = {
+  apiKey: "AIzaSyB893L36S1LO5T-nd_txfROXoQQQbXfypA",
+  authDomain: "second-brain-d5333.firebaseapp.com",
+  projectId: "second-brain-d5333",
+  storageBucket: "second-brain-d5333.firebasestorage.app",
+  messagingSenderId: "322768162385",
+  appId: "1:322768162385:web:f8b7e0e0eb503d05d77270",
+  measurementId: "G-PXE0Z7WPV5"
+};
+
+let auth = null;
+let googleProvider = null;
 
 // ═══════════════════════════════════════════════════════════
 // API Functions
@@ -184,6 +200,10 @@ async function api(endpoint, options = {}) {
   }
 
   try {
+    const token = await getAuthToken();
+    if (token) {
+      config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
+    }
     const response = await fetch(url, config);
     if (response.status === 204) {
       return null;
@@ -191,6 +211,9 @@ async function api(endpoint, options = {}) {
     const data = await response.json();
 
     if (!response.ok || !data.success) {
+      if (response.status === 401) {
+        handleAuthError();
+      }
       throw new Error(data.error?.message || 'API request failed');
     }
 
@@ -236,6 +259,133 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// ═══════════════════════════════════════════════════════════
+// Auth Functions
+// ═══════════════════════════════════════════════════════════
+
+function initFirebaseAuth() {
+  if (!window.firebase) {
+    console.error('[Auth] Firebase SDK not loaded');
+    return;
+  }
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  auth = firebase.auth();
+  googleProvider = new firebase.auth.GoogleAuthProvider();
+
+  setAuthGateVisible(true);
+  if (elements.emptyState) {
+    elements.emptyState.classList.add('hidden');
+  }
+
+  auth.onAuthStateChanged((user) => {
+    handleAuthStateChanged(user);
+  });
+}
+
+async function getAuthToken() {
+  if (!state.authUser || !auth) return null;
+  try {
+    return await auth.currentUser.getIdToken();
+  } catch (error) {
+    console.warn('[Auth] Failed to get ID token', error);
+    return null;
+  }
+}
+
+function handleAuthStateChanged(user) {
+  state.authUser = user || null;
+  state.authReady = true;
+
+  if (!user) {
+    resetAppState();
+    setAuthGateVisible(true);
+    renderAuthUI();
+    return;
+  }
+
+  setAuthGateVisible(false);
+  renderAuthUI();
+  checkAIStatus();
+  loadSpaces();
+}
+
+function handleAuthError() {
+  if (auth && auth.currentUser) {
+    auth.signOut().catch(() => null);
+  }
+  resetAppState();
+  setAuthGateVisible(true);
+  renderAuthUI();
+}
+
+function resetAppState() {
+  state.spaces = [];
+  state.currentSpaceId = null;
+  state.currentSpace = null;
+  state.chats = [];
+  state.currentChatId = null;
+  state.currentChatMessages = [];
+  renderSpacesList();
+  if (elements.spaceContent) elements.spaceContent.classList.add('hidden');
+  if (elements.emptyState) elements.emptyState.classList.add('hidden');
+  if (elements.chatMessages) elements.chatMessages.innerHTML = '';
+}
+
+function setAuthGateVisible(isVisible) {
+  if (!elements.authGate) return;
+  if (isVisible) {
+    elements.authGate.classList.remove('hidden');
+  } else {
+    elements.authGate.classList.add('hidden');
+  }
+}
+
+function renderAuthUI() {
+  const loggedIn = !!state.authUser;
+  if (elements.authUser) {
+    elements.authUser.classList.toggle('hidden', !loggedIn);
+  }
+  if (elements.authGuest) {
+    elements.authGuest.classList.toggle('hidden', loggedIn);
+  }
+  if (elements.authUserEmail) {
+    elements.authUserEmail.textContent = loggedIn ? (state.authUser.email || '—') : '—';
+  }
+  if (elements.addSpaceBtn) {
+    elements.addSpaceBtn.disabled = !loggedIn;
+  }
+  if (elements.createFirstSpaceBtn) {
+    elements.createFirstSpaceBtn.disabled = !loggedIn;
+  }
+}
+
+async function signInWithEmail(email, password) {
+  if (!auth) throw new Error('Auth not initialized');
+  await auth.signInWithEmailAndPassword(email, password);
+}
+
+async function signUpWithEmail(name, email, password) {
+  if (!auth) throw new Error('Auth not initialized');
+  const credential = await auth.createUserWithEmailAndPassword(email, password);
+  if (credential.user) {
+    await credential.user.updateProfile({ displayName: name });
+  }
+}
+
+async function signInWithGoogle() {
+  if (!auth || !googleProvider) throw new Error('Auth not initialized');
+  await auth.signInWithPopup(googleProvider);
+}
+
+async function signOutUser() {
+  if (!auth) return;
+  await auth.signOut();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -402,7 +552,19 @@ const elements = {
   modalCancel: $('#modal-cancel'),
   modalSubmit: $('#modal-submit'),
   toastContainer: $('#toast-container'),
+  authGate: $('#auth-gate'),
+  authLoginBtn: $('#auth-login-btn'),
+  authRegisterBtn: $('#auth-register-btn'),
+  authGoogleBtn: $('#auth-google-btn'),
+  authUser: $('#auth-user'),
+  authUserEmail: $('#auth-user-email'),
+  authGuest: $('#auth-guest'),
+  loginBtn: $('#login-btn'),
   registerBtn: $('#register-btn'),
+  googleBtn: $('#google-btn'),
+  logoutBtn: $('#logout-btn'),
+  addSpaceBtn: $('#add-space-btn'),
+  createFirstSpaceBtn: $('#create-first-space'),
   // Chat elements
   chatMessages: $('#chat-messages'),
   chatForm: $('#chat-form'),
@@ -811,6 +973,9 @@ function openModelSelectorModal() {
 // ═══════════════════════════════════════════════════════════
 
 async function loadSpaces() {
+  if (!state.authUser) {
+    return;
+  }
   try {
     state.spaces = await spacesApi.list();
     renderSpacesList();
@@ -827,6 +992,10 @@ async function loadSpaces() {
 }
 
 function renderSpacesList() {
+  if (!state.authUser) {
+    elements.spacesList.innerHTML = '';
+    return;
+  }
   elements.spacesList.innerHTML = state.spaces.map(space => {
     const isActive = space.id === state.currentSpaceId;
     const isCollapsed = state.collapsedSpaces.has(space.id);
@@ -951,6 +1120,9 @@ function toggleSpaceChats(spaceId) {
 }
 
 async function selectSpace(spaceId) {
+  if (!state.authUser) {
+    return;
+  }
   state.currentSpaceId = spaceId;
   state.currentChatId = null;
   state.currentChatMessages = [];
@@ -1027,10 +1199,33 @@ function openRegisterModal() {
       throw new Error('Потрібно погодитися з умовами');
     }
 
-    showToast('Дякуємо! Реєстрація зараз у розробці.', 'info');
+    await signUpWithEmail(data.name, data.email, data.password);
+    showToast('Акаунт створено', 'success');
   }, {
     submitLabel: 'Зареєструватися',
     cancelLabel: 'Не зараз',
+  });
+}
+
+function openLoginModal() {
+  openModal('Увійти', `
+    <div class="form-group">
+      <label class="form-label" for="login-email">Email</label>
+      <input id="login-email" type="email" name="email" class="form-input" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="login-password">Пароль</label>
+      <input id="login-password" type="password" name="password" class="form-input" placeholder="Ваш пароль" autocomplete="current-password">
+    </div>
+  `, async (data) => {
+    if (!data.email || !data.password) {
+      throw new Error('Вкажіть email і пароль');
+    }
+    await signInWithEmail(data.email, data.password);
+    showToast('Вхід виконано', 'success');
+  }, {
+    submitLabel: 'Увійти',
+    cancelLabel: 'Скасувати',
   });
 }
 
@@ -1141,6 +1336,11 @@ async function deleteSpace() {
 // ═══════════════════════════════════════════════════════════
 
 async function loadChats() {
+  if (!state.authUser) {
+    state.chats = [];
+    renderSpacesList();
+    return;
+  }
   if (!state.currentSpaceId) {
     console.warn('Cannot load chats: No space selected');
     state.chats = [];
@@ -1646,6 +1846,11 @@ document.getElementById('file-input').addEventListener('change', handleFileSelec
 
 
 async function sendChatMessage(messageOverride) {
+  if (!state.authUser) {
+    setAuthGateVisible(true);
+    showToast('Спочатку увійдіть', 'warning');
+    return;
+  }
   // Read directly from DOM for reliability, fallback to state
   const message = typeof messageOverride === 'string'
     ? messageOverride
@@ -1825,10 +2030,67 @@ window.addEventListener('resize', () => {
 });
 
 // Spaces
-$('#add-space-btn').addEventListener('click', openCreateSpaceModal);
-$('#create-first-space').addEventListener('click', openCreateSpaceModal);
+if (elements.addSpaceBtn) {
+  elements.addSpaceBtn.addEventListener('click', () => {
+    if (!state.authUser) {
+      setAuthGateVisible(true);
+      openLoginModal();
+      return;
+    }
+    openCreateSpaceModal();
+  });
+}
+if (elements.createFirstSpaceBtn) {
+  elements.createFirstSpaceBtn.addEventListener('click', () => {
+    if (!state.authUser) {
+      setAuthGateVisible(true);
+      openLoginModal();
+      return;
+    }
+    openCreateSpaceModal();
+  });
+}
 if (elements.registerBtn) {
   elements.registerBtn.addEventListener('click', openRegisterModal);
+}
+if (elements.loginBtn) {
+  elements.loginBtn.addEventListener('click', openLoginModal);
+}
+if (elements.googleBtn) {
+  elements.googleBtn.addEventListener('click', async () => {
+    try {
+      await signInWithGoogle();
+      showToast('Вхід через Google виконано', 'success');
+    } catch (error) {
+      showToast(error.message || 'Не вдалося увійти через Google', 'error');
+    }
+  });
+}
+if (elements.logoutBtn) {
+  elements.logoutBtn.addEventListener('click', async () => {
+    try {
+      await signOutUser();
+      showToast('Ви вийшли з акаунту', 'info');
+    } catch (error) {
+      showToast('Не вдалося вийти', 'error');
+    }
+  });
+}
+if (elements.authLoginBtn) {
+  elements.authLoginBtn.addEventListener('click', openLoginModal);
+}
+if (elements.authRegisterBtn) {
+  elements.authRegisterBtn.addEventListener('click', openRegisterModal);
+}
+if (elements.authGoogleBtn) {
+  elements.authGoogleBtn.addEventListener('click', async () => {
+    try {
+      await signInWithGoogle();
+      showToast('Вхід через Google виконано', 'success');
+    } catch (error) {
+      showToast(error.message || 'Не вдалося увійти через Google', 'error');
+    }
+  });
 }
 
 // Chat form
@@ -1857,8 +2119,7 @@ elements.chatInput.addEventListener('keydown', (e) => {
 // ═══════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
-  checkAIStatus();
-  loadSpaces();
+  initFirebaseAuth();
 
   // Initialize swipe gestures for mobile/tablet sidebar
   initSwipeGestures();

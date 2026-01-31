@@ -10,6 +10,7 @@ import {
   validateBody,
   createSuccessResponse,
   createErrorResponse,
+  requireAuth,
 } from '../middleware.js';
 import {
   createSpaceRequestSchema,
@@ -24,11 +25,21 @@ function getRouteParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
+spacesRouter.use(requireAuth());
+
 // List all spaces
 spacesRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
-    const spaces = await spaceService.listSpaces();
+    const userId = res.locals.auth?.uid as string | undefined;
+    if (!userId) {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const spaces = await spaceService.listSpaces(userId);
     res.json(createSuccessResponse(spaces));
   })
 );
@@ -38,7 +49,15 @@ spacesRouter.post(
   '/',
   validateBody(createSpaceRequestSchema),
   asyncHandler(async (req, res) => {
-    const space = await spaceService.createSpace(req.body);
+    const userId = res.locals.auth?.uid as string | undefined;
+    if (!userId) {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const space = await spaceService.createSpace(req.body, userId);
     res.status(201).json(createSuccessResponse(space));
   })
 );
@@ -55,7 +74,15 @@ spacesRouter.get(
       }));
       return;
     }
-    const space = await spaceService.getSpace(spaceId);
+    const userId = res.locals.auth?.uid as string | undefined;
+    if (!userId) {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const space = await spaceService.getSpace(spaceId, userId);
     res.json(createSuccessResponse(space));
   })
 );
@@ -73,7 +100,15 @@ spacesRouter.patch(
       }));
       return;
     }
-    const space = await spaceService.updateSpace(spaceId, req.body);
+    const userId = res.locals.auth?.uid as string | undefined;
+    if (!userId) {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const space = await spaceService.updateSpace(spaceId, req.body, userId);
     res.json(createSuccessResponse(space));
   })
 );
@@ -90,7 +125,15 @@ spacesRouter.delete(
       }));
       return;
     }
-    await spaceService.deleteSpace(spaceId);
+    const userId = res.locals.auth?.uid as string | undefined;
+    if (!userId) {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    await spaceService.deleteSpace(spaceId, userId);
     res.json(createSuccessResponse({ deleted: true }));
   })
 );
@@ -108,10 +151,18 @@ spacesRouter.post(
       }));
       return;
     }
+    const userId = res.locals.auth?.uid as string | undefined;
+    if (!userId) {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
     const context = await spaceService.queryContext({
       spaceId,
       ...req.body,
-    });
+    }, userId);
     const tokensEstimate = spaceService.estimateTokens(context);
     res.json(createSuccessResponse({ context, tokensEstimate }));
   })

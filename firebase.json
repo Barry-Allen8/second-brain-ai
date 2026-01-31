@@ -31,5 +31,8 @@
         "predeploy": [
             "pnpm run build"
         ]
+    },
+    "firestore": {
+        "rules": "firestore.rules"
     }
 }

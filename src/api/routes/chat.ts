@@ -28,9 +28,10 @@ import {
   createSuccessResponse,
   createErrorResponse,
   requireAI,
+  requireAuth,
 } from '../middleware.js';
 import { chatRequestSchema } from '../../schemas/index.js';
-import { spaceService, storage } from '../../domain/index.js';
+import { spaceService } from '../../domain/index.js';
 
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
@@ -50,12 +51,17 @@ type NormalizedChatRequest = {
   attachments?: ChatAttachment[];
 };
 
-async function resolveSpaceId(preferredSpaceId?: EntityId): Promise<EntityId> {
-  if (preferredSpaceId && await storage.spaceExists(preferredSpaceId)) {
-    return preferredSpaceId;
+async function resolveSpaceId(preferredSpaceId: EntityId | undefined, userId: EntityId): Promise<EntityId> {
+  if (preferredSpaceId) {
+    try {
+      await spaceService.getSpace(preferredSpaceId, userId);
+      return preferredSpaceId;
+    } catch {
+      // Fall through to resolve from user's spaces
+    }
   }
 
-  const spaces = await spaceService.listSpaces();
+  const spaces = await spaceService.listSpaces(userId);
 
   const activeSpace = spaces.find((space) => space.isActive);
   if (activeSpace) {
@@ -71,9 +77,17 @@ async function resolveSpaceId(preferredSpaceId?: EntityId): Promise<EntityId> {
     description: 'Auto-created for chat requests without a space.',
     icon: 'chat',
     color: '#4f46e5',
-  });
+  }, userId);
 
   return defaultSpace.id;
+}
+
+function requireUserId(res: any): EntityId {
+  const userId = res.locals.auth?.uid as EntityId | undefined;
+  if (!userId) {
+    throw new Error('UNAUTHORIZED');
+  }
+  return userId;
 }
 
 function normalizeChatRequest(body: ChatRequestInput): NormalizedChatRequest {
@@ -160,9 +174,20 @@ const multipartMiddleware = (req: Request, res: Response, next: NextFunction) =>
 chatRouter.post(
   '/',
   multipartMiddleware,
+  requireAuth(),
   requireAI(),
   asyncHandler(async (req, res) => {
-    const { messages, message, spaceId, sessionId } = req.body;
+    let userId: EntityId;
+    try {
+      userId = requireUserId(res);
+    } catch {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const { messages, message } = req.body;
 
     // Manual validation since multer parses body
     if (!message && (!messages || !messages.length)) {
@@ -222,7 +247,7 @@ chatRouter.post(
       }
     }
 
-    const resolvedSpaceId = await resolveSpaceId(normalized.spaceId);
+    const resolvedSpaceId = await resolveSpaceId(normalized.spaceId, userId);
 
     // Pass image URLs if needed. For now simple text append.
     // If we want real vision support, we need to pass message array to ChatService.
@@ -233,7 +258,7 @@ chatRouter.post(
       ...normalized,
       spaceId: resolvedSpaceId,
       attachments // passing attachments just in case
-    });
+    }, userId);
 
     logParsedChatRequest({ ...normalized, spaceId: resolvedSpaceId });
     res.json(createSuccessResponse(response));
@@ -243,6 +268,7 @@ chatRouter.post(
 // Get session history
 chatRouter.get(
   '/sessions/:sessionId',
+  requireAuth(),
   asyncHandler(async (req, res) => {
     const sessionId = getRouteParam(req.params['sessionId']);
     if (!sessionId) {
@@ -252,7 +278,17 @@ chatRouter.get(
       }));
       return;
     }
-    const session = await getSession(sessionId);
+    let userId: EntityId;
+    try {
+      userId = requireUserId(res);
+    } catch {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const session = await getSession(sessionId, userId);
 
     if (!session) {
       res.status(404).json(createErrorResponse({
@@ -269,6 +305,7 @@ chatRouter.get(
 // Update session (e.g., rename)
 chatRouter.patch(
   '/sessions/:sessionId',
+  requireAuth(),
   asyncHandler(async (req, res) => {
     const sessionId = getRouteParam(req.params['sessionId']);
     if (!sessionId) {
@@ -288,7 +325,17 @@ chatRouter.patch(
       return;
     }
 
-    const updated = await updateSession(sessionId, { name });
+    let userId: EntityId;
+    try {
+      userId = requireUserId(res);
+    } catch {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const updated = await updateSession(sessionId, { name }, userId);
 
     if (!updated) {
       res.status(404).json(createErrorResponse({
@@ -305,6 +352,7 @@ chatRouter.patch(
 // Get chat history for session
 chatRouter.get(
   '/sessions/:sessionId/messages',
+  requireAuth(),
   asyncHandler(async (req, res) => {
     const sessionId = getRouteParam(req.params['sessionId']);
     if (!sessionId) {
@@ -314,7 +362,17 @@ chatRouter.get(
       }));
       return;
     }
-    const messages = await getChatHistory(sessionId);
+    let userId: EntityId;
+    try {
+      userId = requireUserId(res);
+    } catch {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const messages = await getChatHistory(sessionId, userId);
 
     res.json(createSuccessResponse(messages));
   })
@@ -323,6 +381,7 @@ chatRouter.get(
 // List sessions for space (Path param version - more robust)
 chatRouter.get(
   '/sessions/space/:spaceId',
+  requireAuth(),
   asyncHandler(async (req, res) => {
     const spaceId = getRouteParam(req.params['spaceId']);
     console.log(`[Sessions] Listing sessions for space (path param): ${spaceId}`);
@@ -336,7 +395,17 @@ chatRouter.get(
       return;
     }
 
-    const sessions = await listSessions(spaceId);
+    let userId: EntityId;
+    try {
+      userId = requireUserId(res);
+    } catch {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const sessions = await listSessions(spaceId, userId);
 
     // Map to lightweight summary (avoid sending full message history)
     res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
@@ -352,6 +421,7 @@ chatRouter.get(
 // List sessions (Legacy query param version)
 chatRouter.get(
   '/sessions',
+  requireAuth(),
   asyncHandler(async (req, res) => {
     const query = req.query || {};
     console.log('[Sessions] List request query:', query);
@@ -367,7 +437,17 @@ chatRouter.get(
       return;
     }
 
-    const sessions = await listSessions(spaceId);
+    let userId: EntityId;
+    try {
+      userId = requireUserId(res);
+    } catch {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const sessions = await listSessions(spaceId, userId);
 
     res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
       sessionId: s.id,
@@ -382,6 +462,7 @@ chatRouter.get(
 // List sessions for a space (legacy route for compatibility)
 chatRouter.get(
   '/spaces/:spaceId/sessions',
+  requireAuth(),
   asyncHandler(async (req, res) => {
     const spaceId = getRouteParam(req.params['spaceId']);
     if (!spaceId) {
@@ -391,7 +472,17 @@ chatRouter.get(
       }));
       return;
     }
-    const sessions = await listSessions(spaceId);
+    let userId: EntityId;
+    try {
+      userId = requireUserId(res);
+    } catch {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const sessions = await listSessions(spaceId, userId);
 
     res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
       sessionId: s.id,
@@ -406,6 +497,7 @@ chatRouter.get(
 // Delete session
 chatRouter.delete(
   '/sessions/:sessionId',
+  requireAuth(),
   asyncHandler(async (req, res) => {
     const sessionId = getRouteParam(req.params['sessionId']);
     if (!sessionId) {
@@ -415,7 +507,17 @@ chatRouter.delete(
       }));
       return;
     }
-    const deleted = await deleteSession(sessionId);
+    let userId: EntityId;
+    try {
+      userId = requireUserId(res);
+    } catch {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+    const deleted = await deleteSession(sessionId, userId);
 
     if (!deleted) {
       res.status(404).json(createErrorResponse({
@@ -433,6 +535,7 @@ chatRouter.delete(
 // Set AI model
 chatRouter.put(
   '/model',
+  requireAuth(),
   requireAI(),
   asyncHandler(async (req, res) => {
     const { model } = req.body as { model?: string };

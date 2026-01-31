@@ -54,10 +54,13 @@ export const storage = {
     return doc.exists;
   },
 
-  /** List all space IDs */
-  async listSpaceIds(): Promise<EntityId[]> {
+  /** List all space IDs (optionally filtered by owner) */
+  async listSpaceIds(ownerId?: EntityId): Promise<EntityId[]> {
     try {
-      const snapshot = await db.collection(SPACES_COLLECTION).get();
+      const collection = db.collection(SPACES_COLLECTION);
+      const snapshot = ownerId
+        ? await collection.where('ownerId', '==', ownerId).get()
+        : await collection.get();
       return snapshot.docs.map((doc: any) => doc.id);
     } catch (error) {
       throw new StorageError('Failed to list spaces', 'IO_ERROR', error);

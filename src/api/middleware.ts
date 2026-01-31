@@ -7,6 +7,7 @@ import type { ZodSchema, ZodError } from 'zod';
 import type { ApiResponse, ApiError } from '../types/index.js';
 import { StorageError } from '../domain/index.js';
 import { isAIConfigured } from '../ai/index.js';
+import { auth } from '../lib/firebase.js';
 
 /** Wrap async route handlers to catch errors */
 export function asyncHandler(
@@ -28,6 +29,41 @@ export function requireAI(): RequestHandler {
       return;
     }
     next();
+  };
+}
+
+/** Middleware to require authenticated user */
+export function requireAuth(): RequestHandler {
+  return async (req, res, next) => {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization required',
+      }));
+      return;
+    }
+
+    const token = header.slice('Bearer '.length).trim();
+    if (!token) {
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Authorization token missing',
+      }));
+      return;
+    }
+
+    try {
+      const decoded = await auth.verifyIdToken(token);
+      res.locals.auth = decoded;
+      next();
+    } catch (error) {
+      console.warn('[auth] Token verification failed', error);
+      res.status(401).json(createErrorResponse({
+        code: 'UNAUTHORIZED',
+        message: 'Invalid or expired token',
+      }));
+    }
   };
 }
 

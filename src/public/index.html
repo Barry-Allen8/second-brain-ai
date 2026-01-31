@@ -105,22 +105,40 @@
       </div>
 
       <div class="sidebar-footer">
-        <button class="btn btn-ghost sidebar-account" id="register-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M19 8v6"></path>
-            <path d="M22 11h-6"></path>
-          </svg>
-          Створити акаунт
-        </button>
-        <p class="sidebar-footer-note">Реєстрація потрібна для синхронізації між пристроями.</p>
+        <div class="auth-user hidden" id="auth-user">
+          <div class="auth-user-meta">
+            <span class="auth-user-label">Увійшли як</span>
+            <span class="auth-user-email" id="auth-user-email">—</span>
+          </div>
+          <button class="btn btn-ghost auth-logout" id="logout-btn">Вийти</button>
+        </div>
+        <div class="auth-guest" id="auth-guest">
+          <button class="btn btn-primary sidebar-account" id="login-btn">Увійти</button>
+          <button class="btn btn-ghost sidebar-account" id="register-btn">Створити акаунт</button>
+          <button class="btn btn-ghost sidebar-account" id="google-btn">Google вхід</button>
+          <p class="sidebar-footer-note">Реєстрація потрібна для синхронізації між пристроями.</p>
+        </div>
       </div>
 
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Auth Gate -->
+      <section class="auth-gate hidden" id="auth-gate">
+        <div class="auth-card">
+          <div class="auth-header">
+            <h2>Увійдіть, щоб продовжити</h2>
+            <p>Після входу ви зможете створювати простори, чати та синхронізувати дані між пристроями.</p>
+          </div>
+          <div class="auth-actions">
+            <button class="btn btn-primary" id="auth-login-btn">Увійти</button>
+            <button class="btn btn-ghost" id="auth-register-btn">Створити акаунт</button>
+            <button class="btn btn-ghost" id="auth-google-btn">Продовжити з Google</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Empty State -->
       <div class="empty-state" id="empty-state">
         <div class="empty-icon">
@@ -237,6 +255,10 @@
 
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
+
+  <!-- Firebase (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/12.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.8.0/firebase-auth-compat.js"></script>
 
   <script src="app.js"></script>
 </body>

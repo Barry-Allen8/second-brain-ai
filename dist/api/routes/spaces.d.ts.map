@@ -1,1 +1,1 @@
-{"version":3,"file":"spaces.d.ts","sourceRoot":"","sources":["../../../src/api/routes/spaces.ts"],"names":[],"mappings":"AAAA;;GAEG;AAGH,OAAO,KAAK,EAAE,MAAM,IAAI,aAAa,EAAE,MAAM,SAAS,CAAC;AAcvD,eAAO,MAAM,YAAY,EAAE,aAAwB,CAAC"}
+{"version":3,"file":"spaces.d.ts","sourceRoot":"","sources":["../../../src/api/routes/spaces.ts"],"names":[],"mappings":"AAAA;;GAEG;AAGH,OAAO,KAAK,EAAE,MAAM,IAAI,aAAa,EAAE,MAAM,SAAS,CAAC;AAevD,eAAO,MAAM,YAAY,EAAE,aAAwB,CAAC"}

@@ -39,6 +39,7 @@ export const spaceMetadataSchema = z.object({
   tags: z.array(z.string().max(50)).max(20),
   rules: spaceRulesSchema,
   isActive: z.boolean(),
+  ownerId: entityIdSchema,
 });
 
 // Profile

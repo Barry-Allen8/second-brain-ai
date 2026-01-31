@@ -38,6 +38,7 @@ export interface ChatAttachment {
 export interface ChatSession {
   id: EntityId;
   spaceId: EntityId;
+  userId: EntityId;
   name?: string;
   messages: ChatMessage[];
   createdAt: string;
