@@ -9,6 +9,7 @@
 import type {
   EntityId,
   SpaceMetadata,
+  SpaceRules,
   Profile,
   Facts,
   Notes,
@@ -22,15 +23,28 @@ const MAX_FACTS = 30;
 const MAX_NOTES = 15;
 const MAX_TIMELINE = 10;
 
+const DEFAULT_RULES: SpaceRules = {
+  allowHealthData: false,
+  noteRetentionDays: 90,
+  requireFactConfirmation: true,
+};
+
+function normalizeMetadata(metadata: SpaceMetadata): SpaceMetadata {
+  const tags = Array.isArray(metadata.tags) ? metadata.tags : [];
+  const rules = { ...DEFAULT_RULES, ...(metadata.rules ?? {}) };
+  return { ...metadata, tags, rules };
+}
+
 /** Build system prompt parts from a space */
 export async function buildContextParts(spaceId: EntityId): Promise<SystemPromptParts> {
-  const [metadata, profile, facts, notes, timeline] = await Promise.all([
+  const [rawMetadata, profile, facts, notes, timeline] = await Promise.all([
     storage.readMetadata(spaceId),
     storage.readProfile(spaceId),
     storage.readFacts(spaceId),
     storage.readNotes(spaceId),
     storage.readTimeline(spaceId),
   ]);
+  const metadata = normalizeMetadata(rawMetadata);
 
   return {
     baseInstructions: buildBaseInstructions(metadata),

@@ -9,7 +9,26 @@ import { isAIConfigured, getAIConfig } from '../ai/index.js';
 export function createApp() {
     const app = express();
     // Middleware
-    app.use(express.json());
+    // Check if body is already parsed & debug request state
+    app.use((req, res, next) => {
+        console.log(`[Request] ${req.method} ${req.path}`);
+        console.log(`[Request] Content-Type: ${req.headers['content-type']}`);
+        console.log(`[Request] Body already parsed: ${!!req.body}`);
+        if (req.body)
+            console.log(`[Request] Body keys: ${Object.keys(req.body)}`);
+        if (req.body && Object.keys(req.body).length > 0) {
+            console.log('[Middleware] Skipping parser - body present');
+            next();
+        }
+        else if (req.headers['content-type']?.includes('multipart/form-data')) {
+            console.log('[Middleware] Skipping parser - multipart detected');
+            next();
+        }
+        else {
+            console.log('[Middleware] Running express.json()');
+            express.json()(req, res, next);
+        }
+    });
     // Serve static files from public directory
     // In production, public folder is copied to dist/public
     const publicPath = path.join(process.cwd(), 'dist', 'public');

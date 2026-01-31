@@ -5,6 +5,10 @@
 const API_BASE = '/api/v1';
 const MAX_CHATS_PER_SPACE = 10;
 
+// #region agent log - DEBUG: CSS and cache diagnostics
+// (Debug code removed)
+// #endregion
+
 // ═══════════════════════════════════════════════════════════
 // PWA Service Worker Registration
 // ═══════════════════════════════════════════════════════════
@@ -16,6 +20,7 @@ async function registerServiceWorker() {
   }
 
   try {
+    const hadController = !!navigator.serviceWorker.controller;
     const registration = await navigator.serviceWorker.register('/service-worker.js', {
       scope: '/'
     });
@@ -37,8 +42,12 @@ async function registerServiceWorker() {
     });
 
     // Handle controller change (when new SW takes over)
+    let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       console.log('[PWA] Новий Service Worker активовано');
+      if (!hadController || refreshing) return;
+      refreshing = true;
+      window.location.reload();
     });
 
   } catch (error) {
@@ -123,39 +132,17 @@ function isPWAInstalled() {
 // Online/Offline Status Handler
 function updateOnlineStatus() {
   const isOnline = navigator.onLine;
-  const aiStatusEl = document.getElementById('ai-status');
-  const mobileAiStatusEl = document.getElementById('mobile-ai-status');
 
   if (isOnline) {
-    // Update sidebar status
-    if (aiStatusEl) {
-      aiStatusEl.querySelector('.ai-status-text').textContent = 'AI: перевірка...';
-      aiStatusEl.classList.remove('disconnected');
-      aiStatusEl.classList.add('connected');
-      aiStatusEl.style.cursor = 'default';
-      aiStatusEl.title = '';
-    }
-    // Update mobile status
-    if (mobileAiStatusEl) {
-      mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = '...';
-      mobileAiStatusEl.classList.remove('disconnected');
-      mobileAiStatusEl.classList.add('connected');
-    }
     checkAIStatus();
   } else {
-    // Update sidebar status
-    if (aiStatusEl) {
-      aiStatusEl.classList.remove('connected');
-      aiStatusEl.classList.add('disconnected');
-      aiStatusEl.querySelector('.ai-status-text').textContent = 'Офлайн';
-      aiStatusEl.style.cursor = 'default';
-      aiStatusEl.title = '';
+    // Update header model selector
+    if (elements.headerModelSelector) {
+      elements.headerModelSelector.classList.add('disconnected');
+      elements.headerModelSelector.classList.remove('connected');
     }
-    // Update mobile status
-    if (mobileAiStatusEl) {
-      mobileAiStatusEl.classList.remove('connected');
-      mobileAiStatusEl.classList.add('disconnected');
-      mobileAiStatusEl.querySelector('.mobile-ai-text').textContent = 'Офлайн';
+    if (elements.headerModelText) {
+      elements.headerModelText.textContent = 'Офлайн';
     }
   }
 
@@ -203,6 +190,8 @@ const state = {
   currentChatId: null,
   currentChatMessages: [],
   chatInputValue: '',
+  // UI state
+  collapsedSpaces: new Set(), // Track collapsed spaces
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -258,7 +247,10 @@ const chatApi = {
   send: (data) => api('/chat', { method: 'POST', body: data }),
   getSession: (sessionId) => api(`/chat/sessions/${sessionId}`),
   setModel: (model) => api('/chat/model', { method: 'PUT', body: { model } }),
-  listSessions: (spaceId) => api(`/chat/sessions?spaceId=${spaceId}`),
+  listSessions: (spaceId) => {
+    if (!spaceId) throw new Error('spaceId is required');
+    return api(`/chat/sessions/space/${spaceId}`);
+  },
   deleteSession: (sessionId) => api(`/chat/sessions/${sessionId}`, { method: 'DELETE' }),
   renameSession: (sessionId, name) => api(`/chat/sessions/${sessionId}`, { method: 'PATCH', body: { name } }),
 };
@@ -275,6 +267,150 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// ═══════════════════════════════════════════════════════════
+// Context Menu
+// ═══════════════════════════════════════════════════════════
+
+let activeContextMenu = null;
+
+function showContextMenu(event, type, id) {
+  // Close any existing context menu
+  closeContextMenu();
+
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.id = 'context-menu';
+
+  if (type === 'space') {
+    menu.innerHTML = `
+      <button class="context-menu-item" data-action="edit-space" data-id="${id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <span>Редагувати</span>
+      </button>
+      <div class="context-menu-divider"></div>
+      <button class="context-menu-item danger" data-action="delete-space" data-id="${id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Видалити</span>
+      </button>
+    `;
+  } else if (type === 'chat') {
+    menu.innerHTML = `
+      <button class="context-menu-item" data-action="rename-chat" data-id="${id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <span>Перейменувати</span>
+      </button>
+      <div class="context-menu-divider"></div>
+      <button class="context-menu-item danger" data-action="delete-chat" data-id="${id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Видалити</span>
+      </button>
+    `;
+  }
+
+  document.body.appendChild(menu);
+  activeContextMenu = menu;
+
+  // Position the menu near the click
+  const rect = event.target.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+
+  let x = rect.right + 4;
+  let y = rect.top;
+
+  // Ensure menu doesn't go off-screen
+  if (x + menuRect.width > window.innerWidth) {
+    x = rect.left - menuRect.width - 4;
+  }
+  if (y + menuRect.height > window.innerHeight) {
+    y = window.innerHeight - menuRect.height - 8;
+  }
+
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
+
+  // Add click handlers for menu items
+  menu.querySelectorAll('.context-menu-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleContextMenuAction(item.dataset.action, item.dataset.id);
+    });
+  });
+
+  // Add event listener to close on click outside or Escape
+  setTimeout(() => {
+    document.addEventListener('click', handleClickOutsideContextMenu);
+    document.addEventListener('keydown', handleEscapeContextMenu);
+  }, 0);
+}
+
+function closeContextMenu() {
+  if (activeContextMenu) {
+    activeContextMenu.remove();
+    activeContextMenu = null;
+  }
+  document.removeEventListener('click', handleClickOutsideContextMenu);
+  document.removeEventListener('keydown', handleEscapeContextMenu);
+}
+
+function handleClickOutsideContextMenu(e) {
+  if (activeContextMenu && !activeContextMenu.contains(e.target)) {
+    closeContextMenu();
+  }
+}
+
+function handleEscapeContextMenu(e) {
+  if (e.key === 'Escape') {
+    closeContextMenu();
+  }
+}
+
+async function handleContextMenuAction(action, id) {
+  closeContextMenu();
+
+  switch (action) {
+    case 'edit-space':
+      // First select the space, then open edit modal
+      if (state.currentSpaceId !== id) {
+        await selectSpace(id);
+      }
+      openEditSpaceModal();
+      break;
+    case 'delete-space':
+      // First select the space, then delete
+      if (state.currentSpaceId !== id) {
+        await selectSpace(id);
+      }
+      deleteSpace();
+      break;
+    case 'rename-chat':
+      // Set current chat and rename
+      if (state.currentChatId !== id) {
+        await selectChat(id);
+      }
+      renameChat();
+      break;
+    case 'delete-chat':
+      // Set current chat and delete
+      if (state.currentChatId !== id) {
+        state.currentChatId = id;
+      }
+      deleteChat();
+      break;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -301,18 +437,23 @@ const elements = {
   chatForm: $('#chat-form'),
   chatInput: $('#chat-input'),
   chatSend: $('#chat-send'),
-  chatSelect: $('#chat-select'),
-  aiStatus: $('#ai-status'),
-  mobileAiStatus: $('#mobile-ai-status'),
+  // Header model selector
+  headerModelSelector: $('#header-model-selector'),
+  headerModelText: $('#header-model-text'),
   // Mobile elements
   sidebar: $('#sidebar'),
   sidebarOverlay: $('#sidebar-overlay'),
   hamburgerBtn: $('#hamburger-btn'),
   sidebarClose: $('#sidebar-close'),
+  mobileHeader: $('#mobile-header'),
+  // New mobile header elements
+  mobileModelSelector: $('#mobile-model-selector'),
+  mobileModelText: $('#mobile-model-text'),
+  mobileSpaceName: $('#mobile-space-name'),
 };
 
 // ═══════════════════════════════════════════════════════════
-// Mobile Sidebar Management
+// Mobile Sidebar Management (ChatGPT-style)
 // ═══════════════════════════════════════════════════════════
 
 function openSidebar() {
@@ -330,6 +471,101 @@ function closeSidebar() {
 function isMobile() {
   return window.innerWidth <= 768;
 }
+
+function isTablet() {
+  return window.innerWidth > 768 && window.innerWidth <= 1024;
+}
+
+function isMobileOrTablet() {
+  return window.innerWidth <= 1024;
+}
+
+/**
+ * Update mobile header space name (displayed on the right side)
+ * Shows: Current space name or empty string if no space selected
+ */
+function updateMobileHeaderTitle() {
+  if (!elements.mobileSpaceName) return;
+
+  // Show space name on the right side (static text, no interaction)
+  if (state.currentSpace) {
+    elements.mobileSpaceName.textContent = state.currentSpace.name;
+  } else {
+    elements.mobileSpaceName.textContent = '';
+  }
+}
+
+/**
+ * Update mobile model selector text based on current AI model
+ */
+function updateMobileModelSelector() {
+  if (!elements.mobileModelText) return;
+
+  if (state.aiConfigured) {
+    elements.mobileModelText.textContent = state.aiModel || 'gpt-4o-mini';
+  } else {
+    elements.mobileModelText.textContent = 'Офлайн';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Swipe Gesture Support for Sidebar
+// ═══════════════════════════════════════════════════════════
+
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+const SWIPE_THRESHOLD = 50;
+const SWIPE_VELOCITY_THRESHOLD = 0.3;
+let touchStartTime = 0;
+
+function initSwipeGestures() {
+  document.addEventListener('touchstart', handleTouchStart, { passive: true });
+  document.addEventListener('touchend', handleTouchEnd, { passive: true });
+}
+
+function handleTouchStart(e) {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+  touchStartTime = Date.now();
+}
+
+function handleTouchEnd(e) {
+  touchEndX = e.changedTouches[0].screenX;
+  touchEndY = e.changedTouches[0].screenY;
+  handleSwipe();
+}
+
+function handleSwipe() {
+  const diffX = touchEndX - touchStartX;
+  const diffY = touchEndY - touchStartY;
+  const duration = Date.now() - touchStartTime;
+  const velocity = Math.abs(diffX) / duration;
+
+  // Only handle horizontal swipes (more horizontal than vertical)
+  if (Math.abs(diffX) < Math.abs(diffY)) return;
+
+  // Check if swipe is significant enough
+  const isSignificantSwipe = Math.abs(diffX) > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY_THRESHOLD;
+  if (!isSignificantSwipe) return;
+
+  // Only handle swipes on mobile/tablet
+  if (!isMobileOrTablet()) return;
+
+  const sidebarOpen = elements.sidebar.classList.contains('open');
+
+  // Swipe right to open (from left edge)
+  if (diffX > 0 && touchStartX < 50 && !sidebarOpen) {
+    openSidebar();
+  }
+
+  // Swipe left to close (anywhere when sidebar is open)
+  if (diffX < 0 && sidebarOpen) {
+    closeSidebar();
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════════
 // Toast Notifications
@@ -429,87 +665,173 @@ async function checkAIStatus() {
     state.supportedModels = ['gpt-4o-mini', 'gpt-4o'];
 
     if (status.configured) {
-      // Update sidebar AI status
-      elements.aiStatus.classList.add('connected');
-      elements.aiStatus.classList.remove('disconnected');
-      elements.aiStatus.querySelector('.ai-status-text').textContent = `AI: ${status.model}`;
-      elements.aiStatus.style.cursor = 'pointer';
-      elements.aiStatus.title = 'Клікніть для зміни моделі';
-
-      // Update mobile AI status
-      if (elements.mobileAiStatus) {
-        elements.mobileAiStatus.classList.add('connected');
-        elements.mobileAiStatus.classList.remove('disconnected');
-        elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = status.model;
+      // Update header model selector (primary position)
+      if (elements.headerModelSelector) {
+        elements.headerModelSelector.classList.add('connected');
+        elements.headerModelSelector.classList.remove('disconnected');
+        elements.headerModelSelector.title = 'Клікніть для зміни моделі';
       }
+      if (elements.headerModelText) {
+        elements.headerModelText.textContent = status.model;
+      }
+      // Update mobile model selector
+      updateMobileModelSelector();
     } else {
-      elements.aiStatus.classList.add('disconnected');
-      elements.aiStatus.classList.remove('connected');
-      elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: не налаштовано';
-      elements.aiStatus.style.cursor = 'default';
-      elements.aiStatus.title = '';
-
-      // Update mobile AI status
-      if (elements.mobileAiStatus) {
-        elements.mobileAiStatus.classList.add('disconnected');
-        elements.mobileAiStatus.classList.remove('connected');
-        elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = 'Не налаштовано';
+      // Update header model selector
+      if (elements.headerModelSelector) {
+        elements.headerModelSelector.classList.add('disconnected');
+        elements.headerModelSelector.classList.remove('connected');
+        elements.headerModelSelector.title = 'AI не налаштовано';
       }
+      if (elements.headerModelText) {
+        elements.headerModelText.textContent = 'Не налаштовано';
+      }
+      // Update mobile model selector
+      updateMobileModelSelector();
     }
   } catch (error) {
-    elements.aiStatus.classList.add('disconnected');
-    elements.aiStatus.querySelector('.ai-status-text').textContent = 'AI: помилка';
-
-    // Update mobile AI status on error
-    if (elements.mobileAiStatus) {
-      elements.mobileAiStatus.classList.add('disconnected');
-      elements.mobileAiStatus.classList.remove('connected');
-      elements.mobileAiStatus.querySelector('.mobile-ai-text').textContent = 'Помилка';
+    // Update header model selector on error
+    if (elements.headerModelSelector) {
+      elements.headerModelSelector.classList.add('disconnected');
+      elements.headerModelSelector.classList.remove('connected');
+    }
+    if (elements.headerModelText) {
+      elements.headerModelText.textContent = 'Помилка';
+    }
+    // Update mobile model selector on error
+    if (elements.mobileModelText) {
+      elements.mobileModelText.textContent = 'Помилка';
     }
   }
 }
 
-function openModelSelectorModal() {
+// Model info for dropdown
+const MODEL_INFO = {
+  'gpt-4o-mini': {
+    name: 'gpt-4o-mini',
+    description: 'Швидка та економна'
+  },
+  'gpt-4o': {
+    name: 'gpt-4o',
+    description: 'Найпотужніша модель'
+  }
+};
+
+let activeModelDropdown = null;
+
+function openModelSelectorDropdown() {
   if (!state.aiConfigured) {
     showToast('AI не налаштовано', 'warning');
     return;
   }
 
-  const modelOptions = state.supportedModels
-    .map(model => `
-      <option value="${model}" ${model === state.aiModel ? 'selected' : ''}>
-        ${model}
-      </option>
-    `)
-    .join('');
+  // Close if already open
+  if (activeModelDropdown) {
+    closeModelDropdown();
+    return;
+  }
 
-  openModal('Вибрати модель OpenAI', `
-    <div class="form-group">
-      <label class="form-label">Модель *</label>
-      <select name="model" class="form-select">
-        ${modelOptions}
-      </select>
-      <p class="form-hint">Поточна модель: ${state.aiModel}</p>
-    </div>
-    <div class="form-group">
-      <p style="color: var(--text-secondary); font-size: 0.875rem;">
-        <strong>Доступні моделі:</strong><br>
-        • gpt-4o-mini - швидка, економна (за замовчуванням)<br>
-        • gpt-4o - найпотужніша модель від OpenAI
-      </p>
-    </div>
-  `, async (data) => {
-    if (!data.model) throw new Error("Оберіть модель");
+  const dropdown = document.createElement('div');
+  dropdown.className = 'model-dropdown';
+  dropdown.id = 'model-dropdown';
 
-    try {
-      await chatApi.setModel(data.model);
-      state.aiModel = data.model;
-      showToast(`Модель змінено на ${data.model}`, 'success');
-      await checkAIStatus();
-    } catch (error) {
-      throw new Error(error.message || 'Не вдалося змінити модель');
+  dropdown.innerHTML = state.supportedModels.map(model => {
+    const info = MODEL_INFO[model] || { name: model, description: '' };
+    const isSelected = model === state.aiModel;
+    return `
+      <button class="model-dropdown-item ${isSelected ? 'selected' : ''}" data-model="${model}">
+        ${isSelected ? '<span class="model-dropdown-active-dot"></span>' : ''}
+        <div class="model-dropdown-info">
+          <span class="model-dropdown-name">${info.name}</span>
+          <span class="model-dropdown-desc">${info.description}</span>
+        </div>
+        ${isSelected ? `
+          <svg class="model-dropdown-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        ` : ''}
+      </button>
+    `;
+  }).join('');
+
+  document.body.appendChild(dropdown);
+  activeModelDropdown = dropdown;
+
+  // Position dropdown below the appropriate selector (mobile vs desktop)
+  const isMobileView = isMobile();
+  const trigger = isMobileView ? elements.mobileModelSelector : elements.headerModelSelector;
+
+  if (trigger) {
+    const rect = trigger.getBoundingClientRect();
+
+    if (isMobileView) {
+      // Mobile: position anchored to mobile model selector in header
+      dropdown.style.left = `${rect.left}px`;
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.minWidth = `${Math.max(rect.width, 180)}px`;
+    } else {
+      // Desktop: position below header model selector
+      dropdown.style.left = `${rect.left}px`;
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.minWidth = `${Math.max(rect.width, 200)}px`;
     }
+  }
+
+  // Add click handlers
+  dropdown.querySelectorAll('.model-dropdown-item').forEach(item => {
+    item.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const model = item.dataset.model;
+      if (model !== state.aiModel) {
+        try {
+          await chatApi.setModel(model);
+          state.aiModel = model;
+          showToast(`Модель змінено на ${model}`, 'success');
+          await checkAIStatus();
+          // Also update mobile model selector
+          updateMobileModelSelector();
+        } catch (error) {
+          showToast(error.message || 'Не вдалося змінити модель', 'error');
+        }
+      }
+      closeModelDropdown();
+    });
   });
+
+  // Close on click outside
+  setTimeout(() => {
+    document.addEventListener('click', handleClickOutsideModelDropdown);
+    document.addEventListener('keydown', handleEscapeModelDropdown);
+  }, 0);
+}
+
+function closeModelDropdown() {
+  if (activeModelDropdown) {
+    activeModelDropdown.remove();
+    activeModelDropdown = null;
+  }
+  document.removeEventListener('click', handleClickOutsideModelDropdown);
+  document.removeEventListener('keydown', handleEscapeModelDropdown);
+}
+
+function handleClickOutsideModelDropdown(e) {
+  if (activeModelDropdown &&
+    !activeModelDropdown.contains(e.target) &&
+    !elements.headerModelSelector?.contains(e.target) &&
+    !elements.mobileModelSelector?.contains(e.target)) {
+    closeModelDropdown();
+  }
+}
+
+function handleEscapeModelDropdown(e) {
+  if (e.key === 'Escape') {
+    closeModelDropdown();
+  }
+}
+
+// Keep the old function name for backwards compatibility
+function openModelSelectorModal() {
+  openModelSelectorDropdown();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -533,17 +855,127 @@ async function loadSpaces() {
 }
 
 function renderSpacesList() {
-  elements.spacesList.innerHTML = state.spaces.map(space => `
-    <li class="space-item ${space.id === state.currentSpaceId ? 'active' : ''}" 
-        data-id="${space.id}">
-      <span class="space-item-icon">${escapeHtml(space.icon || '📁')}</span>
-      <span class="space-item-name">${escapeHtml(space.name)}</span>
-    </li>
-  `).join('');
+  elements.spacesList.innerHTML = state.spaces.map(space => {
+    const isActive = space.id === state.currentSpaceId;
+    const isCollapsed = state.collapsedSpaces.has(space.id);
+    const spaceChats = isActive ? state.chats : [];
+    const hasChats = spaceChats.length > 0;
 
-  elements.spacesList.querySelectorAll('.space-item').forEach(item => {
-    item.addEventListener('click', () => selectSpace(item.dataset.id));
+    return `
+      <li class="sidebar-item-wrapper" data-space-id="${space.id}">
+        <div class="sidebar-item ${isActive ? 'active' : ''}" data-id="${space.id}">
+          <span class="sidebar-item-icon">${escapeHtml(space.icon || '📁')}</span>
+          <span class="sidebar-item-name">${escapeHtml(space.name)}</span>
+          <button class="sidebar-item-menu" data-space-id="${space.id}" title="Дії">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="5" r="1"></circle>
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="12" cy="19" r="1"></circle>
+            </svg>
+          </button>
+        </div>
+        ${isActive ? `
+          <ul class="sidebar-chats ${isCollapsed ? 'collapsed' : ''}">
+            ${spaceChats.map(chat => `
+              <li class="sidebar-chat-item ${chat.sessionId === state.currentChatId ? 'active' : ''}" 
+                  data-chat-id="${chat.sessionId}">
+                <span class="sidebar-chat-item-icon">💬</span>
+                <span class="sidebar-chat-item-name">${escapeHtml(chat.name || `Чат ${new Date(chat.createdAt).toLocaleDateString('uk-UA')}`)}</span>
+                <button class="sidebar-chat-item-menu" data-chat-id="${chat.sessionId}" title="Дії">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="5" r="1"></circle>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                  </svg>
+                </button>
+              </li>
+            `).join('')}
+            <li class="sidebar-new-chat" data-space-id="${space.id}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Новий чат</span>
+            </li>
+          </ul>
+        ` : ''}
+      </li>
+    `;
+  }).join('');
+
+  // Add click handlers for space items
+  elements.spacesList.querySelectorAll('.sidebar-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      // Don't handle if clicking on menu button (... for editing)
+      if (e.target.closest('.sidebar-item-menu')) return;
+
+      const spaceId = item.dataset.id;
+
+      // If clicking on already active space - toggle chats (accordion)
+      if (spaceId === state.currentSpaceId) {
+        toggleSpaceChats(spaceId);
+        return;
+      }
+
+      // Otherwise select the new space
+      selectSpace(spaceId);
+    });
   });
+
+  // Add click handlers for space menu buttons
+  elements.spacesList.querySelectorAll('.sidebar-item-menu').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const spaceId = btn.dataset.spaceId;
+      showContextMenu(e, 'space', spaceId);
+    });
+  });
+
+  // Add click handlers for chat items
+  elements.spacesList.querySelectorAll('.sidebar-chat-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      // Don't select chat if clicking on menu button
+      if (e.target.closest('.sidebar-chat-item-menu')) return;
+      const chatId = item.dataset.chatId;
+      selectChat(chatId);
+      // Note: closeSidebar is called inside selectChat for mobile/tablet
+    });
+  });
+
+  // Add click handlers for chat menu buttons
+  elements.spacesList.querySelectorAll('.sidebar-chat-item-menu').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const chatId = btn.dataset.chatId;
+      showContextMenu(e, 'chat', chatId);
+    });
+  });
+
+  // Add click handlers for new chat buttons
+  elements.spacesList.querySelectorAll('.sidebar-new-chat').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      createNewChat();
+      // Note: closeSidebar is called inside createNewChat for mobile/tablet
+    });
+  });
+}
+
+function toggleSpaceChats(spaceId) {
+  // Find the chat list element for this space
+  const spaceWrapper = document.querySelector(`.sidebar-item-wrapper[data-space-id="${spaceId}"]`);
+  const chatList = spaceWrapper?.querySelector('.sidebar-chats');
+
+  if (chatList) {
+    // Toggle collapsed state with animation
+    if (state.collapsedSpaces.has(spaceId)) {
+      state.collapsedSpaces.delete(spaceId);
+      chatList.classList.remove('collapsed');
+    } else {
+      state.collapsedSpaces.add(spaceId);
+      chatList.classList.add('collapsed');
+    }
+  }
 }
 
 async function selectSpace(spaceId) {
@@ -562,11 +994,14 @@ async function selectSpace(spaceId) {
     renderSpaceContent();
     renderChatWelcome();
 
+    // Update mobile header title
+    updateMobileHeaderTitle();
+
     elements.emptyState.classList.add('hidden');
     elements.spaceContent.classList.remove('hidden');
 
-    // Close sidebar on mobile after selecting a space
-    if (isMobile()) {
+    // Close sidebar on mobile/tablet after selecting a space
+    if (isMobileOrTablet()) {
       closeSidebar();
     }
   } catch (error) {
@@ -594,8 +1029,10 @@ function openCreateSpaceModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>
-      <input type="text" name="icon" class="form-input" placeholder="📁" maxlength="2">
-      <p class="form-hint">Emoji або символ</p>
+      <div class="icon-picker" id="icon-picker">
+        <span class="icon-picker-value" id="icon-picker-value">📁</span>
+      </div>
+      <input type="hidden" name="icon" id="icon-input" value="📁">
     </div>
   `, async (data) => {
     if (!data.name) throw new Error("Назва обов'язкова");
@@ -603,10 +1040,29 @@ function openCreateSpaceModal() {
     showToast('Простір створено', 'success');
     await loadSpaces();
   });
+
+  // Add click handler for icon picker
+  setTimeout(() => {
+    const iconPicker = document.getElementById('icon-picker');
+    const iconInput = document.getElementById('icon-input');
+    const iconValue = document.getElementById('icon-picker-value');
+
+    if (iconPicker) {
+      iconPicker.addEventListener('click', () => {
+        const newIcon = prompt('Введіть emoji або символ:', iconInput.value || '📁');
+        if (newIcon && newIcon.trim()) {
+          const icon = newIcon.trim().substring(0, 2);
+          iconInput.value = icon;
+          iconValue.textContent = icon;
+        }
+      });
+    }
+  }, 100);
 }
 
 function openEditSpaceModal() {
   const space = state.currentSpace;
+  const currentIcon = space.icon || '📁';
   openModal('Редагувати простір', `
     <div class="form-group">
       <label class="form-label">Назва *</label>
@@ -618,7 +1074,10 @@ function openEditSpaceModal() {
     </div>
     <div class="form-group">
       <label class="form-label">Іконка</label>
-      <input type="text" name="icon" class="form-input" value="${escapeHtml(space.icon || '')}" maxlength="2">
+      <div class="icon-picker" id="icon-picker">
+        <span class="icon-picker-value" id="icon-picker-value">${escapeHtml(currentIcon)}</span>
+      </div>
+      <input type="hidden" name="icon" id="icon-input" value="${escapeHtml(currentIcon)}">
     </div>
   `, async (data) => {
     if (!data.name) throw new Error("Назва обов'язкова");
@@ -627,6 +1086,24 @@ function openEditSpaceModal() {
     await selectSpace(state.currentSpaceId);
     await loadSpaces();
   });
+
+  // Add click handler for icon picker
+  setTimeout(() => {
+    const iconPicker = document.getElementById('icon-picker');
+    const iconInput = document.getElementById('icon-input');
+    const iconValue = document.getElementById('icon-picker-value');
+
+    if (iconPicker) {
+      iconPicker.addEventListener('click', () => {
+        const newIcon = prompt('Введіть emoji або символ:', iconInput.value || '📁');
+        if (newIcon && newIcon.trim()) {
+          const icon = newIcon.trim().substring(0, 2);
+          iconInput.value = icon;
+          iconValue.textContent = icon;
+        }
+      });
+    }
+  }, 100);
 }
 
 async function deleteSpace() {
@@ -647,52 +1124,30 @@ async function deleteSpace() {
 // ═══════════════════════════════════════════════════════════
 
 async function loadChats() {
+  if (!state.currentSpaceId) {
+    console.warn('Cannot load chats: No space selected');
+    state.chats = [];
+    renderSpacesList();
+    return;
+  }
+
   try {
+    // Explicitly verify ID before call
+    console.log('Loading chats for space:', state.currentSpaceId);
+
+    // Use the api helper correctly
     const sessions = await chatApi.listSessions(state.currentSpaceId);
     state.chats = sessions || [];
-    renderChatSelector();
+    renderSpacesList();
   } catch (error) {
     console.error('Error loading chats:', error);
+    showToast('Не вдалося завантажити чати', 'error');
     state.chats = [];
-    renderChatSelector();
+    renderSpacesList();
   }
 }
 
-function renderChatSelector() {
-  const select = elements.chatSelect;
-  select.innerHTML = '<option value="">Новий чат</option>';
 
-  state.chats.forEach(chat => {
-    const option = document.createElement('option');
-    option.value = chat.sessionId;
-    option.textContent = chat.name || `Чат ${new Date(chat.createdAt).toLocaleString('uk-UA')}`;
-    if (chat.sessionId === state.currentChatId) {
-      option.selected = true;
-    }
-    select.appendChild(option);
-  });
-
-  // Update button states
-  updateChatButtonStates();
-}
-
-function updateChatButtonStates() {
-  const hasActiveChat = !!state.currentChatId;
-  const renameBtn = $('#rename-chat-btn');
-  const deleteBtn = $('#delete-chat-btn');
-
-  if (renameBtn) {
-    renameBtn.disabled = !hasActiveChat;
-    renameBtn.style.opacity = hasActiveChat ? '1' : '0.5';
-    renameBtn.style.cursor = hasActiveChat ? 'pointer' : 'not-allowed';
-  }
-
-  if (deleteBtn) {
-    deleteBtn.disabled = !hasActiveChat;
-    deleteBtn.style.opacity = hasActiveChat ? '1' : '0.5';
-    deleteBtn.style.cursor = hasActiveChat ? 'pointer' : 'not-allowed';
-  }
-}
 
 async function createNewChat() {
   if (state.chats.length >= MAX_CHATS_PER_SPACE) {
@@ -702,10 +1157,15 @@ async function createNewChat() {
 
   state.currentChatId = null;
   state.currentChatMessages = [];
-  elements.chatSelect.value = '';
   renderChatWelcome();
-  updateChatButtonStates();
+  renderSpacesList();
+  updateMobileHeaderTitle();
   showToast('Новий чат створено', 'info');
+
+  // Close sidebar on mobile/tablet
+  if (isMobileOrTablet()) {
+    closeSidebar();
+  }
 }
 
 async function selectChat(sessionId) {
@@ -719,7 +1179,15 @@ async function selectChat(sessionId) {
     state.currentChatId = sessionId;
     state.currentChatMessages = session.messages || [];
     renderChatMessages();
-    updateChatButtonStates();
+    // Update sidebar to show active chat
+    renderSpacesList();
+    // Update mobile header title
+    updateMobileHeaderTitle();
+
+    // Close sidebar on mobile/tablet after selecting a chat
+    if (isMobileOrTablet()) {
+      closeSidebar();
+    }
   } catch (error) {
     showToast('Не вдалося завантажити чат', 'error');
   }
@@ -742,6 +1210,7 @@ async function renameChat() {
     await chatApi.renameSession(state.currentChatId, data.name);
     showToast('Чат перейменовано', 'success');
     await loadChats();
+    // Sidebar is already updated by loadChats
   });
 }
 
@@ -760,7 +1229,7 @@ async function deleteChat() {
     state.currentChatMessages = [];
     await loadChats();
     renderChatWelcome();
-    updateChatButtonStates();
+    // Sidebar is already updated by loadChats
   } catch (error) {
     showToast('Не вдалося видалити чат', 'error');
   }
@@ -773,7 +1242,13 @@ async function deleteChat() {
 function renderChatWelcome() {
   elements.chatMessages.innerHTML = `
     <div class="chat-welcome">
-      <div class="chat-welcome-icon">💬</div>
+      <div class="chat-welcome-icon">
+        <svg class="chat-welcome-svg-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L14 8.5L20.5 10L14 11.5L12 18L10 11.5L3.5 10L10 8.5L12 2Z"/>
+          <path d="M19 1L20 3.5L22.5 4.5L20 5.5L19 8L18 5.5L15.5 4.5L18 3.5L19 1Z" opacity="0.7"/>
+          <path d="M5 14L6 16.5L8.5 17.5L6 18.5L5 21L4 18.5L1.5 17.5L4 16.5L5 14Z" opacity="0.7"/>
+        </svg>
+      </div>
       <h3>Розпочніть розмову</h3>
       <p>AI вже знає контекст "${escapeHtml(state.currentSpace?.name || '')}" — запитуйте про що завгодно!</p>
     </div>
@@ -794,18 +1269,291 @@ function addChatMessageToDOM(role, content) {
   const messageEl = document.createElement('div');
   messageEl.className = `chat-message ${role}`;
 
-  const avatar = role === 'user' ? '👤' : '🧠';
   const formattedContent = formatChatContent(content);
+  const rawText = extractTextContent(content);
 
-  messageEl.innerHTML = `
-    <div class="chat-avatar">${avatar}</div>
-    <div class="chat-bubble">
-      ${formattedContent}
-    </div>
-  `;
+  if (role === 'assistant') {
+    // Assistant message with copy button
+    messageEl.innerHTML = `
+      <div class="chat-bubble">
+        ${formattedContent}
+      </div>
+      <div class="chat-message-actions visible">
+        <button class="copy-btn" data-text="${escapeHtml(rawText)}" title="Копіювати">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span class="copy-btn-text">Копіювати</span>
+        </button>
+      </div>
+    `;
+
+    // Add copy handler
+    const copyBtn = messageEl.querySelector('.copy-btn');
+    copyBtn.addEventListener('click', () => copyToClipboard(rawText, copyBtn));
+  } else {
+    // User message with copy button (same as assistant for iOS compatibility)
+    messageEl.innerHTML = `
+      <div class="chat-bubble" data-text="${escapeHtml(rawText)}">
+        ${formattedContent}
+      </div>
+      <div class="chat-message-actions visible">
+        <button class="copy-btn" data-text="${escapeHtml(rawText)}" title="Копіювати">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span class="copy-btn-text">Копіювати</span>
+        </button>
+      </div>
+    `;
+
+    // Add copy handler (direct click = valid user gesture on iOS)
+    const copyBtn = messageEl.querySelector('.copy-btn');
+    copyBtn.addEventListener('click', () => copyToClipboard(rawText, copyBtn));
+
+    // Long-press on user text to copy (mobile-friendly)
+    const userBubble = messageEl.querySelector('.chat-bubble');
+    if (userBubble) {
+      setupLongPress(userBubble, () => copyToClipboard(rawText));
+    }
+  }
 
   elements.chatMessages.appendChild(messageEl);
   elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+}
+
+/**
+ * Extract plain text from content (handles both string and array content)
+ */
+function extractTextContent(content) {
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('\n');
+  }
+  return '';
+}
+
+/**
+ * Copy text to clipboard - iOS Safari compatible
+ *
+ * WHY THIS WORKS ON iOS:
+ * iOS Safari requires clipboard operations to happen SYNCHRONOUSLY within
+ * a user gesture (click/tap). Using async/await before navigator.clipboard.writeText()
+ * breaks the "trusted gesture" chain because await yields to the event loop.
+ *
+ * Our solution:
+ * 1. On iOS: Use execCommand('copy') FIRST - it's fully synchronous
+ * 2. On other browsers: Try navigator.clipboard but initiate it synchronously
+ *    (handle the promise without blocking via await before the call)
+ * 3. execCommand fallback for all browsers if modern API fails
+ *
+ * CRITICAL: This function is NOT async - all clipboard operations must start
+ * synchronously within the user gesture handler.
+ */
+function copyToClipboard(text, btn = null) {
+  const isIOS = /ipad|iphone|ipod/i.test(navigator.userAgent);
+  const isMobile = /mobile|android|iphone|ipad/i.test(navigator.userAgent);
+
+  // Helper: Show success feedback
+  function onSuccess() {
+    showToast('Скопійовано', 'success');
+    if (btn) {
+      btn.classList.add('copied');
+      const textEl = btn.querySelector('.copy-btn-text');
+      if (textEl) textEl.textContent = 'Скопійовано!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        if (textEl) textEl.textContent = 'Копіювати';
+      }, 2000);
+    }
+  }
+
+  // Helper: Show error feedback
+  function onError(msg) {
+    console.warn('Copy failed:', msg);
+    showToast('Не вдалося скопіювати', 'error');
+  }
+
+  // Helper: Synchronous execCommand copy (works reliably on iOS within user gesture)
+  function execCommandCopy() {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+
+    // Style to prevent visual glitches and iOS zoom
+    textarea.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 2em;
+      height: 2em;
+      padding: 0;
+      border: none;
+      outline: none;
+      box-shadow: none;
+      background: transparent;
+      font-size: 16px;
+      z-index: -1;
+      opacity: 0;
+    `;
+    // Note: font-size 16px prevents iOS zoom on focus
+
+    document.body.appendChild(textarea);
+
+    if (isIOS) {
+      // iOS requires special handling: contentEditable + range selection
+      textarea.contentEditable = 'true';
+      textarea.readOnly = false;
+
+      // Create range and select
+      const range = document.createRange();
+      range.selectNodeContents(textarea);
+
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      // Also set selection range for good measure
+      textarea.setSelectionRange(0, 999999);
+    } else {
+      textarea.select();
+    }
+
+    let success = false;
+    try {
+      success = document.execCommand('copy');
+    } catch (err) {
+      console.warn('execCommand threw:', err);
+    }
+
+    document.body.removeChild(textarea);
+
+    // Restore focus to body to prevent keyboard issues
+    if (document.activeElement && document.activeElement !== document.body) {
+      document.activeElement.blur();
+    }
+
+    return success;
+  }
+
+  // STRATEGY FOR iOS: Use execCommand FIRST (fully synchronous, most reliable)
+  if (isIOS) {
+    if (execCommandCopy()) {
+      onSuccess();
+      return;
+    }
+    // If execCommand failed on iOS, try modern API as backup
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      // Start the async operation but don't await - we're still in user gesture
+      navigator.clipboard.writeText(text)
+        .then(() => onSuccess())
+        .catch(() => onError('All methods failed on iOS'));
+      return;
+    }
+    onError('No clipboard method available');
+    return;
+  }
+
+  // STRATEGY FOR OTHER BROWSERS: Try modern API first, sync fallback second
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    // Initiate clipboard write synchronously (within user gesture)
+    // The promise is created synchronously, which preserves the gesture context
+    navigator.clipboard.writeText(text)
+      .then(() => onSuccess())
+      .catch((err) => {
+        console.warn('navigator.clipboard failed, trying execCommand:', err);
+        // Fallback: execCommand (must happen quickly, may still be in gesture window)
+        if (execCommandCopy()) {
+          onSuccess();
+        } else {
+          onError(err.message || 'Copy failed');
+        }
+      });
+    return;
+  }
+
+  // No modern API available - use execCommand directly
+  if (execCommandCopy()) {
+    onSuccess();
+  } else {
+    onError('execCommand not supported');
+  }
+}
+
+
+/**
+ * Setup long-press handler for an element
+ */
+function setupLongPress(element, callback, duration = 500) {
+  let timer = null;
+  let startTime = 0;
+  let isLongPress = false;
+
+  const start = (e) => {
+    isLongPress = false;
+    startTime = Date.now();
+
+    // Add visual feedback class immediately to show interaction
+    element.classList.add('touch-active');
+
+    timer = setTimeout(() => {
+      isLongPress = true;
+      // Visual feedback that duration is met
+      if (element.classList.contains('touch-active')) {
+        element.classList.add('long-press-ready');
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+      }
+    }, duration);
+  };
+
+  const cancel = () => {
+    clearTimeout(timer);
+    isLongPress = false;
+    element.classList.remove('touch-active', 'long-press-ready');
+  };
+
+  const end = (e) => {
+    clearTimeout(timer);
+    element.classList.remove('touch-active', 'long-press-ready');
+
+    // Calculate duration manually if timer didn't fire yet but we want to be lenient, 
+    // OR simply rely on the timer flag.
+    // Ideally for "long press", we strictly wait for duration.
+    // However, the user issue is that the COPY fails. 
+    // Moving the callback HERE (in 'end') is the key fix for iOS.
+
+    const pressDuration = Date.now() - startTime;
+
+    if (isLongPress || pressDuration >= duration) {
+      // Prevent default click behavior if it was a long press
+      if (e.cancelable) e.preventDefault();
+
+      // Execute the callback (Copy) - NOW it's inside a user-initiated event (touchend/mouseup)
+      callback();
+    }
+  };
+
+  element.addEventListener('touchstart', start, { passive: true });
+  element.addEventListener('touchend', end);
+  element.addEventListener('touchcancel', cancel);
+  element.addEventListener('touchmove', (e) => {
+    // Cancel if moved significantly? For now, just cancel on any move to be safe
+    // or calculate distance. Simple cancel is safer for "hold".
+    cancel();
+  }, { passive: true });
+
+  // Also support mouse for desktop
+  element.addEventListener('mousedown', start);
+  element.addEventListener('mouseup', end);
+  element.addEventListener('mouseleave', cancel);
 }
 
 function setChatInputValue(value, { resetHeight = false, focus = false } = {}) {
@@ -952,10 +1700,10 @@ document.getElementById('file-input').addEventListener('change', handleFileSelec
 
 async function sendChatMessage(messageOverride) {
   // Read directly from DOM for reliability, fallback to state
-  const message = typeof messageOverride === 'string' 
-    ? messageOverride 
+  const message = typeof messageOverride === 'string'
+    ? messageOverride
     : (elements.chatInput?.value ?? state.chatInputValue ?? '');
-  
+
   if (!message.trim() && selectedFiles.length === 0) return;
   if (!state.aiConfigured) {
     showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'error');
@@ -965,10 +1713,6 @@ async function sendChatMessage(messageOverride) {
   // Capture files BEFORE clearing
   const filesToSend = [...selectedFiles];
   const messageToSend = message.trim();
-
-  // CRITICAL: Clear input and attachments IMMEDIATELY after validation
-  // This ensures the UI is reset before any async operations
-  clearChatInput();
 
   // Disable send button temporarily
   if (elements.chatSend) elements.chatSend.disabled = true;
@@ -1016,6 +1760,10 @@ async function sendChatMessage(messageOverride) {
       addChatMessageToDOM('user', contentParts);
     }
 
+    // CRITICAL FIX: Clear input IMMEDIATELY after message is sent to UI
+    // User can now type new message while AI is responding
+    clearChatInput();
+
     showTypingIndicator();
 
     // Send to API
@@ -1051,7 +1799,8 @@ async function sendChatMessage(messageOverride) {
     hideTypingIndicator();
     console.error('Send error:', error);
     showToast(error.message || 'Помилка відправки повідомлення', 'error');
-    // Input remains cleared even on error - user can retype if needed
+    // On error, the input was already cleared - user needs to retype
+    // This is acceptable trade-off for immediate clearing behavior
   } finally {
     if (elements.chatSend) elements.chatSend.disabled = false;
     // Ensure focus is back on input
@@ -1066,7 +1815,7 @@ async function sendChatMessage(messageOverride) {
 function clearChatInput() {
   // Clear text input state
   state.chatInputValue = '';
-  
+
   // Clear DOM textarea value and reset height - multiple methods for reliability
   const textarea = elements.chatInput || document.getElementById('chat-input');
   if (textarea) {
@@ -1082,11 +1831,11 @@ function clearChatInput() {
     // Dispatch input event to trigger any listeners
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
   }
-  
+
   // Clear file attachments
   selectedFiles = [];
   renderAttachments();
-  
+
   // Also clear the file input
   const fileInput = document.getElementById('file-input');
   if (fileInput) {
@@ -1103,9 +1852,27 @@ elements.hamburgerBtn.addEventListener('click', openSidebar);
 elements.sidebarClose.addEventListener('click', closeSidebar);
 elements.sidebarOverlay.addEventListener('click', closeSidebar);
 
-// Close sidebar on escape key
+// Mobile model selector (opens same dropdown as desktop)
+if (elements.mobileModelSelector) {
+  elements.mobileModelSelector.addEventListener('click', () => {
+    if (state.aiConfigured) {
+      openModelSelectorDropdown();
+    } else {
+      showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'warning');
+    }
+  });
+}
+
+// Close sidebar on escape key (mobile and tablet)
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && isMobile() && elements.sidebar.classList.contains('open')) {
+  if (e.key === 'Escape' && isMobileOrTablet() && elements.sidebar.classList.contains('open')) {
+    closeSidebar();
+  }
+});
+
+// Handle window resize - close sidebar if resizing to desktop
+window.addEventListener('resize', () => {
+  if (!isMobileOrTablet() && elements.sidebar.classList.contains('open')) {
     closeSidebar();
   }
 });
@@ -1113,14 +1880,6 @@ document.addEventListener('keydown', (e) => {
 // Spaces
 $('#add-space-btn').addEventListener('click', openCreateSpaceModal);
 $('#create-first-space').addEventListener('click', openCreateSpaceModal);
-$('#edit-space-btn').addEventListener('click', openEditSpaceModal);
-$('#delete-space-btn').addEventListener('click', deleteSpace);
-
-// Chat management
-$('#new-chat-btn').addEventListener('click', createNewChat);
-$('#rename-chat-btn').addEventListener('click', renameChat);
-$('#delete-chat-btn').addEventListener('click', deleteChat);
-elements.chatSelect.addEventListener('change', (e) => selectChat(e.target.value));
 
 // Chat form
 elements.chatForm.addEventListener('submit', (e) => {
@@ -1151,18 +1910,20 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAIStatus();
   loadSpaces();
 
-  // Sidebar AI status click handler
-  elements.aiStatus.addEventListener('click', () => {
-    if (state.aiConfigured) {
-      openModelSelectorModal();
-    }
-  });
+  // Initialize swipe gestures for mobile/tablet sidebar
+  initSwipeGestures();
 
-  // Mobile AI status click handler
-  if (elements.mobileAiStatus) {
-    elements.mobileAiStatus.addEventListener('click', () => {
+  // Initialize mobile header
+  updateMobileHeaderTitle();
+  updateMobileModelSelector();
+
+  // Header model selector click handler (primary model selector)
+  if (elements.headerModelSelector) {
+    elements.headerModelSelector.addEventListener('click', () => {
       if (state.aiConfigured) {
-        openModelSelectorModal();
+        openModelSelectorDropdown();
+      } else {
+        showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'warning');
       }
     });
   }

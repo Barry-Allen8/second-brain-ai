@@ -141,8 +141,8 @@ export interface SpaceListItem {
     id: EntityId;
     name: string;
     description: string;
-    icon?: string;
-    color?: string;
+    icon?: string | null;
+    color?: string | null;
     tags: string[];
     isActive: boolean;
     factCount: number;

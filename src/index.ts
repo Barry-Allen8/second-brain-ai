@@ -7,25 +7,36 @@ import 'dotenv/config';
 import { createApp } from './api/index.js';
 import { spaceService } from './domain/index.js';
 import { initializeAI, isAIConfigured } from './ai/index.js';
+import { onRequest } from 'firebase-functions/v2/https';
+import { fileURLToPath } from 'url';
 
-const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
+const PORT = parseInt(process.env['LOCAL_PORT'] ?? '3000', 10);
 
-async function main() {
+// Initialize application
+async function bootstrap() {
   // Initialize services
   await spaceService.init();
-  
+
   // Initialize AI provider
   initializeAI();
-  
-  // Create and start server
-  const app = createApp();
-  
+
+  return createApp();
+}
+
+// Create app instance (top-level await supported in Node 18+ ESM)
+const app = await bootstrap();
+
+// Export for Firebase Cloud Functions
+export const api = onRequest({ region: 'us-central1' }, app);
+
+// Start server LOCALLY if run directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, () => {
     console.log(`🧠 Second Brain AI server running on port ${PORT}`);
     console.log(`   Health check: http://localhost:${PORT}/health`);
     console.log(`   API base: http://localhost:${PORT}/api/v1`);
     console.log(`   Web UI: http://localhost:${PORT}`);
-    
+
     // Warn if AI is not configured
     if (!isAIConfigured()) {
       console.log('');
@@ -36,8 +47,3 @@ async function main() {
     }
   });
 }
-
-main().catch((error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});

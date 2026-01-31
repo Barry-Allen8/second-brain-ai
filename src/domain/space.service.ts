@@ -79,8 +79,8 @@ export class SpaceService {
       updatedAt: timestamp,
       name: request.name,
       description: request.description,
-      icon: request.icon,
-      color: request.color,
+      icon: request.icon ?? null,
+      color: request.color ?? null,
       tags: request.tags ?? [],
       rules: { ...createDefaultRules(), ...request.rules },
       isActive: true,
@@ -565,20 +565,20 @@ export class SpaceService {
     // Filter and limit notes (only if requested)
     const relevantNotes = request.includeNotes
       ? notes.items
-          .filter(categoryFilter)
-          .filter(tagFilter)
-          .filter(n => !n.promotedToFactId) // Exclude promoted notes
-          .sort((a, b) => {
-            // Sort by importance, then by date
-            const importanceOrder = { high: 0, medium: 1, low: 2 };
-            const impDiff = importanceOrder[a.importance] - importanceOrder[b.importance];
-            return impDiff !== 0 ? impDiff : b.createdAt.localeCompare(a.createdAt);
-          })
-          .slice(0, request.maxNotes ?? 10)
-          .map(n => ({
-            content: n.content,
-            importance: n.importance,
-          }))
+        .filter(categoryFilter)
+        .filter(tagFilter)
+        .filter(n => !n.promotedToFactId) // Exclude promoted notes
+        .sort((a, b) => {
+          // Sort by importance, then by date
+          const importanceOrder = { high: 0, medium: 1, low: 2 };
+          const impDiff = importanceOrder[a.importance] - importanceOrder[b.importance];
+          return impDiff !== 0 ? impDiff : b.createdAt.localeCompare(a.createdAt);
+        })
+        .slice(0, request.maxNotes ?? 10)
+        .map(n => ({
+          content: n.content,
+          importance: n.importance,
+        }))
       : [];
 
     // Get recent timeline entries

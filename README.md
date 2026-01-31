@@ -1,79 +1,72 @@
 # Second Brain AI
 
-Persistent memory system for AI assistants with isolated context spaces.
+A persistent memory system for AI assistants with isolated context spaces. This application allows users to create "spaces" where an AI can store and recall facts, notes, and profiles, creating a long-term memory for intelligent interactions.
 
-## Quick Start
+## Problem It Solves
+Standard AI interactions are stateless; the AI forgets everything after the session ends. Second Brain AI provides a structured, persistent memory layer (Facts, Notes, User Profile, Timeline) stored in Firestore, enabling the AI to "remember" context across different conversations and sessions.
 
-```bash
-npm install
-npm run dev
-```
+## Tech Stack
 
-Server runs on `http://localhost:3000`.
+- **Frontend**: Vanilla JavaScript (HTML/CSS/JS)
+  - Located in `src/public`
+  - Served statically by the backend
+- **Backend**: Node.js + Express
+  - Located in `src/api`
+  - Handles API requests and serves the frontend
+- **Database**: Google Cloud Firestore
+  - Accessed via `firebase-admin` SDK
+  - Data abstractions in `src/domain`
+- **AI**: OpenAI API
+  - Integration in `src/ai`
+- **Hosting**:
+  - Supports **Vercel** (Serverless) via `api/serverless.js`
+  - Supports **Firebase Functions** via `onRequest` in `index.ts`
+  - Runnable as a standard Node.js server locally
 
-## Architecture
+## How to Run Locally
 
-### Context Spaces
-Each space is an isolated memory container with:
-- `space.json` - Metadata and rules
-- `profile.json` - Stable characteristics
-- `facts.json` - Verified statements
-- `notes.json` - Unverified observations
-- `timeline.json` - Change history
+1.  **Prerequisites**:
+    -   Node.js (v20+)
+    -   pnpm (v9+)
+    -   A Firebase project with Firestore enabled
+    -   OpenAI API Key
 
-### Memory Types
+2.  **Install Dependencies**:
+    ```bash
+    pnpm install
+    ```
 
-| Type | Purpose | Trust Level |
-|------|---------|-------------|
-| Profile | Stable attributes | High |
-| Facts | Verified statements | High |
-| Notes | Observations | Low |
-| Timeline | Change tracking | N/A |
+3.  **Environment Setup**:
+    -   Create a `.env` file in the root directory (see `env.example` or documentation below).
+    -   You need a Firebase Service Account JSON file for admin access.
+    
+    Refer to `docs/env.md` for detailed variable setup.
 
-## API Endpoints
+4.  **Start Development Server**:
+    ```bash
+    pnpm run dev
+    ```
+    -   Server runs at `http://localhost:3000` (default)
+    -   Web UI: `http://localhost:3000`
+    -   API: `http://localhost:3000/api/v1`
+    -   Health Check: `http://localhost:3000/health`
 
-### Spaces
-- `GET /api/v1/spaces` - List spaces
-- `POST /api/v1/spaces` - Create space
-- `GET /api/v1/spaces/:id` - Get space
-- `PATCH /api/v1/spaces/:id` - Update space
-- `DELETE /api/v1/spaces/:id` - Delete space
-- `POST /api/v1/spaces/:id/context` - Query context for AI
+## High-Level App Flow
 
-### Facts
-- `GET /api/v1/spaces/:id/facts` - List facts
-- `POST /api/v1/spaces/:id/facts` - Add fact
-- `PATCH /api/v1/spaces/:id/facts/:factId` - Update fact
-- `DELETE /api/v1/spaces/:id/facts/:factId` - Delete fact
+1.  **User** interacts with the **Web UI** (creates a space, sends a message).
+2.  **Web UI** sends an HTTP request to the **Express Backend**.
+3.  **Backend** delegates logic to **Domain Services** (`SpaceService`, `ChatService`).
+4.  **Domain Services** read/write state to **Firestore** (Database).
+5.  If Chatting:
+    -   **AI Service** retrieves context (Facts/Notes) from Firestore.
+    -   Sends prompt + context to **OpenAI**.
+    -   Parses response and updates Memory (extracts new facts) in **Firestore**.
+6.  **Backend** returns JSON response to **Web UI**.
 
-### Notes
-- `GET /api/v1/spaces/:id/notes` - List notes
-- `POST /api/v1/spaces/:id/notes` - Add note
-- `PATCH /api/v1/spaces/:id/notes/:noteId` - Update note
-- `DELETE /api/v1/spaces/:id/notes/:noteId` - Delete note
-- `POST /api/v1/spaces/:id/notes/:noteId/promote` - Promote to fact
+## Documentation
 
-### Profile
-- `GET /api/v1/spaces/:id/profile` - Get profile entries
-- `POST /api/v1/spaces/:id/profile` - Add entry
-- `PATCH /api/v1/spaces/:id/profile/:entryId` - Update entry
-- `DELETE /api/v1/spaces/:id/profile/:entryId` - Delete entry
-
-### Timeline
-- `GET /api/v1/spaces/:id/timeline` - Get timeline
-- `POST /api/v1/spaces/:id/timeline` - Add event
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | 3000 | Server port |
-| `DATA_DIR` | ./data/spaces | Storage directory |
-
-## Design Principles
-
-1. **Isolation** - Spaces never share data
-2. **Explicit Memory** - No silent assumptions
-3. **Structured Data** - JSON over raw text
-4. **Scalability** - Designed for future vector search
-5. **Safety** - Health data flagged, advisory language used
+See `/docs` folder for details:
+- [Architecture](./docs/architecture.md)
+- [Firestore Schema](./docs/firestore-schema.md)
+- [User Flows](./docs/flows.md)
+- [Environment Variables](./docs/env.md)

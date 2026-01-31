@@ -7,6 +7,7 @@ import type { z } from 'zod';
 import type { ChatSession, EntityId, ChatAttachment } from '../../types/index.js';
 import multer from 'multer';
 import { extractTextFromPdf } from '../../utils/index.js';
+import { Readable } from 'stream';
 
 // CHANGE: Added setModel and SUPPORTED_MODELS imports
 import {
@@ -74,17 +75,28 @@ async function resolveSpaceId(preferredSpaceId?: EntityId): Promise<EntityId> {
 
 function normalizeChatRequest(body: ChatRequestInput): NormalizedChatRequest {
   // Backward compatibility: support legacy { message } shape alongside structured { messages } payloads.
+  // @ts-ignore
   if ('message' in body) {
     return {
+      // @ts-ignore
       spaceId: body.spaceId ?? undefined,
+      // @ts-ignore
       message: body.message,
+      // @ts-ignore
       sessionId: body.sessionId ?? undefined,
+      // @ts-ignore
       attachments: body.attachments,
     };
   }
 
-  const lastUserMessage = [...body.messages].reverse().find(m => m.role === 'user');
-  const lastMessage = lastUserMessage ?? body.messages[body.messages.length - 1];
+  const messages = body.messages || [];
+  if (!messages.length) {
+    // Fallback if no messages found
+    throw new Error('No messages found in request');
+  }
+
+  const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+  const lastMessage = lastUserMessage ?? messages[messages.length - 1];
 
   if (!lastMessage) {
     throw new Error('No messages found in request');
@@ -123,10 +135,25 @@ chatRouter.get(
   })
 );
 
+// Wrapper to only run multer if content-type is multipart
+const multipartMiddleware = (req: any, res: any, next: any) => {
+  if (req.headers['content-type']?.includes('multipart/form-data')) {
+    // Cloud Functions workaround: req.body might be a Buffer if already parsed
+    if (req.body && Buffer.isBuffer(req.body)) {
+      const stream = Readable.from(req.body);
+      req.pipe = (dest: any) => stream.pipe(dest);
+    }
+    // @ts-ignore
+    upload.array('attachments')(req, res, next);
+  } else {
+    next();
+  }
+};
+
 // Send chat message
 chatRouter.post(
   '/',
-  upload.array('attachments'),
+  multipartMiddleware,
   requireAI(),
   asyncHandler(async (req, res) => {
     const { messages, message, spaceId, sessionId } = req.body;
@@ -212,7 +239,7 @@ chatRouter.get(
   '/sessions/:sessionId',
   asyncHandler(async (req, res) => {
     const sessionId = req.params['sessionId']!;
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
 
     if (!session) {
       res.status(404).json(createErrorResponse({
@@ -241,7 +268,7 @@ chatRouter.patch(
       return;
     }
 
-    const updated = updateSession(sessionId, { name });
+    const updated = await updateSession(sessionId, { name });
 
     if (!updated) {
       res.status(404).json(createErrorResponse({
@@ -260,19 +287,51 @@ chatRouter.get(
   '/sessions/:sessionId/messages',
   asyncHandler(async (req, res) => {
     const sessionId = req.params['sessionId']!;
-    const messages = getChatHistory(sessionId);
+    const messages = await getChatHistory(sessionId);
 
     res.json(createSuccessResponse(messages));
   })
 );
 
-// List sessions (can filter by spaceId via query param)
+// List sessions for space (Path param version - more robust)
+chatRouter.get(
+  '/sessions/space/:spaceId',
+  asyncHandler(async (req, res) => {
+    const spaceId = req.params.spaceId;
+    console.log(`[Sessions] Listing sessions for space (path param): ${spaceId}`);
+
+    if (!spaceId) {
+      // Should not happen with express routing but good for safety
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'spaceId is required',
+      }));
+      return;
+    }
+
+    const sessions = await listSessions(spaceId);
+
+    // Map to lightweight summary (avoid sending full message history)
+    res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
+      sessionId: s.id,
+      name: s.name,
+      messageCount: s.messages.length,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    }))));
+  })
+);
+
+// List sessions (Legacy query param version)
 chatRouter.get(
   '/sessions',
   asyncHandler(async (req, res) => {
-    const spaceId = req.query['spaceId'] as EntityId | undefined;
+    const query = req.query || {};
+    console.log('[Sessions] List request query:', query);
+    const spaceId = query['spaceId'] as EntityId | undefined;
 
     if (!spaceId) {
+      console.warn('[Sessions] Missing spaceId in query');
       res.status(400).json(createErrorResponse({
         code: 'INVALID_REQUEST',
         message: 'spaceId query parameter is required',
@@ -280,7 +339,7 @@ chatRouter.get(
       return;
     }
 
-    const sessions = listSessions(spaceId);
+    const sessions = await listSessions(spaceId);
 
     res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
       sessionId: s.id,
@@ -297,7 +356,7 @@ chatRouter.get(
   '/spaces/:spaceId/sessions',
   asyncHandler(async (req, res) => {
     const spaceId = req.params['spaceId']!;
-    const sessions = listSessions(spaceId);
+    const sessions = await listSessions(spaceId);
 
     res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
       sessionId: s.id,
@@ -314,7 +373,7 @@ chatRouter.delete(
   '/sessions/:sessionId',
   asyncHandler(async (req, res) => {
     const sessionId = req.params['sessionId']!;
-    const deleted = deleteSession(sessionId);
+    const deleted = await deleteSession(sessionId);
 
     if (!deleted) {
       res.status(404).json(createErrorResponse({

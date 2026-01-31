@@ -20,6 +20,7 @@ async function registerServiceWorker() {
   }
 
   try {
+    const hadController = !!navigator.serviceWorker.controller;
     const registration = await navigator.serviceWorker.register('/service-worker.js', {
       scope: '/'
     });
@@ -41,8 +42,12 @@ async function registerServiceWorker() {
     });
 
     // Handle controller change (when new SW takes over)
+    let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       console.log('[PWA] Новий Service Worker активовано');
+      if (!hadController || refreshing) return;
+      refreshing = true;
+      window.location.reload();
     });
 
   } catch (error) {
@@ -242,7 +247,10 @@ const chatApi = {
   send: (data) => api('/chat', { method: 'POST', body: data }),
   getSession: (sessionId) => api(`/chat/sessions/${sessionId}`),
   setModel: (model) => api('/chat/model', { method: 'PUT', body: { model } }),
-  listSessions: (spaceId) => api(`/chat/sessions?spaceId=${spaceId}`),
+  listSessions: (spaceId) => {
+    if (!spaceId) throw new Error('spaceId is required');
+    return api(`/chat/sessions/space/${spaceId}`);
+  },
   deleteSession: (sessionId) => api(`/chat/sessions/${sessionId}`, { method: 'DELETE' }),
   renameSession: (sessionId, name) => api(`/chat/sessions/${sessionId}`, { method: 'PATCH', body: { name } }),
 };
@@ -1116,13 +1124,24 @@ async function deleteSpace() {
 // ═══════════════════════════════════════════════════════════
 
 async function loadChats() {
+  if (!state.currentSpaceId) {
+    console.warn('Cannot load chats: No space selected');
+    state.chats = [];
+    renderSpacesList();
+    return;
+  }
+
   try {
+    // Explicitly verify ID before call
+    console.log('Loading chats for space:', state.currentSpaceId);
+
+    // Use the api helper correctly
     const sessions = await chatApi.listSessions(state.currentSpaceId);
     state.chats = sessions || [];
-    // Re-render spaces list to show nested chats
     renderSpacesList();
   } catch (error) {
     console.error('Error loading chats:', error);
+    showToast('Не вдалося завантажити чати', 'error');
     state.chats = [];
     renderSpacesList();
   }
@@ -1274,20 +1293,31 @@ function addChatMessageToDOM(role, content) {
     const copyBtn = messageEl.querySelector('.copy-btn');
     copyBtn.addEventListener('click', () => copyToClipboard(rawText, copyBtn));
   } else {
-    // User message with long-press to copy
+    // User message with copy button (same as assistant for iOS compatibility)
     messageEl.innerHTML = `
       <div class="chat-bubble" data-text="${escapeHtml(rawText)}">
         ${formattedContent}
       </div>
+      <div class="chat-message-actions visible">
+        <button class="copy-btn" data-text="${escapeHtml(rawText)}" title="Копіювати">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span class="copy-btn-text">Копіювати</span>
+        </button>
+      </div>
     `;
 
-    // Add long-press handler for user messages
-    const bubble = messageEl.querySelector('.chat-bubble');
-    setupLongPress(bubble, () => {
-      copyToClipboard(rawText);
-      bubble.classList.add('copying');
-      setTimeout(() => bubble.classList.remove('copying'), 500);
-    });
+    // Add copy handler (direct click = valid user gesture on iOS)
+    const copyBtn = messageEl.querySelector('.copy-btn');
+    copyBtn.addEventListener('click', () => copyToClipboard(rawText, copyBtn));
+
+    // Long-press on user text to copy (mobile-friendly)
+    const userBubble = messageEl.querySelector('.chat-bubble');
+    if (userBubble) {
+      setupLongPress(userBubble, () => copyToClipboard(rawText));
+    }
   }
 
   elements.chatMessages.appendChild(messageEl);
@@ -1311,71 +1341,214 @@ function extractTextContent(content) {
 }
 
 /**
- * Copy text to clipboard with visual feedback
+ * Copy text to clipboard - iOS Safari compatible
+ *
+ * WHY THIS WORKS ON iOS:
+ * iOS Safari requires clipboard operations to happen SYNCHRONOUSLY within
+ * a user gesture (click/tap). Using async/await before navigator.clipboard.writeText()
+ * breaks the "trusted gesture" chain because await yields to the event loop.
+ *
+ * Our solution:
+ * 1. On iOS: Use execCommand('copy') FIRST - it's fully synchronous
+ * 2. On other browsers: Try navigator.clipboard but initiate it synchronously
+ *    (handle the promise without blocking via await before the call)
+ * 3. execCommand fallback for all browsers if modern API fails
+ *
+ * CRITICAL: This function is NOT async - all clipboard operations must start
+ * synchronously within the user gesture handler.
  */
-async function copyToClipboard(text, btn = null) {
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast('Скопійовано', 'success');
+function copyToClipboard(text, btn = null) {
+  const isIOS = /ipad|iphone|ipod/i.test(navigator.userAgent);
+  const isMobile = /mobile|android|iphone|ipad/i.test(navigator.userAgent);
 
+  // Helper: Show success feedback
+  function onSuccess() {
+    showToast('Скопійовано', 'success');
     if (btn) {
       btn.classList.add('copied');
       const textEl = btn.querySelector('.copy-btn-text');
       if (textEl) textEl.textContent = 'Скопійовано!';
-
       setTimeout(() => {
         btn.classList.remove('copied');
         if (textEl) textEl.textContent = 'Копіювати';
       }, 2000);
     }
-  } catch (err) {
-    // Fallback for older browsers
+  }
+
+  // Helper: Show error feedback
+  function onError(msg) {
+    console.warn('Copy failed:', msg);
+    showToast('Не вдалося скопіювати', 'error');
+  }
+
+  // Helper: Synchronous execCommand copy (works reliably on iOS within user gesture)
+  function execCommandCopy() {
     const textarea = document.createElement('textarea');
     textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
+
+    // Style to prevent visual glitches and iOS zoom
+    textarea.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 2em;
+      height: 2em;
+      padding: 0;
+      border: none;
+      outline: none;
+      box-shadow: none;
+      background: transparent;
+      font-size: 16px;
+      z-index: -1;
+      opacity: 0;
+    `;
+    // Note: font-size 16px prevents iOS zoom on focus
+
     document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
+
+    if (isIOS) {
+      // iOS requires special handling: contentEditable + range selection
+      textarea.contentEditable = 'true';
+      textarea.readOnly = false;
+
+      // Create range and select
+      const range = document.createRange();
+      range.selectNodeContents(textarea);
+
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      // Also set selection range for good measure
+      textarea.setSelectionRange(0, 999999);
+    } else {
+      textarea.select();
+    }
+
+    let success = false;
+    try {
+      success = document.execCommand('copy');
+    } catch (err) {
+      console.warn('execCommand threw:', err);
+    }
+
     document.body.removeChild(textarea);
-    showToast('Скопійовано', 'success');
+
+    // Restore focus to body to prevent keyboard issues
+    if (document.activeElement && document.activeElement !== document.body) {
+      document.activeElement.blur();
+    }
+
+    return success;
+  }
+
+  // STRATEGY FOR iOS: Use execCommand FIRST (fully synchronous, most reliable)
+  if (isIOS) {
+    if (execCommandCopy()) {
+      onSuccess();
+      return;
+    }
+    // If execCommand failed on iOS, try modern API as backup
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      // Start the async operation but don't await - we're still in user gesture
+      navigator.clipboard.writeText(text)
+        .then(() => onSuccess())
+        .catch(() => onError('All methods failed on iOS'));
+      return;
+    }
+    onError('No clipboard method available');
+    return;
+  }
+
+  // STRATEGY FOR OTHER BROWSERS: Try modern API first, sync fallback second
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    // Initiate clipboard write synchronously (within user gesture)
+    // The promise is created synchronously, which preserves the gesture context
+    navigator.clipboard.writeText(text)
+      .then(() => onSuccess())
+      .catch((err) => {
+        console.warn('navigator.clipboard failed, trying execCommand:', err);
+        // Fallback: execCommand (must happen quickly, may still be in gesture window)
+        if (execCommandCopy()) {
+          onSuccess();
+        } else {
+          onError(err.message || 'Copy failed');
+        }
+      });
+    return;
+  }
+
+  // No modern API available - use execCommand directly
+  if (execCommandCopy()) {
+    onSuccess();
+  } else {
+    onError('execCommand not supported');
   }
 }
+
 
 /**
  * Setup long-press handler for an element
  */
 function setupLongPress(element, callback, duration = 500) {
   let timer = null;
+  let startTime = 0;
   let isLongPress = false;
 
   const start = (e) => {
     isLongPress = false;
+    startTime = Date.now();
+
+    // Add visual feedback class immediately to show interaction
+    element.classList.add('touch-active');
+
     timer = setTimeout(() => {
       isLongPress = true;
-      callback();
-      // Vibrate if supported
-      if (navigator.vibrate) {
-        navigator.vibrate(50);
+      // Visual feedback that duration is met
+      if (element.classList.contains('touch-active')) {
+        element.classList.add('long-press-ready');
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
       }
     }, duration);
   };
 
   const cancel = () => {
     clearTimeout(timer);
+    isLongPress = false;
+    element.classList.remove('touch-active', 'long-press-ready');
   };
 
   const end = (e) => {
     clearTimeout(timer);
-    if (isLongPress) {
-      e.preventDefault();
+    element.classList.remove('touch-active', 'long-press-ready');
+
+    // Calculate duration manually if timer didn't fire yet but we want to be lenient, 
+    // OR simply rely on the timer flag.
+    // Ideally for "long press", we strictly wait for duration.
+    // However, the user issue is that the COPY fails. 
+    // Moving the callback HERE (in 'end') is the key fix for iOS.
+
+    const pressDuration = Date.now() - startTime;
+
+    if (isLongPress || pressDuration >= duration) {
+      // Prevent default click behavior if it was a long press
+      if (e.cancelable) e.preventDefault();
+
+      // Execute the callback (Copy) - NOW it's inside a user-initiated event (touchend/mouseup)
+      callback();
     }
   };
 
   element.addEventListener('touchstart', start, { passive: true });
   element.addEventListener('touchend', end);
   element.addEventListener('touchcancel', cancel);
-  element.addEventListener('touchmove', cancel, { passive: true });
+  element.addEventListener('touchmove', (e) => {
+    // Cancel if moved significantly? For now, just cancel on any move to be safe
+    // or calculate distance. Simple cancel is safer for "hold".
+    cancel();
+  }, { passive: true });
 
   // Also support mouse for desktop
   element.addEventListener('mousedown', start);

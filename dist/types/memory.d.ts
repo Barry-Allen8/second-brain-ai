@@ -24,8 +24,8 @@ export interface BaseEntity {
 export interface SpaceMetadata extends BaseEntity {
     name: string;
     description: string;
-    icon?: string;
-    color?: string;
+    icon?: string | null;
+    color?: string | null;
     tags: string[];
     rules: SpaceRules;
     isActive: boolean;

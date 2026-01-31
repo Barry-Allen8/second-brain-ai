@@ -1,26 +1,10 @@
 /**
- * File-based storage service for context spaces.
- * Designed for single-node deployment with future migration path to distributed storage.
- * 
- * TODO: Migrate to database storage (PostgreSQL/SQLite) for production use.
- * Current file-based implementation is suitable for development and single-node deployment.
+ * Firestore-based storage service for context spaces.
+ * Replaces the file-based implementation for cloud persistence.
  */
 
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import { db } from '../lib/firebase.js';
 import type { EntityId, SpaceMetadata, Profile, Facts, Notes, Timeline } from '../types/index.js';
-
-const DATA_DIR = process.env['DATA_DIR'] ?? './data/spaces';
-
-type MemoryFileType = 'space' | 'profile' | 'facts' | 'notes' | 'timeline';
-
-const FILE_NAMES: Record<MemoryFileType, string> = {
-  space: 'space.json',
-  profile: 'profile.json',
-  facts: 'facts.json',
-  notes: 'notes.json',
-  timeline: 'timeline.json',
-};
 
 export class StorageError extends Error {
   constructor(
@@ -33,84 +17,54 @@ export class StorageError extends Error {
   }
 }
 
-function getSpacePath(spaceId: EntityId): string {
-  return path.join(DATA_DIR, spaceId);
-}
+// Collection references
+const SPACES_COLLECTION = 'spaces';
 
-function getFilePath(spaceId: EntityId, fileType: MemoryFileType): string {
-  return path.join(getSpacePath(spaceId), FILE_NAMES[fileType]);
-}
-
-async function ensureDir(dirPath: string): Promise<void> {
-  await fs.mkdir(dirPath, { recursive: true });
-}
-
-async function fileExists(filePath: string): Promise<boolean> {
+async function getDocData<T>(docPath: string): Promise<T> {
   try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readJsonFile<T>(filePath: string): Promise<T> {
-  try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content) as T;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new StorageError(`File not found: ${filePath}`, 'NOT_FOUND', error);
+    const doc = await db.doc(docPath).get();
+    if (!doc.exists) {
+      throw new StorageError(`Document not found: ${docPath}`, 'NOT_FOUND');
     }
-    throw new StorageError(`Failed to read file: ${filePath}`, 'IO_ERROR', error);
+    return doc.data() as T;
+  } catch (error) {
+    if (error instanceof StorageError) throw error;
+    throw new StorageError(`Failed to read document: ${docPath}`, 'IO_ERROR', error);
   }
 }
 
-async function writeJsonFile<T>(filePath: string, data: T): Promise<void> {
+async function setDocData<T extends object>(docPath: string, data: T): Promise<void> {
   try {
-    await ensureDir(path.dirname(filePath));
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    await db.doc(docPath).set(data);
   } catch (error) {
-    throw new StorageError(`Failed to write file: ${filePath}`, 'IO_ERROR', error);
+    throw new StorageError(`Failed to write document: ${docPath}`, 'IO_ERROR', error);
   }
 }
 
 export const storage = {
-  /** Initialize storage directory */
+  /** Initialize storage (no-op for Firestore) */
   async init(): Promise<void> {
-    await ensureDir(DATA_DIR);
+    // Firestore is initialized in lib/firebase.ts
+    console.log('📦 Storage service initialized (Firestore)');
   },
 
   /** Check if a space exists */
   async spaceExists(spaceId: EntityId): Promise<boolean> {
-    return fileExists(getFilePath(spaceId, 'space'));
+    const doc = await db.collection(SPACES_COLLECTION).doc(spaceId).get();
+    return doc.exists;
   },
 
   /** List all space IDs */
   async listSpaceIds(): Promise<EntityId[]> {
     try {
-      const entries = await fs.readdir(DATA_DIR, { withFileTypes: true });
-      const spaceIds: EntityId[] = [];
-      
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const spaceFilePath = path.join(DATA_DIR, entry.name, FILE_NAMES.space);
-          if (await fileExists(spaceFilePath)) {
-            spaceIds.push(entry.name);
-          }
-        }
-      }
-      
-      return spaceIds;
+      const snapshot = await db.collection(SPACES_COLLECTION).get();
+      return snapshot.docs.map((doc: any) => doc.id);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return [];
-      }
       throw new StorageError('Failed to list spaces', 'IO_ERROR', error);
     }
   },
 
-  /** Create a new space directory with initial files */
+  /** Create a new space with initial data structure */
   async createSpace(
     spaceId: EntityId,
     metadata: SpaceMetadata,
@@ -119,76 +73,103 @@ export const storage = {
     notes: Notes,
     timeline: Timeline
   ): Promise<void> {
-    const spacePath = getSpacePath(spaceId);
-    
-    if (await fileExists(spacePath)) {
+    const spaceRef = db.collection(SPACES_COLLECTION).doc(spaceId);
+    const doc = await spaceRef.get();
+
+    if (doc.exists) {
       throw new StorageError(`Space already exists: ${spaceId}`, 'ALREADY_EXISTS');
     }
 
-    await ensureDir(spacePath);
-    
-    await Promise.all([
-      writeJsonFile(getFilePath(spaceId, 'space'), metadata),
-      writeJsonFile(getFilePath(spaceId, 'profile'), profile),
-      writeJsonFile(getFilePath(spaceId, 'facts'), facts),
-      writeJsonFile(getFilePath(spaceId, 'notes'), notes),
-      writeJsonFile(getFilePath(spaceId, 'timeline'), timeline),
-    ]);
+    try {
+      const batch = db.batch();
+
+      // Set metadata in the main document
+      batch.set(spaceRef, metadata);
+
+      // Set data in subcollection 'data'
+      batch.set(spaceRef.collection('data').doc('profile'), profile);
+      batch.set(spaceRef.collection('data').doc('facts'), facts);
+      batch.set(spaceRef.collection('data').doc('notes'), notes);
+      batch.set(spaceRef.collection('data').doc('timeline'), timeline);
+
+      await batch.commit();
+    } catch (error) {
+      throw new StorageError(`Failed to create space: ${spaceId}`, 'IO_ERROR', error);
+    }
   },
 
-  /** Delete a space and all its files */
+  /** Delete a space and all its subcollections */
   async deleteSpace(spaceId: EntityId): Promise<void> {
-    const spacePath = getSpacePath(spaceId);
-    
-    if (!await fileExists(spacePath)) {
+    const spaceRef = db.collection(SPACES_COLLECTION).doc(spaceId);
+    const doc = await spaceRef.get();
+
+    if (!doc.exists) {
       throw new StorageError(`Space not found: ${spaceId}`, 'NOT_FOUND');
     }
 
-    await fs.rm(spacePath, { recursive: true });
+    try {
+      // Delete subcollection documents first
+      // Note: Firestore doesn't automatically delete subcollections when parent is deleted
+      const dataCollection = spaceRef.collection('data');
+      const subDocs = await dataCollection.get();
+
+      const batch = db.batch();
+      subDocs.docs.forEach((doc: any) => batch.delete(doc.ref));
+      batch.delete(spaceRef);
+
+      await batch.commit();
+    } catch (error) {
+      throw new StorageError(`Failed to delete space: ${spaceId}`, 'IO_ERROR', error);
+    }
   },
 
-  // Metadata
+  // Metadata (stored in the space document root)
   async readMetadata(spaceId: EntityId): Promise<SpaceMetadata> {
-    return readJsonFile<SpaceMetadata>(getFilePath(spaceId, 'space'));
+    return getDocData<SpaceMetadata>(`${SPACES_COLLECTION}/${spaceId}`);
   },
 
   async writeMetadata(spaceId: EntityId, metadata: SpaceMetadata): Promise<void> {
-    await writeJsonFile(getFilePath(spaceId, 'space'), metadata);
+    // We use set with merge: true to avoid overwriting other fields if we ever add them,
+    // but here we want to replace the metadata fully as per previous logic?
+    // The previous logic was file overwrite. Metadata object contains all fields.
+    // However, if we put subcollections, they are separate.
+    // The main doc strictly holds SpaceMetadata fields.
+    await setDocData(`${SPACES_COLLECTION}/${spaceId}`, metadata);
   },
 
   // Profile
   async readProfile(spaceId: EntityId): Promise<Profile> {
-    return readJsonFile<Profile>(getFilePath(spaceId, 'profile'));
+    return getDocData<Profile>(`${SPACES_COLLECTION}/${spaceId}/data/profile`);
   },
 
   async writeProfile(spaceId: EntityId, profile: Profile): Promise<void> {
-    await writeJsonFile(getFilePath(spaceId, 'profile'), profile);
+    await setDocData(`${SPACES_COLLECTION}/${spaceId}/data/profile`, profile);
   },
 
   // Facts
   async readFacts(spaceId: EntityId): Promise<Facts> {
-    return readJsonFile<Facts>(getFilePath(spaceId, 'facts'));
+    return getDocData<Facts>(`${SPACES_COLLECTION}/${spaceId}/data/facts`);
   },
 
   async writeFacts(spaceId: EntityId, facts: Facts): Promise<void> {
-    await writeJsonFile(getFilePath(spaceId, 'facts'), facts);
+    await setDocData(`${SPACES_COLLECTION}/${spaceId}/data/facts`, facts);
   },
 
   // Notes
   async readNotes(spaceId: EntityId): Promise<Notes> {
-    return readJsonFile<Notes>(getFilePath(spaceId, 'notes'));
+    return getDocData<Notes>(`${SPACES_COLLECTION}/${spaceId}/data/notes`);
   },
 
   async writeNotes(spaceId: EntityId, notes: Notes): Promise<void> {
-    await writeJsonFile(getFilePath(spaceId, 'notes'), notes);
+    await setDocData(`${SPACES_COLLECTION}/${spaceId}/data/notes`, notes);
   },
 
   // Timeline
   async readTimeline(spaceId: EntityId): Promise<Timeline> {
-    return readJsonFile<Timeline>(getFilePath(spaceId, 'timeline'));
+    return getDocData<Timeline>(`${SPACES_COLLECTION}/${spaceId}/data/timeline`);
   },
 
   async writeTimeline(spaceId: EntityId, timeline: Timeline): Promise<void> {
-    await writeJsonFile(getFilePath(spaceId, 'timeline'), timeline);
+    await setDocData(`${SPACES_COLLECTION}/${spaceId}/data/timeline`, timeline);
   },
 };

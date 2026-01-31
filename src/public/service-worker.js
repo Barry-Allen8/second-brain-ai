@@ -3,7 +3,8 @@
  * Provides offline functionality and caching strategies
  */
 
-const CACHE_VERSION = 'v5';
+// Bump to invalidate old cache-first behavior for core assets.
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = `second-brain-ai-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `second-brain-ai-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `second-brain-ai-dynamic-${CACHE_VERSION}`;
@@ -111,6 +112,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // Core assets (app shell) - Stale-while-revalidate to avoid stale UI
+  if (isCoreAsset(url.pathname)) {
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE_NAME));
+    return;
+  }
+
   // Static assets - Cache first
   if (isStaticAsset(url.pathname)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE_NAME));
@@ -224,8 +231,8 @@ async function networkFirstWithOfflineFallback(request) {
 /**
  * Stale While Revalidate - Return cache immediately, update in background
  */
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(DYNAMIC_CACHE_NAME);
+async function staleWhileRevalidate(request, cacheName = DYNAMIC_CACHE_NAME) {
+  const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   
   const networkPromise = fetch(request).then((response) => {
@@ -253,6 +260,19 @@ function isStaticAsset(pathname) {
   ];
   
   return staticExtensions.some(ext => pathname.endsWith(ext));
+}
+
+/**
+ * Core assets that should update even when SW version doesn't change.
+ */
+function isCoreAsset(pathname) {
+  return (
+    pathname === '/' ||
+    pathname === '/index.html' ||
+    pathname === '/app.js' ||
+    pathname === '/styles.css' ||
+    pathname === '/manifest.json'
+  );
 }
 
 /**

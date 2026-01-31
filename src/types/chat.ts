@@ -21,7 +21,7 @@ export interface ChatMessage {
   /** File attachments */
   attachments?: ChatAttachment[];
   /** Extracted facts/notes from this message */
-  extractedData?: ExtractedMemory;
+  extractedData?: ExtractedMemory | null;
 }
 
 /** Chat attachment */
@@ -97,7 +97,7 @@ export interface ChatRequest {
 export interface ChatResponse {
   sessionId: EntityId;
   message: ChatMessage;
-  extractedMemory?: ExtractedMemory;
+  extractedMemory?: ExtractedMemory | null;
   context: {
     factsUsed: number;
     notesUsed: number;

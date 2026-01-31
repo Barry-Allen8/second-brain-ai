@@ -30,8 +30,8 @@ export interface BaseEntity {
 export interface SpaceMetadata extends BaseEntity {
   name: string;
   description: string;
-  icon?: string;
-  color?: string;
+  icon?: string | null;
+  color?: string | null;
   tags: string[];
   rules: SpaceRules;
   isActive: boolean;
@@ -105,7 +105,7 @@ export interface Notes {
 }
 
 /** Timeline event types */
-export type TimelineEventType = 
+export type TimelineEventType =
   | 'fact_added'
   | 'fact_updated'
   | 'fact_removed'
