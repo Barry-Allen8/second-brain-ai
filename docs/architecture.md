@@ -55,4 +55,4 @@ src/
 
 -   **Types-First**: All data structures are defined in `src/types` first, ensuring consistency between Frontend, Backend, and DB.
 -   **Storage Abstraction**: `StorageService` isolates DB logic, allowing potential future swaps (e.g., to Vector DB or SQL) without changing business logic.
--   **Hybrid Deployment**: The app exports both an Express `app` (for Node servers) and a Firebase `onRequest` handler (for Cloud Functions), plus a `serverless` entry for Vercel.
+-   **Firebase Deployment**: The app exports both an Express `app` (for local development) and a Firebase `onRequest` handler (for Cloud Functions). Static assets are served via Firebase Hosting.

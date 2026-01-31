@@ -13,4 +13,9 @@ data/spaces/*/
 
 # Use pnpm lockfile instead of npm
 package-lock.json
-.vercel
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log

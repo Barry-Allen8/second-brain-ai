@@ -18,9 +18,9 @@ Standard AI interactions are stateless; the AI forgets everything after the sess
   - Data abstractions in `src/domain`
 - **AI**: OpenAI API
   - Integration in `src/ai`
-- **Hosting**:
-  - Supports **Vercel** (Serverless) via `api/serverless.js`
-  - Supports **Firebase Functions** via `onRequest` in `index.ts`
+- **Hosting**: Firebase (Hosting + Cloud Functions)
+  - Static assets served via Firebase Hosting
+  - API served via Firebase Cloud Functions (`onRequest` in `index.ts`)
   - Runnable as a standard Node.js server locally
 
 ## How to Run Locally
