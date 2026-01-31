@@ -1,5 +1,6 @@
 /**
  * Chat API routes
  */
-export declare const chatRouter: import("express-serve-static-core").Router;
+import type { Router as ExpressRouter } from 'express';
+export declare const chatRouter: ExpressRouter;
 //# sourceMappingURL=chat.d.ts.map

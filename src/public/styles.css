@@ -551,6 +551,25 @@ body {
   border-top: 1px solid var(--border-secondary);
 }
 
+.sidebar-account {
+  width: 100%;
+  justify-content: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.sidebar-account svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sidebar-footer-note {
+  margin-top: var(--space-sm);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
 .status-indicator {
   display: flex;
   align-items: center;

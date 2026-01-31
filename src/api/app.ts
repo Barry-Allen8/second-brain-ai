@@ -3,37 +3,41 @@
  */
 
 import express from 'express';
+import type { Express } from 'express';
+import fs from 'node:fs';
 import path from 'node:path';
 import { spacesRouter, chatRouter } from './routes/index.js';
 import { errorHandler, createSuccessResponse } from './middleware.js';
 import { isAIConfigured, getAIConfig } from '../ai/index.js';
 
-export function createApp() {
+export function createApp(): Express {
   const app = express();
 
   // Middleware
-  // Check if body is already parsed & debug request state
+  const jsonParser = express.json();
   app.use((req, res, next) => {
-    console.log(`[Request] ${req.method} ${req.path}`);
-    console.log(`[Request] Content-Type: ${req.headers['content-type']}`);
-    console.log(`[Request] Body already parsed: ${!!req.body}`);
-    if (req.body) console.log(`[Request] Body keys: ${Object.keys(req.body)}`);
+    const hasBody =
+      req.body !== undefined &&
+      (Buffer.isBuffer(req.body) ||
+        typeof req.body === 'string' ||
+        (typeof req.body === 'object' && Object.keys(req.body).length > 0));
 
-    if (req.body && Object.keys(req.body).length > 0) {
-      console.log('[Middleware] Skipping parser - body present');
-      next();
-    } else if (req.headers['content-type']?.includes('multipart/form-data')) {
-      console.log('[Middleware] Skipping parser - multipart detected');
-      next();
-    } else {
-      console.log('[Middleware] Running express.json()');
-      express.json()(req, res, next);
+    if (hasBody) {
+      return next();
     }
+
+    if (req.headers['content-type']?.includes('multipart/form-data')) {
+      return next();
+    }
+
+    return jsonParser(req, res, next);
   });
 
   // Serve static files from public directory
   // In production, public folder is copied to dist/public
-  const publicPath = path.join(process.cwd(), 'dist', 'public');
+  const distPublicPath = path.join(process.cwd(), 'dist', 'public');
+  const srcPublicPath = path.join(process.cwd(), 'src', 'public');
+  const publicPath = fs.existsSync(distPublicPath) ? distPublicPath : srcPublicPath;
   app.use(express.static(publicPath));
 
   // Health check with AI readiness

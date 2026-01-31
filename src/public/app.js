@@ -5,10 +5,6 @@
 const API_BASE = '/api/v1';
 const MAX_CHATS_PER_SPACE = 10;
 
-// #region agent log - DEBUG: CSS and cache diagnostics
-// (Debug code removed)
-// #endregion
-
 // ═══════════════════════════════════════════════════════════
 // PWA Service Worker Registration
 // ═══════════════════════════════════════════════════════════
@@ -92,26 +88,6 @@ function showInstallButton() {
   }, 30000); // Show after 30 seconds
 }
 
-async function installPWA() {
-  if (!deferredInstallPrompt) {
-    console.log('[PWA] Встановлення недоступне');
-    return false;
-  }
-
-  // Show the install prompt
-  deferredInstallPrompt.prompt();
-
-  // Wait for user response
-  const { outcome } = await deferredInstallPrompt.userChoice;
-
-  console.log('[PWA] Результат встановлення:', outcome);
-
-  // Clear the deferred prompt
-  deferredInstallPrompt = null;
-
-  return outcome === 'accepted';
-}
-
 // Track successful installation
 window.addEventListener('appinstalled', () => {
   console.log('[PWA] Додаток успішно встановлено!');
@@ -121,13 +97,6 @@ window.addEventListener('appinstalled', () => {
     showToast('🎉 Second Brain AI встановлено!', 'success');
   }
 });
-
-// Check if running as installed PWA
-function isPWAInstalled() {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true ||
-    document.referrer.includes('android-app://');
-}
 
 // Online/Offline Status Handler
 function updateOnlineStatus() {
@@ -430,8 +399,10 @@ const elements = {
   modal: $('#modal'),
   modalTitle: $('#modal-title'),
   modalBody: $('#modal-body'),
+  modalCancel: $('#modal-cancel'),
   modalSubmit: $('#modal-submit'),
   toastContainer: $('#toast-container'),
+  registerBtn: $('#register-btn'),
   // Chat elements
   chatMessages: $('#chat-messages'),
   chatForm: $('#chat-form'),
@@ -470,10 +441,6 @@ function closeSidebar() {
 
 function isMobile() {
   return window.innerWidth <= 768;
-}
-
-function isTablet() {
-  return window.innerWidth > 768 && window.innerWidth <= 1024;
 }
 
 function isMobileOrTablet() {
@@ -600,11 +567,16 @@ function showToast(message, type = 'info') {
 
 let currentModalCallback = null;
 
-function openModal(title, formHtml, onSubmit) {
+function openModal(title, formHtml, onSubmit, options = {}) {
   elements.modalTitle.textContent = title;
   elements.modalBody.innerHTML = formHtml;
   elements.modalOverlay.classList.remove('hidden');
   currentModalCallback = onSubmit;
+
+  elements.modalSubmit.textContent = options.submitLabel || 'Зберегти';
+  if (elements.modalCancel) {
+    elements.modalCancel.textContent = options.cancelLabel || 'Скасувати';
+  }
 
   const firstInput = elements.modalBody.querySelector('input, textarea, select');
   if (firstInput) setTimeout(() => firstInput.focus(), 100);
@@ -1015,6 +987,51 @@ function renderSpaceContent() {
   if (elements.spaceDescription) {
     elements.spaceDescription.textContent = '';
   }
+}
+
+function openRegisterModal() {
+  openModal('Створити акаунт', `
+    <div class="form-group">
+      <label class="form-label" for="register-name">Імʼя та прізвище *</label>
+      <input id="register-name" type="text" name="name" class="form-input" placeholder="Наприклад: Олена Шевченко" autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="register-email">Email *</label>
+      <input id="register-email" type="email" name="email" class="form-input" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="register-password">Пароль *</label>
+      <input id="register-password" type="password" name="password" class="form-input" placeholder="Мінімум 8 символів" autocomplete="new-password">
+      <div class="form-hint">Використайте щонайменше 8 символів і цифри.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="register-password-confirm">Підтвердження паролю *</label>
+      <input id="register-password-confirm" type="password" name="passwordConfirm" class="form-input" placeholder="Повторіть пароль" autocomplete="new-password">
+    </div>
+    <div class="form-group form-checkbox-group">
+      <input id="register-terms" type="checkbox" name="acceptTerms" class="form-checkbox">
+      <label class="form-label" for="register-terms">Погоджуюсь з умовами та політикою конфіденційності</label>
+    </div>
+  `, async (data) => {
+    if (!data.name) throw new Error("Вкажіть імʼя та прізвище");
+    if (!data.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) {
+      throw new Error('Вкажіть коректну електронну пошту');
+    }
+    if (!data.password || data.password.length < 8) {
+      throw new Error('Пароль має містити щонайменше 8 символів');
+    }
+    if (!data.passwordConfirm || data.password !== data.passwordConfirm) {
+      throw new Error('Паролі не співпадають');
+    }
+    if (!data.acceptTerms) {
+      throw new Error('Потрібно погодитися з умовами');
+    }
+
+    showToast('Дякуємо! Реєстрація зараз у розробці.', 'info');
+  }, {
+    submitLabel: 'Зареєструватися',
+    cancelLabel: 'Не зараз',
+  });
 }
 
 function openCreateSpaceModal() {
@@ -1810,6 +1827,9 @@ window.addEventListener('resize', () => {
 // Spaces
 $('#add-space-btn').addEventListener('click', openCreateSpaceModal);
 $('#create-first-space').addEventListener('click', openCreateSpaceModal);
+if (elements.registerBtn) {
+  elements.registerBtn.addEventListener('click', openRegisterModal);
+}
 
 // Chat form
 elements.chatForm.addEventListener('submit', (e) => {

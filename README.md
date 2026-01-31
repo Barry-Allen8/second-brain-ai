@@ -26,8 +26,8 @@ Standard AI interactions are stateless; the AI forgets everything after the sess
 ## How to Run Locally
 
 1.  **Prerequisites**:
-    -   Node.js (v20+)
-    -   pnpm (v9+)
+    -   Node.js (v24+)
+    -   pnpm (v10+)
     -   A Firebase project with Firestore enabled
     -   OpenAI API Key
 
@@ -37,7 +37,7 @@ Standard AI interactions are stateless; the AI forgets everything after the sess
     ```
 
 3.  **Environment Setup**:
-    -   Create a `.env` file in the root directory (see `env.example` or documentation below).
+    -   Create a `.env` file in the root directory (see documentation below).
     -   You need a Firebase Service Account JSON file for admin access.
     
     Refer to `docs/env.md` for detailed variable setup.

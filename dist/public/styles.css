@@ -551,6 +551,25 @@ body {
   border-top: 1px solid var(--border-secondary);
 }
 
+.sidebar-account {
+  width: 100%;
+  justify-content: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.sidebar-account svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sidebar-footer-note {
+  margin-top: var(--space-sm);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
 .status-indicator {
   display: flex;
   align-items: center;
@@ -2566,6 +2585,10 @@ body {
 
 .chat-bubble {
   line-height: 1.6;
+  /* Enable native text selection for all messages */
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
 }
 
 /* User messages - rounded frame, right aligned */
@@ -2589,7 +2612,7 @@ body {
   max-width: 100%;
 }
 
-/* Copy button for assistant messages */
+/* Copy button - visible for both assistant and user messages */
 .chat-message-actions {
   display: flex;
   gap: var(--space-xs);
@@ -2598,16 +2621,22 @@ body {
   transition: opacity var(--transition-fast);
 }
 
-.chat-message.assistant:hover .chat-message-actions,
-.chat-message.assistant .chat-message-actions.visible {
+/* Show on hover or when marked visible */
+.chat-message:hover .chat-message-actions,
+.chat-message .chat-message-actions.visible {
   opacity: 1;
 }
 
-/* Always show on mobile */
+/* Always show on mobile for both message types */
 @media (max-width: 768px) {
-  .chat-message.assistant .chat-message-actions {
+  .chat-message .chat-message-actions {
     opacity: 0.7;
   }
+}
+
+/* User message copy button - align to right to match message alignment */
+.chat-message.user .chat-message-actions {
+  justify-content: flex-end;
 }
 
 .copy-btn {
@@ -2644,23 +2673,11 @@ body {
   height: 14px;
 }
 
-/* User message - long press to copy indicator */
-.chat-message.user .chat-bubble {
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
-  transition: transform var(--transition-fast), opacity var(--transition-fast);
-}
-
-.chat-message.user .chat-bubble:active {
-  transform: scale(0.98);
-  opacity: 0.8;
-}
-
-.chat-message.user .chat-bubble.copying {
-  background: var(--success-bg);
-  border-color: var(--success);
-}
+/*
+ * NOTE: Text selection is handled by .chat-bubble base class
+ * Both user and assistant messages support native copy/paste
+ * Do NOT add user-select: none anywhere - it breaks iOS Safari
+ */
 
 .chat-content-image {
   max-width: 200px;
@@ -3047,25 +3064,6 @@ body {
     border: 1px solid var(--border-secondary);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Touch / Long Press Feedback
-   ═══════════════════════════════════════════════════════════ */
-
-.touch-active {
-  transform: scale(0.98);
-  transition: transform 0.2s ease;
-}
-
-.long-press-ready {
-  animation: pulse-ready 0.3s ease forwards;
-}
-
-@keyframes pulse-ready {
-  0% { transform: scale(0.98); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
 }
 
 .copying {

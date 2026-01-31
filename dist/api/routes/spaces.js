@@ -3,9 +3,14 @@
  */
 import { Router } from 'express';
 import { spaceService } from '../../domain/index.js';
-import { asyncHandler, validateBody, createSuccessResponse, } from '../middleware.js';
+import { asyncHandler, validateBody, createSuccessResponse, createErrorResponse, } from '../middleware.js';
 import { createSpaceRequestSchema, updateSpaceRequestSchema, queryContextRequestSchema, } from '../../schemas/index.js';
 export const spacesRouter = Router();
+function getRouteParam(value) {
+    if (!value)
+        return null;
+    return Array.isArray(value) ? value[0] ?? null : value;
+}
 // List all spaces
 spacesRouter.get('/', asyncHandler(async (_req, res) => {
     const spaces = await spaceService.listSpaces();
@@ -18,23 +23,55 @@ spacesRouter.post('/', validateBody(createSpaceRequestSchema), asyncHandler(asyn
 }));
 // Get space by ID
 spacesRouter.get('/:spaceId', asyncHandler(async (req, res) => {
-    const space = await spaceService.getSpace(req.params['spaceId']);
+    const spaceId = getRouteParam(req.params['spaceId']);
+    if (!spaceId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'spaceId is required',
+        }));
+        return;
+    }
+    const space = await spaceService.getSpace(spaceId);
     res.json(createSuccessResponse(space));
 }));
 // Update space
 spacesRouter.patch('/:spaceId', validateBody(updateSpaceRequestSchema), asyncHandler(async (req, res) => {
-    const space = await spaceService.updateSpace(req.params['spaceId'], req.body);
+    const spaceId = getRouteParam(req.params['spaceId']);
+    if (!spaceId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'spaceId is required',
+        }));
+        return;
+    }
+    const space = await spaceService.updateSpace(spaceId, req.body);
     res.json(createSuccessResponse(space));
 }));
 // Delete space
 spacesRouter.delete('/:spaceId', asyncHandler(async (req, res) => {
-    await spaceService.deleteSpace(req.params['spaceId']);
+    const spaceId = getRouteParam(req.params['spaceId']);
+    if (!spaceId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'spaceId is required',
+        }));
+        return;
+    }
+    await spaceService.deleteSpace(spaceId);
     res.json(createSuccessResponse({ deleted: true }));
 }));
 // Query context for AI prompt construction
 spacesRouter.post('/:spaceId/context', validateBody(queryContextRequestSchema.omit({ spaceId: true })), asyncHandler(async (req, res) => {
+    const spaceId = getRouteParam(req.params['spaceId']);
+    if (!spaceId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'spaceId is required',
+        }));
+        return;
+    }
     const context = await spaceService.queryContext({
-        spaceId: req.params['spaceId'],
+        spaceId,
         ...req.body,
     });
     const tokensEstimate = spaceService.estimateTokens(context);

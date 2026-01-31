@@ -3,6 +3,7 @@
  */
 
 import { Router } from 'express';
+import type { Request, Response, NextFunction, Router as ExpressRouter } from 'express';
 import type { z } from 'zod';
 import type { ChatSession, EntityId, ChatAttachment } from '../../types/index.js';
 import multer from 'multer';
@@ -24,7 +25,6 @@ import {
 } from '../../ai/index.js';
 import {
   asyncHandler,
-  validateBody,
   createSuccessResponse,
   createErrorResponse,
   requireAI,
@@ -35,10 +35,13 @@ import { spaceService, storage } from '../../domain/index.js';
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
+const uploadAttachments = upload.array('attachments');
 
-export const chatRouter = Router();
+export const chatRouter: ExpressRouter = Router();
 
 type ChatRequestInput = z.infer<typeof chatRequestSchema>;
+type SimpleChatRequest = Extract<ChatRequestInput, { message: string }>;
+type StructuredChatRequest = Extract<ChatRequestInput, { messages: { role: string; content: string }[] }>;
 
 type NormalizedChatRequest = {
   spaceId?: EntityId;
@@ -75,21 +78,16 @@ async function resolveSpaceId(preferredSpaceId?: EntityId): Promise<EntityId> {
 
 function normalizeChatRequest(body: ChatRequestInput): NormalizedChatRequest {
   // Backward compatibility: support legacy { message } shape alongside structured { messages } payloads.
-  // @ts-ignore
-  if ('message' in body) {
+  if (isSimpleChatRequest(body)) {
     return {
-      // @ts-ignore
       spaceId: body.spaceId ?? undefined,
-      // @ts-ignore
       message: body.message,
-      // @ts-ignore
       sessionId: body.sessionId ?? undefined,
-      // @ts-ignore
       attachments: body.attachments,
     };
   }
 
-  const messages = body.messages || [];
+  const messages = (body as StructuredChatRequest).messages || [];
   if (!messages.length) {
     // Fallback if no messages found
     throw new Error('No messages found in request');
@@ -106,8 +104,17 @@ function normalizeChatRequest(body: ChatRequestInput): NormalizedChatRequest {
     spaceId: body.spaceId ?? undefined,
     message: lastMessage.content,
     sessionId: body.sessionId ?? undefined,
-    attachments: body.attachments
+    attachments: body.attachments,
   };
+}
+
+function getRouteParam(value: string | string[] | undefined): string | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+function isSimpleChatRequest(body: ChatRequestInput): body is SimpleChatRequest {
+  return typeof (body as SimpleChatRequest).message === 'string';
 }
 
 function logParsedChatRequest(request: NormalizedChatRequest & { spaceId: EntityId }): void {
@@ -136,18 +143,17 @@ chatRouter.get(
 );
 
 // Wrapper to only run multer if content-type is multipart
-const multipartMiddleware = (req: any, res: any, next: any) => {
+const multipartMiddleware = (req: Request, res: Response, next: NextFunction) => {
   if (req.headers['content-type']?.includes('multipart/form-data')) {
     // Cloud Functions workaround: req.body might be a Buffer if already parsed
     if (req.body && Buffer.isBuffer(req.body)) {
       const stream = Readable.from(req.body);
       req.pipe = (dest: any) => stream.pipe(dest);
     }
-    // @ts-ignore
-    upload.array('attachments')(req, res, next);
-  } else {
-    next();
+    uploadAttachments(req, res, next);
+    return;
   }
+  next();
 };
 
 // Send chat message
@@ -238,7 +244,14 @@ chatRouter.post(
 chatRouter.get(
   '/sessions/:sessionId',
   asyncHandler(async (req, res) => {
-    const sessionId = req.params['sessionId']!;
+    const sessionId = getRouteParam(req.params['sessionId']);
+    if (!sessionId) {
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'sessionId is required',
+      }));
+      return;
+    }
     const session = await getSession(sessionId);
 
     if (!session) {
@@ -257,7 +270,14 @@ chatRouter.get(
 chatRouter.patch(
   '/sessions/:sessionId',
   asyncHandler(async (req, res) => {
-    const sessionId = req.params['sessionId']!;
+    const sessionId = getRouteParam(req.params['sessionId']);
+    if (!sessionId) {
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'sessionId is required',
+      }));
+      return;
+    }
     const { name } = req.body as { name?: string };
 
     if (!name || typeof name !== 'string') {
@@ -286,7 +306,14 @@ chatRouter.patch(
 chatRouter.get(
   '/sessions/:sessionId/messages',
   asyncHandler(async (req, res) => {
-    const sessionId = req.params['sessionId']!;
+    const sessionId = getRouteParam(req.params['sessionId']);
+    if (!sessionId) {
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'sessionId is required',
+      }));
+      return;
+    }
     const messages = await getChatHistory(sessionId);
 
     res.json(createSuccessResponse(messages));
@@ -297,7 +324,7 @@ chatRouter.get(
 chatRouter.get(
   '/sessions/space/:spaceId',
   asyncHandler(async (req, res) => {
-    const spaceId = req.params.spaceId;
+    const spaceId = getRouteParam(req.params['spaceId']);
     console.log(`[Sessions] Listing sessions for space (path param): ${spaceId}`);
 
     if (!spaceId) {
@@ -328,7 +355,8 @@ chatRouter.get(
   asyncHandler(async (req, res) => {
     const query = req.query || {};
     console.log('[Sessions] List request query:', query);
-    const spaceId = query['spaceId'] as EntityId | undefined;
+    const rawSpaceId = query['spaceId'];
+    const spaceId = getRouteParam(rawSpaceId as string | string[] | undefined) as EntityId | null;
 
     if (!spaceId) {
       console.warn('[Sessions] Missing spaceId in query');
@@ -355,7 +383,14 @@ chatRouter.get(
 chatRouter.get(
   '/spaces/:spaceId/sessions',
   asyncHandler(async (req, res) => {
-    const spaceId = req.params['spaceId']!;
+    const spaceId = getRouteParam(req.params['spaceId']);
+    if (!spaceId) {
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'spaceId is required',
+      }));
+      return;
+    }
     const sessions = await listSessions(spaceId);
 
     res.json(createSuccessResponse(sessions.map((s: ChatSession) => ({
@@ -372,7 +407,14 @@ chatRouter.get(
 chatRouter.delete(
   '/sessions/:sessionId',
   asyncHandler(async (req, res) => {
-    const sessionId = req.params['sessionId']!;
+    const sessionId = getRouteParam(req.params['sessionId']);
+    if (!sessionId) {
+      res.status(400).json(createErrorResponse({
+        code: 'INVALID_REQUEST',
+        message: 'sessionId is required',
+      }));
+      return;
+    }
     const deleted = await deleteSession(sessionId);
 
     if (!deleted) {

@@ -13,8 +13,10 @@ src/
 │   ├── space.service.ts   # Space management logic
 │   └── storage.service.ts # Data Access abstraction (Firestore)
 ├── ai/             # AI Integration Layer
-│   ├── openai/     # OpenAI specific implementation
-│   └── prompts/    # System prompts & extraction logic
+│   ├── provider.ts         # OpenAI client wrapper
+│   ├── context-builder.ts  # Prompt assembly from memory
+│   ├── memory-extractor.ts # JSON extract parsing + persistence
+│   └── chat.service.ts     # Conversation orchestration
 ├── types/          # Shared TypeScript definitions
 ├── public/         # Frontend Client (HTML/JS/CSS)
 └── index.ts        # Entry point (bootstraps server)
@@ -48,7 +50,7 @@ src/
 
 ### 5. Frontend (`src/public`)
 -   **Role**: User Interface.
--   **Tech**: Vanilla JavaScript (ES Modules), CSS, HTML.
+-   **Tech**: Vanilla JavaScript, CSS, HTML.
 -   **Communication**: Fetches data from `/api/v1/*`.
 
 ## Design Decisions

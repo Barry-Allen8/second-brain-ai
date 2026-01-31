@@ -128,7 +128,7 @@ export const timelineEntrySchema = z.object({
   description: z.string().max(1000).optional(),
   relatedEntityId: entityIdSchema.optional(),
   relatedEntityType: z.enum(['fact', 'note', 'profile']).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   tags: z.array(z.string().max(50)).max(20),
 });
 
@@ -232,7 +232,7 @@ export const addTimelineEntryRequestSchema = z.object({
   description: z.string().max(1000).optional(),
   relatedEntityId: entityIdSchema.optional(),
   relatedEntityType: z.enum(['fact', 'note', 'profile']).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   timestamp: timestampSchema.optional(),
 });

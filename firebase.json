@@ -29,7 +29,7 @@
             ".env.example"
         ],
         "predeploy": [
-            "npm run build"
+            "pnpm run build"
         ]
     }
 }

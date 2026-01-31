@@ -12,6 +12,7 @@ import { spaceService, storage } from '../../domain/index.js';
 const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
+const uploadAttachments = upload.array('attachments');
 export const chatRouter = Router();
 async function resolveSpaceId(preferredSpaceId) {
     if (preferredSpaceId && await storage.spaceExists(preferredSpaceId)) {
@@ -35,16 +36,11 @@ async function resolveSpaceId(preferredSpaceId) {
 }
 function normalizeChatRequest(body) {
     // Backward compatibility: support legacy { message } shape alongside structured { messages } payloads.
-    // @ts-ignore
-    if ('message' in body) {
+    if (isSimpleChatRequest(body)) {
         return {
-            // @ts-ignore
             spaceId: body.spaceId ?? undefined,
-            // @ts-ignore
             message: body.message,
-            // @ts-ignore
             sessionId: body.sessionId ?? undefined,
-            // @ts-ignore
             attachments: body.attachments,
         };
     }
@@ -62,8 +58,16 @@ function normalizeChatRequest(body) {
         spaceId: body.spaceId ?? undefined,
         message: lastMessage.content,
         sessionId: body.sessionId ?? undefined,
-        attachments: body.attachments
+        attachments: body.attachments,
     };
+}
+function getRouteParam(value) {
+    if (!value)
+        return null;
+    return Array.isArray(value) ? value[0] ?? null : value;
+}
+function isSimpleChatRequest(body) {
+    return typeof body.message === 'string';
 }
 function logParsedChatRequest(request) {
     console.debug('[chat] parsed request', {
@@ -92,12 +96,10 @@ const multipartMiddleware = (req, res, next) => {
             const stream = Readable.from(req.body);
             req.pipe = (dest) => stream.pipe(dest);
         }
-        // @ts-ignore
-        upload.array('attachments')(req, res, next);
+        uploadAttachments(req, res, next);
+        return;
     }
-    else {
-        next();
-    }
+    next();
 };
 // Send chat message
 chatRouter.post('/', multipartMiddleware, requireAI(), asyncHandler(async (req, res) => {
@@ -171,7 +173,14 @@ chatRouter.post('/', multipartMiddleware, requireAI(), asyncHandler(async (req, 
 }));
 // Get session history
 chatRouter.get('/sessions/:sessionId', asyncHandler(async (req, res) => {
-    const sessionId = req.params['sessionId'];
+    const sessionId = getRouteParam(req.params['sessionId']);
+    if (!sessionId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'sessionId is required',
+        }));
+        return;
+    }
     const session = await getSession(sessionId);
     if (!session) {
         res.status(404).json(createErrorResponse({
@@ -184,7 +193,14 @@ chatRouter.get('/sessions/:sessionId', asyncHandler(async (req, res) => {
 }));
 // Update session (e.g., rename)
 chatRouter.patch('/sessions/:sessionId', asyncHandler(async (req, res) => {
-    const sessionId = req.params['sessionId'];
+    const sessionId = getRouteParam(req.params['sessionId']);
+    if (!sessionId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'sessionId is required',
+        }));
+        return;
+    }
     const { name } = req.body;
     if (!name || typeof name !== 'string') {
         res.status(400).json(createErrorResponse({
@@ -205,13 +221,20 @@ chatRouter.patch('/sessions/:sessionId', asyncHandler(async (req, res) => {
 }));
 // Get chat history for session
 chatRouter.get('/sessions/:sessionId/messages', asyncHandler(async (req, res) => {
-    const sessionId = req.params['sessionId'];
+    const sessionId = getRouteParam(req.params['sessionId']);
+    if (!sessionId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'sessionId is required',
+        }));
+        return;
+    }
     const messages = await getChatHistory(sessionId);
     res.json(createSuccessResponse(messages));
 }));
 // List sessions for space (Path param version - more robust)
 chatRouter.get('/sessions/space/:spaceId', asyncHandler(async (req, res) => {
-    const spaceId = req.params.spaceId;
+    const spaceId = getRouteParam(req.params['spaceId']);
     console.log(`[Sessions] Listing sessions for space (path param): ${spaceId}`);
     if (!spaceId) {
         // Should not happen with express routing but good for safety
@@ -235,7 +258,8 @@ chatRouter.get('/sessions/space/:spaceId', asyncHandler(async (req, res) => {
 chatRouter.get('/sessions', asyncHandler(async (req, res) => {
     const query = req.query || {};
     console.log('[Sessions] List request query:', query);
-    const spaceId = query['spaceId'];
+    const rawSpaceId = query['spaceId'];
+    const spaceId = getRouteParam(rawSpaceId);
     if (!spaceId) {
         console.warn('[Sessions] Missing spaceId in query');
         res.status(400).json(createErrorResponse({
@@ -255,7 +279,14 @@ chatRouter.get('/sessions', asyncHandler(async (req, res) => {
 }));
 // List sessions for a space (legacy route for compatibility)
 chatRouter.get('/spaces/:spaceId/sessions', asyncHandler(async (req, res) => {
-    const spaceId = req.params['spaceId'];
+    const spaceId = getRouteParam(req.params['spaceId']);
+    if (!spaceId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'spaceId is required',
+        }));
+        return;
+    }
     const sessions = await listSessions(spaceId);
     res.json(createSuccessResponse(sessions.map((s) => ({
         sessionId: s.id,
@@ -267,7 +298,14 @@ chatRouter.get('/spaces/:spaceId/sessions', asyncHandler(async (req, res) => {
 }));
 // Delete session
 chatRouter.delete('/sessions/:sessionId', asyncHandler(async (req, res) => {
-    const sessionId = req.params['sessionId'];
+    const sessionId = getRouteParam(req.params['sessionId']);
+    if (!sessionId) {
+        res.status(400).json(createErrorResponse({
+            code: 'INVALID_REQUEST',
+            message: 'sessionId is required',
+        }));
+        return;
+    }
     const deleted = await deleteSession(sessionId);
     if (!deleted) {
         res.status(404).json(createErrorResponse({

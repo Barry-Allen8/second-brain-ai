@@ -4,6 +4,7 @@
  */
 
 import OpenAI from 'openai';
+import type { ChatCompletionContentPart, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { ChatMessage, AIProviderConfig } from '../types/index.js';
 
 /** Supported OpenAI models */
@@ -97,26 +98,26 @@ export async function chatCompletion(
   const config = { ...currentConfig, ...options };
 
   // Convert to OpenAI message format
-  const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+  const openaiMessages: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...messages.map(m => {
       if (m.role === 'user') {
         if (Array.isArray(m.content)) {
           return {
             role: 'user',
-            content: m.content as OpenAI.Chat.ChatCompletionContentPart[],
-          } as OpenAI.Chat.ChatCompletionUserMessageParam;
+            content: m.content as ChatCompletionContentPart[],
+          } as ChatCompletionMessageParam;
         }
         return {
           role: 'user',
           content: m.content as string,
-        } as OpenAI.Chat.ChatCompletionUserMessageParam;
+        } as ChatCompletionMessageParam;
       }
 
       return {
         role: 'assistant',
         content: m.content as string,
-      } as OpenAI.Chat.ChatCompletionAssistantMessageParam;
+      } as ChatCompletionMessageParam;
     }),
   ];
 
@@ -156,26 +157,26 @@ export async function* chatCompletionStream(
 
   const config = { ...currentConfig, ...options };
 
-  const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+  const openaiMessages: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...messages.map(m => {
       if (m.role === 'user') {
         if (Array.isArray(m.content)) {
           return {
             role: 'user',
-            content: m.content as OpenAI.Chat.ChatCompletionContentPart[],
-          } as OpenAI.Chat.ChatCompletionUserMessageParam;
+            content: m.content as ChatCompletionContentPart[],
+          } as ChatCompletionMessageParam;
         }
         return {
           role: 'user',
           content: m.content as string,
-        } as OpenAI.Chat.ChatCompletionUserMessageParam;
+        } as ChatCompletionMessageParam;
       }
 
       return {
         role: 'assistant',
         content: m.content as string,
-      } as OpenAI.Chat.ChatCompletionAssistantMessageParam;
+      } as ChatCompletionMessageParam;
     }),
   ];
 

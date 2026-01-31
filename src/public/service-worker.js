@@ -5,7 +5,6 @@
 
 // Bump to invalidate old cache-first behavior for core assets.
 const CACHE_VERSION = 'v6';
-const CACHE_NAME = `second-brain-ai-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `second-brain-ai-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `second-brain-ai-dynamic-${CACHE_VERSION}`;
 
@@ -18,11 +17,6 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-];
-
-// Google Fonts to cache
-const FONT_URLS = [
-  'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap',
 ];
 
 // ═══════════════════════════════════════════════════════════

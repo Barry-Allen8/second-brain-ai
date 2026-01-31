@@ -5,37 +5,34 @@
 import { z } from 'zod';
 export declare const entityIdSchema: z.ZodString;
 export declare const timestampSchema: z.ZodString;
-export declare const confidenceLevelSchema: z.ZodEnum<["low", "medium", "high", "verified"]>;
-export declare const sourceTypeSchema: z.ZodEnum<["user_input", "inference", "external", "observation"]>;
+export declare const confidenceLevelSchema: z.ZodEnum<{
+    low: "low";
+    medium: "medium";
+    high: "high";
+    verified: "verified";
+}>;
+export declare const sourceTypeSchema: z.ZodEnum<{
+    user_input: "user_input";
+    inference: "inference";
+    external: "external";
+    observation: "observation";
+}>;
 export declare const sourceSchema: z.ZodObject<{
-    type: z.ZodEnum<["user_input", "inference", "external", "observation"]>;
+    type: z.ZodEnum<{
+        user_input: "user_input";
+        inference: "inference";
+        external: "external";
+        observation: "observation";
+    }>;
     reference: z.ZodOptional<z.ZodString>;
     timestamp: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    timestamp: string;
-    type: "user_input" | "inference" | "external" | "observation";
-    reference?: string | undefined;
-}, {
-    timestamp: string;
-    type: "user_input" | "inference" | "external" | "observation";
-    reference?: string | undefined;
-}>;
+}, z.core.$strip>;
 export declare const spaceRulesSchema: z.ZodObject<{
     allowHealthData: z.ZodBoolean;
     noteRetentionDays: z.ZodNumber;
     requireFactConfirmation: z.ZodBoolean;
     customInstructions: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    allowHealthData: boolean;
-    noteRetentionDays: number;
-    requireFactConfirmation: boolean;
-    customInstructions?: string | undefined;
-}, {
-    allowHealthData: boolean;
-    noteRetentionDays: number;
-    requireFactConfirmation: boolean;
-    customInstructions?: string | undefined;
-}>;
+}, z.core.$strip>;
 export declare const spaceMetadataSchema: z.ZodObject<{
     id: z.ZodString;
     createdAt: z.ZodString;
@@ -44,108 +41,35 @@ export declare const spaceMetadataSchema: z.ZodObject<{
     description: z.ZodString;
     icon: z.ZodOptional<z.ZodString>;
     color: z.ZodOptional<z.ZodString>;
-    tags: z.ZodArray<z.ZodString, "many">;
+    tags: z.ZodArray<z.ZodString>;
     rules: z.ZodObject<{
         allowHealthData: z.ZodBoolean;
         noteRetentionDays: z.ZodNumber;
         requireFactConfirmation: z.ZodBoolean;
         customInstructions: z.ZodOptional<z.ZodString>;
-    }, "strip", z.ZodTypeAny, {
-        allowHealthData: boolean;
-        noteRetentionDays: number;
-        requireFactConfirmation: boolean;
-        customInstructions?: string | undefined;
-    }, {
-        allowHealthData: boolean;
-        noteRetentionDays: number;
-        requireFactConfirmation: boolean;
-        customInstructions?: string | undefined;
-    }>;
+    }, z.core.$strip>;
     isActive: z.ZodBoolean;
-}, "strip", z.ZodTypeAny, {
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    tags: string[];
-    description: string;
-    rules: {
-        allowHealthData: boolean;
-        noteRetentionDays: number;
-        requireFactConfirmation: boolean;
-        customInstructions?: string | undefined;
-    };
-    name: string;
-    isActive: boolean;
-    icon?: string | undefined;
-    color?: string | undefined;
-}, {
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    tags: string[];
-    description: string;
-    rules: {
-        allowHealthData: boolean;
-        noteRetentionDays: number;
-        requireFactConfirmation: boolean;
-        customInstructions?: string | undefined;
-    };
-    name: string;
-    isActive: boolean;
-    icon?: string | undefined;
-    color?: string | undefined;
-}>;
+}, z.core.$strip>;
 export declare const profileEntrySchema: z.ZodObject<{
     id: z.ZodString;
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
     category: z.ZodString;
     key: z.ZodString;
-    value: z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodArray<z.ZodString, "many">]>;
+    value: z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodArray<z.ZodString>]>;
     source: z.ZodObject<{
-        type: z.ZodEnum<["user_input", "inference", "external", "observation"]>;
+        type: z.ZodEnum<{
+            user_input: "user_input";
+            inference: "inference";
+            external: "external";
+            observation: "observation";
+        }>;
         reference: z.ZodOptional<z.ZodString>;
         timestamp: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    }, {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    }>;
+    }, z.core.$strip>;
     validFrom: z.ZodOptional<z.ZodString>;
     validUntil: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    category: string;
-    key: string;
-    value: string | number | boolean | string[];
-    source: {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    };
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    validFrom?: string | undefined;
-    validUntil?: string | undefined;
-}, {
-    category: string;
-    key: string;
-    value: string | number | boolean | string[];
-    source: {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    };
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    validFrom?: string | undefined;
-    validUntil?: string | undefined;
-}>;
+}, z.core.$strip>;
 export declare const profileSchema: z.ZodObject<{
     entries: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
@@ -153,141 +77,48 @@ export declare const profileSchema: z.ZodObject<{
         updatedAt: z.ZodString;
         category: z.ZodString;
         key: z.ZodString;
-        value: z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodArray<z.ZodString, "many">]>;
+        value: z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodArray<z.ZodString>]>;
         source: z.ZodObject<{
-            type: z.ZodEnum<["user_input", "inference", "external", "observation"]>;
+            type: z.ZodEnum<{
+                user_input: "user_input";
+                inference: "inference";
+                external: "external";
+                observation: "observation";
+            }>;
             reference: z.ZodOptional<z.ZodString>;
             timestamp: z.ZodString;
-        }, "strip", z.ZodTypeAny, {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        }, {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        }>;
+        }, z.core.$strip>;
         validFrom: z.ZodOptional<z.ZodString>;
         validUntil: z.ZodOptional<z.ZodString>;
-    }, "strip", z.ZodTypeAny, {
-        category: string;
-        key: string;
-        value: string | number | boolean | string[];
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        validFrom?: string | undefined;
-        validUntil?: string | undefined;
-    }, {
-        category: string;
-        key: string;
-        value: string | number | boolean | string[];
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        validFrom?: string | undefined;
-        validUntil?: string | undefined;
-    }>, "many">;
+    }, z.core.$strip>>;
     lastUpdated: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    entries: {
-        category: string;
-        key: string;
-        value: string | number | boolean | string[];
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        validFrom?: string | undefined;
-        validUntil?: string | undefined;
-    }[];
-    lastUpdated: string;
-}, {
-    entries: {
-        category: string;
-        key: string;
-        value: string | number | boolean | string[];
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        validFrom?: string | undefined;
-        validUntil?: string | undefined;
-    }[];
-    lastUpdated: string;
-}>;
+}, z.core.$strip>;
 export declare const factSchema: z.ZodObject<{
     id: z.ZodString;
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
     category: z.ZodString;
     statement: z.ZodString;
-    confidence: z.ZodEnum<["low", "medium", "high", "verified"]>;
+    confidence: z.ZodEnum<{
+        low: "low";
+        medium: "medium";
+        high: "high";
+        verified: "verified";
+    }>;
     source: z.ZodObject<{
-        type: z.ZodEnum<["user_input", "inference", "external", "observation"]>;
+        type: z.ZodEnum<{
+            user_input: "user_input";
+            inference: "inference";
+            external: "external";
+            observation: "observation";
+        }>;
         reference: z.ZodOptional<z.ZodString>;
         timestamp: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    }, {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    }>;
-    tags: z.ZodArray<z.ZodString, "many">;
-    relatedFactIds: z.ZodArray<z.ZodString, "many">;
-    embedding: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
-}, "strip", z.ZodTypeAny, {
-    category: string;
-    source: {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    };
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    statement: string;
-    confidence: "low" | "medium" | "high" | "verified";
-    tags: string[];
-    relatedFactIds: string[];
-    embedding?: number[] | undefined;
-}, {
-    category: string;
-    source: {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    };
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    statement: string;
-    confidence: "low" | "medium" | "high" | "verified";
-    tags: string[];
-    relatedFactIds: string[];
-    embedding?: number[] | undefined;
-}>;
+    }, z.core.$strip>;
+    tags: z.ZodArray<z.ZodString>;
+    relatedFactIds: z.ZodArray<z.ZodString>;
+    embedding: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+}, z.core.$strip>;
 export declare const factsSchema: z.ZodObject<{
     items: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
@@ -295,150 +126,59 @@ export declare const factsSchema: z.ZodObject<{
         updatedAt: z.ZodString;
         category: z.ZodString;
         statement: z.ZodString;
-        confidence: z.ZodEnum<["low", "medium", "high", "verified"]>;
+        confidence: z.ZodEnum<{
+            low: "low";
+            medium: "medium";
+            high: "high";
+            verified: "verified";
+        }>;
         source: z.ZodObject<{
-            type: z.ZodEnum<["user_input", "inference", "external", "observation"]>;
+            type: z.ZodEnum<{
+                user_input: "user_input";
+                inference: "inference";
+                external: "external";
+                observation: "observation";
+            }>;
             reference: z.ZodOptional<z.ZodString>;
             timestamp: z.ZodString;
-        }, "strip", z.ZodTypeAny, {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        }, {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        }>;
-        tags: z.ZodArray<z.ZodString, "many">;
-        relatedFactIds: z.ZodArray<z.ZodString, "many">;
-        embedding: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
-    }, "strip", z.ZodTypeAny, {
-        category: string;
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        statement: string;
-        confidence: "low" | "medium" | "high" | "verified";
-        tags: string[];
-        relatedFactIds: string[];
-        embedding?: number[] | undefined;
-    }, {
-        category: string;
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        statement: string;
-        confidence: "low" | "medium" | "high" | "verified";
-        tags: string[];
-        relatedFactIds: string[];
-        embedding?: number[] | undefined;
-    }>, "many">;
+        }, z.core.$strip>;
+        tags: z.ZodArray<z.ZodString>;
+        relatedFactIds: z.ZodArray<z.ZodString>;
+        embedding: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+    }, z.core.$strip>>;
     lastUpdated: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    lastUpdated: string;
-    items: {
-        category: string;
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        statement: string;
-        confidence: "low" | "medium" | "high" | "verified";
-        tags: string[];
-        relatedFactIds: string[];
-        embedding?: number[] | undefined;
-    }[];
-}, {
-    lastUpdated: string;
-    items: {
-        category: string;
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        statement: string;
-        confidence: "low" | "medium" | "high" | "verified";
-        tags: string[];
-        relatedFactIds: string[];
-        embedding?: number[] | undefined;
-    }[];
+}, z.core.$strip>;
+export declare const noteImportanceSchema: z.ZodEnum<{
+    low: "low";
+    medium: "medium";
+    high: "high";
 }>;
-export declare const noteImportanceSchema: z.ZodEnum<["low", "medium", "high"]>;
 export declare const noteSchema: z.ZodObject<{
     id: z.ZodString;
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
     content: z.ZodString;
     category: z.ZodOptional<z.ZodString>;
-    importance: z.ZodEnum<["low", "medium", "high"]>;
+    importance: z.ZodEnum<{
+        low: "low";
+        medium: "medium";
+        high: "high";
+    }>;
     source: z.ZodObject<{
-        type: z.ZodEnum<["user_input", "inference", "external", "observation"]>;
+        type: z.ZodEnum<{
+            user_input: "user_input";
+            inference: "inference";
+            external: "external";
+            observation: "observation";
+        }>;
         reference: z.ZodOptional<z.ZodString>;
         timestamp: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    }, {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    }>;
-    tags: z.ZodArray<z.ZodString, "many">;
+    }, z.core.$strip>;
+    tags: z.ZodArray<z.ZodString>;
     factCandidate: z.ZodBoolean;
     promotedToFactId: z.ZodOptional<z.ZodString>;
-    embedding: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
-}, "strip", z.ZodTypeAny, {
-    source: {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    };
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    tags: string[];
-    content: string;
-    importance: "low" | "medium" | "high";
-    factCandidate: boolean;
-    category?: string | undefined;
-    embedding?: number[] | undefined;
-    promotedToFactId?: string | undefined;
-}, {
-    source: {
-        timestamp: string;
-        type: "user_input" | "inference" | "external" | "observation";
-        reference?: string | undefined;
-    };
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    tags: string[];
-    content: string;
-    importance: "low" | "medium" | "high";
-    factCandidate: boolean;
-    category?: string | undefined;
-    embedding?: number[] | undefined;
-    promotedToFactId?: string | undefined;
-}>;
+    embedding: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+}, z.core.$strip>;
 export declare const notesSchema: z.ZodObject<{
     items: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
@@ -446,604 +186,283 @@ export declare const notesSchema: z.ZodObject<{
         updatedAt: z.ZodString;
         content: z.ZodString;
         category: z.ZodOptional<z.ZodString>;
-        importance: z.ZodEnum<["low", "medium", "high"]>;
+        importance: z.ZodEnum<{
+            low: "low";
+            medium: "medium";
+            high: "high";
+        }>;
         source: z.ZodObject<{
-            type: z.ZodEnum<["user_input", "inference", "external", "observation"]>;
+            type: z.ZodEnum<{
+                user_input: "user_input";
+                inference: "inference";
+                external: "external";
+                observation: "observation";
+            }>;
             reference: z.ZodOptional<z.ZodString>;
             timestamp: z.ZodString;
-        }, "strip", z.ZodTypeAny, {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        }, {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        }>;
-        tags: z.ZodArray<z.ZodString, "many">;
+        }, z.core.$strip>;
+        tags: z.ZodArray<z.ZodString>;
         factCandidate: z.ZodBoolean;
         promotedToFactId: z.ZodOptional<z.ZodString>;
-        embedding: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
-    }, "strip", z.ZodTypeAny, {
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        tags: string[];
-        content: string;
-        importance: "low" | "medium" | "high";
-        factCandidate: boolean;
-        category?: string | undefined;
-        embedding?: number[] | undefined;
-        promotedToFactId?: string | undefined;
-    }, {
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        tags: string[];
-        content: string;
-        importance: "low" | "medium" | "high";
-        factCandidate: boolean;
-        category?: string | undefined;
-        embedding?: number[] | undefined;
-        promotedToFactId?: string | undefined;
-    }>, "many">;
+        embedding: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+    }, z.core.$strip>>;
     lastUpdated: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    lastUpdated: string;
-    items: {
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        tags: string[];
-        content: string;
-        importance: "low" | "medium" | "high";
-        factCandidate: boolean;
-        category?: string | undefined;
-        embedding?: number[] | undefined;
-        promotedToFactId?: string | undefined;
-    }[];
-}, {
-    lastUpdated: string;
-    items: {
-        source: {
-            timestamp: string;
-            type: "user_input" | "inference" | "external" | "observation";
-            reference?: string | undefined;
-        };
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        tags: string[];
-        content: string;
-        importance: "low" | "medium" | "high";
-        factCandidate: boolean;
-        category?: string | undefined;
-        embedding?: number[] | undefined;
-        promotedToFactId?: string | undefined;
-    }[];
+}, z.core.$strip>;
+export declare const timelineEventTypeSchema: z.ZodEnum<{
+    observation: "observation";
+    fact_added: "fact_added";
+    fact_updated: "fact_updated";
+    fact_removed: "fact_removed";
+    note_added: "note_added";
+    note_promoted: "note_promoted";
+    profile_updated: "profile_updated";
+    milestone: "milestone";
+    custom: "custom";
 }>;
-export declare const timelineEventTypeSchema: z.ZodEnum<["fact_added", "fact_updated", "fact_removed", "note_added", "note_promoted", "profile_updated", "milestone", "observation", "custom"]>;
 export declare const timelineEntrySchema: z.ZodObject<{
     id: z.ZodString;
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
     timestamp: z.ZodString;
-    eventType: z.ZodEnum<["fact_added", "fact_updated", "fact_removed", "note_added", "note_promoted", "profile_updated", "milestone", "observation", "custom"]>;
+    eventType: z.ZodEnum<{
+        observation: "observation";
+        fact_added: "fact_added";
+        fact_updated: "fact_updated";
+        fact_removed: "fact_removed";
+        note_added: "note_added";
+        note_promoted: "note_promoted";
+        profile_updated: "profile_updated";
+        milestone: "milestone";
+        custom: "custom";
+    }>;
     title: z.ZodString;
     description: z.ZodOptional<z.ZodString>;
     relatedEntityId: z.ZodOptional<z.ZodString>;
-    relatedEntityType: z.ZodOptional<z.ZodEnum<["fact", "note", "profile"]>>;
+    relatedEntityType: z.ZodOptional<z.ZodEnum<{
+        fact: "fact";
+        note: "note";
+        profile: "profile";
+    }>>;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-    tags: z.ZodArray<z.ZodString, "many">;
-}, "strip", z.ZodTypeAny, {
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    tags: string[];
-    timestamp: string;
-    title: string;
-    eventType: "observation" | "fact_added" | "fact_updated" | "fact_removed" | "note_added" | "note_promoted" | "profile_updated" | "milestone" | "custom";
-    description?: string | undefined;
-    relatedEntityId?: string | undefined;
-    relatedEntityType?: "fact" | "note" | "profile" | undefined;
-    metadata?: Record<string, unknown> | undefined;
-}, {
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    tags: string[];
-    timestamp: string;
-    title: string;
-    eventType: "observation" | "fact_added" | "fact_updated" | "fact_removed" | "note_added" | "note_promoted" | "profile_updated" | "milestone" | "custom";
-    description?: string | undefined;
-    relatedEntityId?: string | undefined;
-    relatedEntityType?: "fact" | "note" | "profile" | undefined;
-    metadata?: Record<string, unknown> | undefined;
-}>;
+    tags: z.ZodArray<z.ZodString>;
+}, z.core.$strip>;
 export declare const timelineSchema: z.ZodObject<{
     entries: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         createdAt: z.ZodString;
         updatedAt: z.ZodString;
         timestamp: z.ZodString;
-        eventType: z.ZodEnum<["fact_added", "fact_updated", "fact_removed", "note_added", "note_promoted", "profile_updated", "milestone", "observation", "custom"]>;
+        eventType: z.ZodEnum<{
+            observation: "observation";
+            fact_added: "fact_added";
+            fact_updated: "fact_updated";
+            fact_removed: "fact_removed";
+            note_added: "note_added";
+            note_promoted: "note_promoted";
+            profile_updated: "profile_updated";
+            milestone: "milestone";
+            custom: "custom";
+        }>;
         title: z.ZodString;
         description: z.ZodOptional<z.ZodString>;
         relatedEntityId: z.ZodOptional<z.ZodString>;
-        relatedEntityType: z.ZodOptional<z.ZodEnum<["fact", "note", "profile"]>>;
+        relatedEntityType: z.ZodOptional<z.ZodEnum<{
+            fact: "fact";
+            note: "note";
+            profile: "profile";
+        }>>;
         metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-        tags: z.ZodArray<z.ZodString, "many">;
-    }, "strip", z.ZodTypeAny, {
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        tags: string[];
-        timestamp: string;
-        title: string;
-        eventType: "observation" | "fact_added" | "fact_updated" | "fact_removed" | "note_added" | "note_promoted" | "profile_updated" | "milestone" | "custom";
-        description?: string | undefined;
-        relatedEntityId?: string | undefined;
-        relatedEntityType?: "fact" | "note" | "profile" | undefined;
-        metadata?: Record<string, unknown> | undefined;
-    }, {
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        tags: string[];
-        timestamp: string;
-        title: string;
-        eventType: "observation" | "fact_added" | "fact_updated" | "fact_removed" | "note_added" | "note_promoted" | "profile_updated" | "milestone" | "custom";
-        description?: string | undefined;
-        relatedEntityId?: string | undefined;
-        relatedEntityType?: "fact" | "note" | "profile" | undefined;
-        metadata?: Record<string, unknown> | undefined;
-    }>, "many">;
+        tags: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>>;
     lastUpdated: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    entries: {
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        tags: string[];
-        timestamp: string;
-        title: string;
-        eventType: "observation" | "fact_added" | "fact_updated" | "fact_removed" | "note_added" | "note_promoted" | "profile_updated" | "milestone" | "custom";
-        description?: string | undefined;
-        relatedEntityId?: string | undefined;
-        relatedEntityType?: "fact" | "note" | "profile" | undefined;
-        metadata?: Record<string, unknown> | undefined;
-    }[];
-    lastUpdated: string;
-}, {
-    entries: {
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        tags: string[];
-        timestamp: string;
-        title: string;
-        eventType: "observation" | "fact_added" | "fact_updated" | "fact_removed" | "note_added" | "note_promoted" | "profile_updated" | "milestone" | "custom";
-        description?: string | undefined;
-        relatedEntityId?: string | undefined;
-        relatedEntityType?: "fact" | "note" | "profile" | undefined;
-        metadata?: Record<string, unknown> | undefined;
-    }[];
-    lastUpdated: string;
-}>;
+}, z.core.$strip>;
 export declare const createSpaceRequestSchema: z.ZodObject<{
     name: z.ZodString;
     description: z.ZodString;
     icon: z.ZodOptional<z.ZodString>;
     color: z.ZodOptional<z.ZodString>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
     rules: z.ZodOptional<z.ZodObject<{
         allowHealthData: z.ZodOptional<z.ZodBoolean>;
         noteRetentionDays: z.ZodOptional<z.ZodNumber>;
         requireFactConfirmation: z.ZodOptional<z.ZodBoolean>;
         customInstructions: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    }, "strip", z.ZodTypeAny, {
-        allowHealthData?: boolean | undefined;
-        noteRetentionDays?: number | undefined;
-        requireFactConfirmation?: boolean | undefined;
-        customInstructions?: string | undefined;
-    }, {
-        allowHealthData?: boolean | undefined;
-        noteRetentionDays?: number | undefined;
-        requireFactConfirmation?: boolean | undefined;
-        customInstructions?: string | undefined;
-    }>>;
-}, "strip", z.ZodTypeAny, {
-    description: string;
-    name: string;
-    tags?: string[] | undefined;
-    rules?: {
-        allowHealthData?: boolean | undefined;
-        noteRetentionDays?: number | undefined;
-        requireFactConfirmation?: boolean | undefined;
-        customInstructions?: string | undefined;
-    } | undefined;
-    icon?: string | undefined;
-    color?: string | undefined;
-}, {
-    description: string;
-    name: string;
-    tags?: string[] | undefined;
-    rules?: {
-        allowHealthData?: boolean | undefined;
-        noteRetentionDays?: number | undefined;
-        requireFactConfirmation?: boolean | undefined;
-        customInstructions?: string | undefined;
-    } | undefined;
-    icon?: string | undefined;
-    color?: string | undefined;
-}>;
+    }, z.core.$strip>>;
+}, z.core.$strip>;
 export declare const updateSpaceRequestSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodString>;
     icon: z.ZodOptional<z.ZodString>;
     color: z.ZodOptional<z.ZodString>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
     rules: z.ZodOptional<z.ZodObject<{
         allowHealthData: z.ZodOptional<z.ZodBoolean>;
         noteRetentionDays: z.ZodOptional<z.ZodNumber>;
         requireFactConfirmation: z.ZodOptional<z.ZodBoolean>;
         customInstructions: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    }, "strip", z.ZodTypeAny, {
-        allowHealthData?: boolean | undefined;
-        noteRetentionDays?: number | undefined;
-        requireFactConfirmation?: boolean | undefined;
-        customInstructions?: string | undefined;
-    }, {
-        allowHealthData?: boolean | undefined;
-        noteRetentionDays?: number | undefined;
-        requireFactConfirmation?: boolean | undefined;
-        customInstructions?: string | undefined;
-    }>>;
+    }, z.core.$strip>>;
     isActive: z.ZodOptional<z.ZodBoolean>;
-}, "strip", z.ZodTypeAny, {
-    tags?: string[] | undefined;
-    description?: string | undefined;
-    rules?: {
-        allowHealthData?: boolean | undefined;
-        noteRetentionDays?: number | undefined;
-        requireFactConfirmation?: boolean | undefined;
-        customInstructions?: string | undefined;
-    } | undefined;
-    name?: string | undefined;
-    icon?: string | undefined;
-    color?: string | undefined;
-    isActive?: boolean | undefined;
-}, {
-    tags?: string[] | undefined;
-    description?: string | undefined;
-    rules?: {
-        allowHealthData?: boolean | undefined;
-        noteRetentionDays?: number | undefined;
-        requireFactConfirmation?: boolean | undefined;
-        customInstructions?: string | undefined;
-    } | undefined;
-    name?: string | undefined;
-    icon?: string | undefined;
-    color?: string | undefined;
-    isActive?: boolean | undefined;
-}>;
+}, z.core.$strip>;
 export declare const addFactRequestSchema: z.ZodObject<{
     category: z.ZodString;
     statement: z.ZodString;
-    confidence: z.ZodOptional<z.ZodEnum<["low", "medium", "high", "verified"]>>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    relatedFactIds: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    sourceType: z.ZodOptional<z.ZodEnum<["user_input", "inference", "external", "observation"]>>;
+    confidence: z.ZodOptional<z.ZodEnum<{
+        low: "low";
+        medium: "medium";
+        high: "high";
+        verified: "verified";
+    }>>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    relatedFactIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    sourceType: z.ZodOptional<z.ZodEnum<{
+        user_input: "user_input";
+        inference: "inference";
+        external: "external";
+        observation: "observation";
+    }>>;
     sourceReference: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    category: string;
-    statement: string;
-    confidence?: "low" | "medium" | "high" | "verified" | undefined;
-    tags?: string[] | undefined;
-    relatedFactIds?: string[] | undefined;
-    sourceType?: "user_input" | "inference" | "external" | "observation" | undefined;
-    sourceReference?: string | undefined;
-}, {
-    category: string;
-    statement: string;
-    confidence?: "low" | "medium" | "high" | "verified" | undefined;
-    tags?: string[] | undefined;
-    relatedFactIds?: string[] | undefined;
-    sourceType?: "user_input" | "inference" | "external" | "observation" | undefined;
-    sourceReference?: string | undefined;
-}>;
+}, z.core.$strip>;
 export declare const updateFactRequestSchema: z.ZodObject<{
     category: z.ZodOptional<z.ZodString>;
     statement: z.ZodOptional<z.ZodString>;
-    confidence: z.ZodOptional<z.ZodEnum<["low", "medium", "high", "verified"]>>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    relatedFactIds: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-}, "strip", z.ZodTypeAny, {
-    category?: string | undefined;
-    statement?: string | undefined;
-    confidence?: "low" | "medium" | "high" | "verified" | undefined;
-    tags?: string[] | undefined;
-    relatedFactIds?: string[] | undefined;
-}, {
-    category?: string | undefined;
-    statement?: string | undefined;
-    confidence?: "low" | "medium" | "high" | "verified" | undefined;
-    tags?: string[] | undefined;
-    relatedFactIds?: string[] | undefined;
-}>;
+    confidence: z.ZodOptional<z.ZodEnum<{
+        low: "low";
+        medium: "medium";
+        high: "high";
+        verified: "verified";
+    }>>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    relatedFactIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}, z.core.$strip>;
 export declare const addNoteRequestSchema: z.ZodObject<{
     content: z.ZodString;
     category: z.ZodOptional<z.ZodString>;
-    importance: z.ZodOptional<z.ZodEnum<["low", "medium", "high"]>>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    importance: z.ZodOptional<z.ZodEnum<{
+        low: "low";
+        medium: "medium";
+        high: "high";
+    }>>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
     factCandidate: z.ZodOptional<z.ZodBoolean>;
-    sourceType: z.ZodOptional<z.ZodEnum<["user_input", "inference", "external", "observation"]>>;
+    sourceType: z.ZodOptional<z.ZodEnum<{
+        user_input: "user_input";
+        inference: "inference";
+        external: "external";
+        observation: "observation";
+    }>>;
     sourceReference: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    content: string;
-    category?: string | undefined;
-    tags?: string[] | undefined;
-    importance?: "low" | "medium" | "high" | undefined;
-    factCandidate?: boolean | undefined;
-    sourceType?: "user_input" | "inference" | "external" | "observation" | undefined;
-    sourceReference?: string | undefined;
-}, {
-    content: string;
-    category?: string | undefined;
-    tags?: string[] | undefined;
-    importance?: "low" | "medium" | "high" | undefined;
-    factCandidate?: boolean | undefined;
-    sourceType?: "user_input" | "inference" | "external" | "observation" | undefined;
-    sourceReference?: string | undefined;
-}>;
+}, z.core.$strip>;
 export declare const updateNoteRequestSchema: z.ZodObject<{
     content: z.ZodOptional<z.ZodString>;
     category: z.ZodOptional<z.ZodString>;
-    importance: z.ZodOptional<z.ZodEnum<["low", "medium", "high"]>>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    importance: z.ZodOptional<z.ZodEnum<{
+        low: "low";
+        medium: "medium";
+        high: "high";
+    }>>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
     factCandidate: z.ZodOptional<z.ZodBoolean>;
-}, "strip", z.ZodTypeAny, {
-    category?: string | undefined;
-    tags?: string[] | undefined;
-    content?: string | undefined;
-    importance?: "low" | "medium" | "high" | undefined;
-    factCandidate?: boolean | undefined;
-}, {
-    category?: string | undefined;
-    tags?: string[] | undefined;
-    content?: string | undefined;
-    importance?: "low" | "medium" | "high" | undefined;
-    factCandidate?: boolean | undefined;
-}>;
+}, z.core.$strip>;
 export declare const promoteNoteRequestSchema: z.ZodObject<{
     category: z.ZodString;
     statement: z.ZodString;
-    confidence: z.ZodOptional<z.ZodEnum<["low", "medium", "high", "verified"]>>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-}, "strip", z.ZodTypeAny, {
-    category: string;
-    statement: string;
-    confidence?: "low" | "medium" | "high" | "verified" | undefined;
-    tags?: string[] | undefined;
-}, {
-    category: string;
-    statement: string;
-    confidence?: "low" | "medium" | "high" | "verified" | undefined;
-    tags?: string[] | undefined;
-}>;
+    confidence: z.ZodOptional<z.ZodEnum<{
+        low: "low";
+        medium: "medium";
+        high: "high";
+        verified: "verified";
+    }>>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}, z.core.$strip>;
 export declare const addProfileEntryRequestSchema: z.ZodObject<{
     category: z.ZodString;
     key: z.ZodString;
-    value: z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodArray<z.ZodString, "many">]>;
-    sourceType: z.ZodOptional<z.ZodEnum<["user_input", "inference", "external", "observation"]>>;
+    value: z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodArray<z.ZodString>]>;
+    sourceType: z.ZodOptional<z.ZodEnum<{
+        user_input: "user_input";
+        inference: "inference";
+        external: "external";
+        observation: "observation";
+    }>>;
     sourceReference: z.ZodOptional<z.ZodString>;
     validFrom: z.ZodOptional<z.ZodString>;
     validUntil: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    category: string;
-    key: string;
-    value: string | number | boolean | string[];
-    validFrom?: string | undefined;
-    validUntil?: string | undefined;
-    sourceType?: "user_input" | "inference" | "external" | "observation" | undefined;
-    sourceReference?: string | undefined;
-}, {
-    category: string;
-    key: string;
-    value: string | number | boolean | string[];
-    validFrom?: string | undefined;
-    validUntil?: string | undefined;
-    sourceType?: "user_input" | "inference" | "external" | "observation" | undefined;
-    sourceReference?: string | undefined;
-}>;
+}, z.core.$strip>;
 export declare const updateProfileEntryRequestSchema: z.ZodObject<{
-    value: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodArray<z.ZodString, "many">]>>;
+    value: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodArray<z.ZodString>]>>;
     validFrom: z.ZodOptional<z.ZodString>;
     validUntil: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    value?: string | number | boolean | string[] | undefined;
-    validFrom?: string | undefined;
-    validUntil?: string | undefined;
-}, {
-    value?: string | number | boolean | string[] | undefined;
-    validFrom?: string | undefined;
-    validUntil?: string | undefined;
-}>;
+}, z.core.$strip>;
 export declare const addTimelineEntryRequestSchema: z.ZodObject<{
-    eventType: z.ZodEnum<["fact_added", "fact_updated", "fact_removed", "note_added", "note_promoted", "profile_updated", "milestone", "observation", "custom"]>;
+    eventType: z.ZodEnum<{
+        observation: "observation";
+        fact_added: "fact_added";
+        fact_updated: "fact_updated";
+        fact_removed: "fact_removed";
+        note_added: "note_added";
+        note_promoted: "note_promoted";
+        profile_updated: "profile_updated";
+        milestone: "milestone";
+        custom: "custom";
+    }>;
     title: z.ZodString;
     description: z.ZodOptional<z.ZodString>;
     relatedEntityId: z.ZodOptional<z.ZodString>;
-    relatedEntityType: z.ZodOptional<z.ZodEnum<["fact", "note", "profile"]>>;
+    relatedEntityType: z.ZodOptional<z.ZodEnum<{
+        fact: "fact";
+        note: "note";
+        profile: "profile";
+    }>>;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
     timestamp: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    title: string;
-    eventType: "observation" | "fact_added" | "fact_updated" | "fact_removed" | "note_added" | "note_promoted" | "profile_updated" | "milestone" | "custom";
-    tags?: string[] | undefined;
-    timestamp?: string | undefined;
-    description?: string | undefined;
-    relatedEntityId?: string | undefined;
-    relatedEntityType?: "fact" | "note" | "profile" | undefined;
-    metadata?: Record<string, unknown> | undefined;
-}, {
-    title: string;
-    eventType: "observation" | "fact_added" | "fact_updated" | "fact_removed" | "note_added" | "note_promoted" | "profile_updated" | "milestone" | "custom";
-    tags?: string[] | undefined;
-    timestamp?: string | undefined;
-    description?: string | undefined;
-    relatedEntityId?: string | undefined;
-    relatedEntityType?: "fact" | "note" | "profile" | undefined;
-    metadata?: Record<string, unknown> | undefined;
-}>;
+}, z.core.$strip>;
 export declare const queryContextRequestSchema: z.ZodObject<{
     spaceId: z.ZodString;
     query: z.ZodOptional<z.ZodString>;
-    categories: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    categories: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
     includeNotes: z.ZodOptional<z.ZodBoolean>;
     maxFacts: z.ZodOptional<z.ZodNumber>;
     maxNotes: z.ZodOptional<z.ZodNumber>;
     maxTimelineEntries: z.ZodOptional<z.ZodNumber>;
-}, "strip", z.ZodTypeAny, {
-    spaceId: string;
-    tags?: string[] | undefined;
-    query?: string | undefined;
-    categories?: string[] | undefined;
-    includeNotes?: boolean | undefined;
-    maxFacts?: number | undefined;
-    maxNotes?: number | undefined;
-    maxTimelineEntries?: number | undefined;
-}, {
-    spaceId: string;
-    tags?: string[] | undefined;
-    query?: string | undefined;
-    categories?: string[] | undefined;
-    includeNotes?: boolean | undefined;
-    maxFacts?: number | undefined;
-    maxNotes?: number | undefined;
-    maxTimelineEntries?: number | undefined;
-}>;
+}, z.core.$strip>;
 export declare const paginationParamsSchema: z.ZodObject<{
     limit: z.ZodDefault<z.ZodNumber>;
     offset: z.ZodDefault<z.ZodNumber>;
-}, "strip", z.ZodTypeAny, {
-    limit: number;
-    offset: number;
-}, {
-    limit?: number | undefined;
-    offset?: number | undefined;
-}>;
-export declare const chatRequestSchema: z.ZodUnion<[z.ZodObject<{
+}, z.core.$strip>;
+export declare const chatRequestSchema: z.ZodUnion<readonly [z.ZodObject<{
     message: z.ZodString;
-    spaceId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
-    sessionId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    spaceId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
+    sessionId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
     attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        type: z.ZodEnum<["image", "file"]>;
+        type: z.ZodEnum<{
+            image: "image";
+            file: "file";
+        }>;
         url: z.ZodString;
         name: z.ZodString;
         mimeType: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        type: "image" | "file";
-        name: string;
-        url: string;
-        mimeType: string;
-    }, {
-        type: "image" | "file";
-        name: string;
-        url: string;
-        mimeType: string;
-    }>, "many">>;
-}, "strip", z.ZodTypeAny, {
-    message: string;
-    spaceId?: string | undefined;
-    sessionId?: string | undefined;
-    attachments?: {
-        type: "image" | "file";
-        name: string;
-        url: string;
-        mimeType: string;
-    }[] | undefined;
-}, {
-    message: string;
-    spaceId?: unknown;
-    sessionId?: unknown;
-    attachments?: {
-        type: "image" | "file";
-        name: string;
-        url: string;
-        mimeType: string;
-    }[] | undefined;
-}>, z.ZodObject<{
-    spaceId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    }, z.core.$strip>>>;
+}, z.core.$strip>, z.ZodObject<{
+    spaceId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
     messages: z.ZodArray<z.ZodObject<{
-        role: z.ZodEnum<["system", "user", "assistant"]>;
+        role: z.ZodEnum<{
+            system: "system";
+            user: "user";
+            assistant: "assistant";
+        }>;
         content: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        content: string;
-        role: "system" | "user" | "assistant";
-    }, {
-        content: string;
-        role: "system" | "user" | "assistant";
-    }>, "many">;
-    sessionId: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
+    }, z.core.$strip>>;
+    sessionId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
     attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        type: z.ZodEnum<["image", "file"]>;
+        type: z.ZodEnum<{
+            image: "image";
+            file: "file";
+        }>;
         url: z.ZodString;
         name: z.ZodString;
         mimeType: z.ZodString;
-    }, "strip", z.ZodTypeAny, {
-        type: "image" | "file";
-        name: string;
-        url: string;
-        mimeType: string;
-    }, {
-        type: "image" | "file";
-        name: string;
-        url: string;
-        mimeType: string;
-    }>, "many">>;
-}, "strip", z.ZodTypeAny, {
-    messages: {
-        content: string;
-        role: "system" | "user" | "assistant";
-    }[];
-    spaceId?: string | undefined;
-    sessionId?: string | undefined;
-    attachments?: {
-        type: "image" | "file";
-        name: string;
-        url: string;
-        mimeType: string;
-    }[] | undefined;
-}, {
-    messages: {
-        content: string;
-        role: "system" | "user" | "assistant";
-    }[];
-    spaceId?: unknown;
-    sessionId?: unknown;
-    attachments?: {
-        type: "image" | "file";
-        name: string;
-        url: string;
-        mimeType: string;
-    }[] | undefined;
-}>]>;
+    }, z.core.$strip>>>;
+}, z.core.$strip>]>;
 //# sourceMappingURL=validation.d.ts.map
