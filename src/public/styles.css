@@ -2644,22 +2644,15 @@ body {
   height: 14px;
 }
 
-/* User message - long press to copy indicator */
+/*
+ * User message text selection - MUST allow native copy/paste
+ * Do NOT use user-select: none - it breaks iOS Safari copy menu
+ * Let the browser handle text selection natively
+ */
 .chat-message.user .chat-bubble {
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
-  transition: transform var(--transition-fast), opacity var(--transition-fast);
-}
-
-.chat-message.user .chat-bubble:active {
-  transform: scale(0.98);
-  opacity: 0.8;
-}
-
-.chat-message.user .chat-bubble.copying {
-  background: var(--success-bg);
-  border-color: var(--success);
+  cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .chat-content-image {
@@ -3047,25 +3040,6 @@ body {
     border: 1px solid var(--border-secondary);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Touch / Long Press Feedback
-   ═══════════════════════════════════════════════════════════ */
-
-.touch-active {
-  transform: scale(0.98);
-  transition: transform 0.2s ease;
-}
-
-.long-press-ready {
-  animation: pulse-ready 0.3s ease forwards;
-}
-
-@keyframes pulse-ready {
-  0% { transform: scale(0.98); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
 }
 
 .copying {

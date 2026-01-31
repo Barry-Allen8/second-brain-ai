@@ -1313,11 +1313,11 @@ function addChatMessageToDOM(role, content) {
     const copyBtn = messageEl.querySelector('.copy-btn');
     copyBtn.addEventListener('click', () => copyToClipboard(rawText, copyBtn));
 
-    // Long-press on user text to copy (mobile-friendly)
-    const userBubble = messageEl.querySelector('.chat-bubble');
-    if (userBubble) {
-      setupLongPress(userBubble, () => copyToClipboard(rawText));
-    }
+    // NOTE: Do NOT attach long-press handlers to user message bubbles.
+    // This blocks native text selection on iOS Safari.
+    // Users can:
+    // 1. Use the Copy button (always visible)
+    // 2. Use native text selection (long-press → select → copy from system menu)
   }
 
   elements.chatMessages.appendChild(messageEl);
@@ -1484,76 +1484,6 @@ function copyToClipboard(text, btn = null) {
   } else {
     onError('execCommand not supported');
   }
-}
-
-
-/**
- * Setup long-press handler for an element
- */
-function setupLongPress(element, callback, duration = 500) {
-  let timer = null;
-  let startTime = 0;
-  let isLongPress = false;
-
-  const start = (e) => {
-    isLongPress = false;
-    startTime = Date.now();
-
-    // Add visual feedback class immediately to show interaction
-    element.classList.add('touch-active');
-
-    timer = setTimeout(() => {
-      isLongPress = true;
-      // Visual feedback that duration is met
-      if (element.classList.contains('touch-active')) {
-        element.classList.add('long-press-ready');
-        if (navigator.vibrate) {
-          navigator.vibrate(50);
-        }
-      }
-    }, duration);
-  };
-
-  const cancel = () => {
-    clearTimeout(timer);
-    isLongPress = false;
-    element.classList.remove('touch-active', 'long-press-ready');
-  };
-
-  const end = (e) => {
-    clearTimeout(timer);
-    element.classList.remove('touch-active', 'long-press-ready');
-
-    // Calculate duration manually if timer didn't fire yet but we want to be lenient, 
-    // OR simply rely on the timer flag.
-    // Ideally for "long press", we strictly wait for duration.
-    // However, the user issue is that the COPY fails. 
-    // Moving the callback HERE (in 'end') is the key fix for iOS.
-
-    const pressDuration = Date.now() - startTime;
-
-    if (isLongPress || pressDuration >= duration) {
-      // Prevent default click behavior if it was a long press
-      if (e.cancelable) e.preventDefault();
-
-      // Execute the callback (Copy) - NOW it's inside a user-initiated event (touchend/mouseup)
-      callback();
-    }
-  };
-
-  element.addEventListener('touchstart', start, { passive: true });
-  element.addEventListener('touchend', end);
-  element.addEventListener('touchcancel', cancel);
-  element.addEventListener('touchmove', (e) => {
-    // Cancel if moved significantly? For now, just cancel on any move to be safe
-    // or calculate distance. Simple cancel is safer for "hold".
-    cancel();
-  }, { passive: true });
-
-  // Also support mouse for desktop
-  element.addEventListener('mousedown', start);
-  element.addEventListener('mouseup', end);
-  element.addEventListener('mouseleave', cancel);
 }
 
 function setChatInputValue(value, { resetHeight = false, focus = false } = {}) {
