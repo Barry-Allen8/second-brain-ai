@@ -1774,6 +1774,28 @@ function setChatInputValue(value, { resetHeight = false, focus = false } = {}) {
   }
 }
 
+function insertTextAtSelection(textarea, text, selectionOverride = null) {
+  if (!textarea || typeof text !== 'string') return;
+  const currentValue = textarea.value || '';
+  const selectionStart = selectionOverride?.start ?? textarea.selectionStart ?? currentValue.length;
+  const selectionEnd = selectionOverride?.end ?? textarea.selectionEnd ?? currentValue.length;
+  const nextValue =
+    currentValue.slice(0, selectionStart) + text + currentValue.slice(selectionEnd);
+
+  textarea.value = nextValue;
+  state.chatInputValue = nextValue;
+
+  const cursor = selectionStart + text.length;
+  try {
+    textarea.setSelectionRange(cursor, cursor);
+  } catch (error) {
+    // Some mobile browsers can throw when selection APIs are unavailable.
+  }
+
+  textarea.style.height = 'auto';
+  textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+}
+
 function formatChatContent(content) {
   // Handle array content (multimodal)
   if (Array.isArray(content)) {
@@ -2160,6 +2182,39 @@ elements.chatInput.addEventListener('input', () => {
   setChatInputValue(elements.chatInput.value);
   elements.chatInput.style.height = 'auto';
   elements.chatInput.style.height = Math.min(elements.chatInput.scrollHeight, 200) + 'px';
+});
+
+// iOS Safari/PWA can show Paste UI but fail to insert text reliably.
+// Manually insert clipboard text when available, with a safe fallback.
+elements.chatInput.addEventListener('paste', (e) => {
+  const textarea = elements.chatInput;
+  if (!textarea) return;
+
+  const selection = {
+    start: textarea.selectionStart ?? textarea.value.length,
+    end: textarea.selectionEnd ?? textarea.value.length,
+  };
+
+  const clipboardText = e.clipboardData?.getData('text/plain') || e.clipboardData?.getData('text');
+
+  if (clipboardText) {
+    e.preventDefault();
+    insertTextAtSelection(textarea, clipboardText, selection);
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    const beforeValue = textarea.value;
+    setTimeout(() => {
+      if (textarea.value !== beforeValue) return;
+      navigator.clipboard.readText()
+        .then((text) => {
+          if (!text) return;
+          insertTextAtSelection(textarea, text, selection);
+        })
+        .catch(() => {});
+    }, 0);
+  }
 });
 
 // Enter to send (Shift+Enter for new line)
