@@ -21,6 +21,7 @@ import { now } from '../utils/index.js';
 import { db } from '../lib/firebase.js';
 
 const SESSIONS_COLLECTION = 'sessions';
+const IMAGE_PLACEHOLDER = '[Image attachment omitted from history]';
 
 /** Create a new chat session */
 export async function createSession(spaceId: EntityId, userId: EntityId): Promise<ChatSession> {
@@ -203,7 +204,11 @@ export async function chat(request: ChatRequest, userId: EntityId): Promise<Chat
   session.updatedAt = now();
 
   // Save session to Firestore
-  await db.collection(SESSIONS_COLLECTION).doc(session.id).set(session);
+  const sessionToPersist = {
+    ...session,
+    messages: sanitizeMessagesForStorage(session.messages),
+  };
+  await db.collection(SESSIONS_COLLECTION).doc(session.id).set(sessionToPersist);
 
   // Auto-save extracted memory (can be disabled via settings)
   if (extractedMemory) {
@@ -220,6 +225,26 @@ export async function chat(request: ChatRequest, userId: EntityId): Promise<Chat
       tokensEstimate: contextTokens,
     },
   };
+}
+
+function sanitizeMessagesForStorage(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((message) => {
+    if (!Array.isArray(message.content)) {
+      return message;
+    }
+
+    const textParts = message.content
+      .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+      .map((part) => part.text.trim())
+      .filter((part) => part.length > 0);
+    const combinedText = textParts.join('\n\n').trim();
+    const hasImages = message.content.some((part) => part.type === 'image_url');
+
+    return {
+      ...message,
+      content: combinedText || (hasImages ? IMAGE_PLACEHOLDER : ''),
+    };
+  });
 }
 
 /** Count items in a section (rough estimate) */
