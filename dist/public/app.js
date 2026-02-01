@@ -1672,28 +1672,22 @@ function copyToClipboard(text, btn = null) {
       box-shadow: none;
       background: transparent;
       font-size: 16px;
-      z-index: -1;
+      z-index: 99999;
       opacity: 0;
     `;
     // Note: font-size 16px prevents iOS zoom on focus
 
     document.body.appendChild(textarea);
 
+    // CRITICAL: Focus BEFORE selection - required for iOS Safari
+    textarea.focus();
+
     if (isIOS) {
-      // iOS requires special handling: contentEditable + range selection
-      textarea.contentEditable = 'true';
+      // iOS Safari: ensure textarea is editable and use setSelectionRange
+      // Note: Do NOT use contentEditable (doesn't apply to textareas)
+      // Note: Do NOT use Range API (selects element node, not text content)
       textarea.readOnly = false;
-
-      // Create range and select
-      const range = document.createRange();
-      range.selectNodeContents(textarea);
-
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-
-      // Also set selection range for good measure
-      textarea.setSelectionRange(0, 999999);
+      textarea.setSelectionRange(0, textarea.value.length);
     } else {
       textarea.select();
     }
