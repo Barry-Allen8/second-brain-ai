@@ -646,8 +646,11 @@ let touchStartY = 0;
 let touchEndX = 0;
 let touchEndY = 0;
 const SWIPE_THRESHOLD = 50;
+const SWIPE_OPEN_EDGE_PX = 24;
 const SWIPE_VELOCITY_THRESHOLD = 0.3;
 let touchStartTime = 0;
+let swipeIgnored = false;
+let touchStartTarget = null;
 
 function initSwipeGestures() {
   document.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -655,6 +658,8 @@ function initSwipeGestures() {
 }
 
 function handleTouchStart(e) {
+  touchStartTarget = e.target;
+  swipeIgnored = hasActiveTextSelection() || isNoSwipeTarget(touchStartTarget);
   touchStartX = e.changedTouches[0].screenX;
   touchStartY = e.changedTouches[0].screenY;
   touchStartTime = Date.now();
@@ -667,6 +672,7 @@ function handleTouchEnd(e) {
 }
 
 function handleSwipe() {
+  if (swipeIgnored || hasActiveTextSelection()) return;
   const diffX = touchEndX - touchStartX;
   const diffY = touchEndY - touchStartY;
   const duration = Date.now() - touchStartTime;
@@ -685,7 +691,7 @@ function handleSwipe() {
   const sidebarOpen = elements.sidebar.classList.contains('open');
 
   // Swipe right to open (from left edge)
-  if (diffX > 0 && touchStartX < 50 && !sidebarOpen) {
+  if (diffX > 0 && touchStartX < SWIPE_OPEN_EDGE_PX && !sidebarOpen) {
     openSidebar();
   }
 
@@ -693,6 +699,56 @@ function handleSwipe() {
   if (diffX < 0 && sidebarOpen) {
     closeSidebar();
   }
+}
+
+function hasActiveTextSelection() {
+  const selection = window.getSelection();
+  return Boolean(selection && selection.rangeCount > 0 && !selection.isCollapsed);
+}
+
+function isNoSwipeTarget(target) {
+  if (!target) return false;
+  const element = target.nodeType === Node.ELEMENT_NODE ? target : target.parentElement;
+  if (!element) return false;
+  return Boolean(
+    element.closest(
+      '.chat-bubble, .chat-input, .chat-input-area, .chat-composer-inner, .chat-input-container, .chat-messages, .chat-attachments'
+    )
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Text Selection UX (hide message actions while selecting)
+// ═══════════════════════════════════════════════════════════
+
+const TEXT_SELECTION_CLASS = 'is-text-selecting';
+
+function isNodeInsideChatBubble(node) {
+  if (!node) return false;
+  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  if (!element) return false;
+  return Boolean(element.closest('.chat-bubble'));
+}
+
+function updateTextSelectionState() {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    document.body.classList.remove(TEXT_SELECTION_CLASS);
+    return;
+  }
+
+  const inChat =
+    isNodeInsideChatBubble(selection.anchorNode) ||
+    isNodeInsideChatBubble(selection.focusNode) ||
+    isNodeInsideChatBubble(selection.getRangeAt(0).commonAncestorContainer);
+
+  document.body.classList.toggle(TEXT_SELECTION_CLASS, inChat);
+}
+
+function initTextSelectionHandling() {
+  document.addEventListener('selectionchange', updateTextSelectionState);
+  document.addEventListener('mouseup', updateTextSelectionState);
+  document.addEventListener('touchend', () => setTimeout(updateTextSelectionState, 0), { passive: true });
 }
 
 
@@ -2123,6 +2179,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize swipe gestures for mobile/tablet sidebar
   initSwipeGestures();
+
+  // Hide copy actions while native text selection is active
+  initTextSelectionHandling();
 
   // Initialize mobile header
   updateMobileHeaderTitle();
