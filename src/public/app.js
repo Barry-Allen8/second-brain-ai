@@ -695,6 +695,40 @@ function handleSwipe() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// Text Selection UX (hide message actions while selecting)
+// ═══════════════════════════════════════════════════════════
+
+const TEXT_SELECTION_CLASS = 'is-text-selecting';
+
+function isNodeInsideChatBubble(node) {
+  if (!node) return false;
+  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  if (!element) return false;
+  return Boolean(element.closest('.chat-bubble'));
+}
+
+function updateTextSelectionState() {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    document.body.classList.remove(TEXT_SELECTION_CLASS);
+    return;
+  }
+
+  const inChat =
+    isNodeInsideChatBubble(selection.anchorNode) ||
+    isNodeInsideChatBubble(selection.focusNode) ||
+    isNodeInsideChatBubble(selection.getRangeAt(0).commonAncestorContainer);
+
+  document.body.classList.toggle(TEXT_SELECTION_CLASS, inChat);
+}
+
+function initTextSelectionHandling() {
+  document.addEventListener('selectionchange', updateTextSelectionState);
+  document.addEventListener('mouseup', updateTextSelectionState);
+  document.addEventListener('touchend', () => setTimeout(updateTextSelectionState, 0), { passive: true });
+}
+
 
 // ═══════════════════════════════════════════════════════════
 // Toast Notifications
@@ -2123,6 +2157,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize swipe gestures for mobile/tablet sidebar
   initSwipeGestures();
+
+  // Hide copy actions while native text selection is active
+  initTextSelectionHandling();
 
   // Initialize mobile header
   updateMobileHeaderTitle();
