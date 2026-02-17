@@ -150,7 +150,7 @@ async function cacheFirst(request, cacheName = STATIC_CACHE_NAME) {
     return response;
   } catch (error) {
     console.error('[Service Worker] Cache first failed:', error);
-    return new Response('Офлайн режим недоступний', { status: 503 });
+    return new Response('Offline mode unavailable', { status: 503 });
   }
 }
 
@@ -173,7 +173,7 @@ async function networkFirst(request) {
         success: false, 
         error: { 
           code: 'OFFLINE', 
-          message: 'Немає з\'єднання з інтернетом' 
+          message: 'No internet connection' 
         } 
       }),
       { 
@@ -274,11 +274,11 @@ function isCoreAsset(pathname) {
  */
 function generateOfflineHTML() {
   return `<!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Second Brain AI - Офлайн</title>
+  <title>Second Brain AI - Offline</title>
   <style>
     * {
       margin: 0;
@@ -341,12 +341,12 @@ function generateOfflineHTML() {
 <body>
   <div class="offline-container">
     <div class="offline-icon">📡</div>
-    <h1>Ви офлайн</h1>
+    <h1>You are offline</h1>
     <p>
-      Немає з'єднання з інтернетом. Перевірте підключення та спробуйте ще раз.
+      No internet connection. Check your connection and try again.
     </p>
     <button class="retry-btn" onclick="location.reload()">
-      Спробувати знову
+      Try again
     </button>
   </div>
 </body>
@@ -379,7 +379,7 @@ self.addEventListener('push', (event) => {
   console.log('[Service Worker] Push received:', event.data?.text());
   
   const options = {
-    body: event.data?.text() || 'Нове повідомлення від Second Brain AI',
+    body: event.data?.text() || 'New message from Second Brain AI',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
     vibrate: [100, 50, 100],
@@ -387,8 +387,8 @@ self.addEventListener('push', (event) => {
       dateOfArrival: Date.now(),
     },
     actions: [
-      { action: 'open', title: 'Відкрити' },
-      { action: 'close', title: 'Закрити' },
+      { action: 'open', title: 'Open' },
+      { action: 'close', title: 'Close' },
     ],
   };
   

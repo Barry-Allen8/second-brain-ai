@@ -1,8 +1,8 @@
 {
   "name": "Second Brain AI",
   "short_name": "Second Brain",
-  "description": "Персональний AI-асистент з постійною пам'яттю та ізольованими контекстами",
-  "lang": "uk",
+  "description": "Personal AI assistant with persistent memory and isolated contexts",
+  "lang": "en",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -39,9 +39,9 @@
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "Новий чат",
-      "short_name": "Чат",
-      "description": "Почати нову розмову з AI",
+      "name": "New chat",
+      "short_name": "Chat",
+      "description": "Start a new conversation with AI",
       "url": "/?action=new-chat",
       "icons": [
         {

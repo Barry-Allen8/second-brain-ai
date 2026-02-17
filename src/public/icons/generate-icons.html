@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Генератор PWA іконок - Second Brain AI</title>
+  <title>PWA Icon Generator - Second Brain AI</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -69,45 +69,45 @@
   </style>
 </head>
 <body>
-  <h1>🧠 Генератор PWA іконок</h1>
-  <p>Натисніть на кнопки, щоб завантажити PNG іконки для Second Brain AI</p>
+  <h1>🧠 PWA Icon Generator</h1>
+  <p>Click the buttons to download PNG icons for Second Brain AI</p>
 
   <div class="icons-grid">
     <div class="icon-card">
       <h3>192x192 (any)</h3>
       <canvas id="canvas-192" width="192" height="192"></canvas>
       <br>
-      <button onclick="downloadIcon('canvas-192', 'icon-192x192.png')">Завантажити PNG</button>
+      <button onclick="downloadIcon('canvas-192', 'icon-192x192.png')">Download PNG</button>
     </div>
     
     <div class="icon-card">
       <h3>192x192 (maskable)</h3>
       <canvas id="canvas-192-maskable" width="192" height="192"></canvas>
       <br>
-      <button onclick="downloadIcon('canvas-192-maskable', 'icon-192x192-maskable.png')">Завантажити PNG</button>
+      <button onclick="downloadIcon('canvas-192-maskable', 'icon-192x192-maskable.png')">Download PNG</button>
     </div>
     
     <div class="icon-card">
       <h3>512x512 (any)</h3>
       <canvas id="canvas-512" width="512" height="512"></canvas>
       <br>
-      <button onclick="downloadIcon('canvas-512', 'icon-512x512.png')">Завантажити PNG</button>
+      <button onclick="downloadIcon('canvas-512', 'icon-512x512.png')">Download PNG</button>
     </div>
     
     <div class="icon-card">
       <h3>512x512 (maskable)</h3>
       <canvas id="canvas-512-maskable" width="512" height="512"></canvas>
       <br>
-      <button onclick="downloadIcon('canvas-512-maskable', 'icon-512x512-maskable.png')">Завантажити PNG</button>
+      <button onclick="downloadIcon('canvas-512-maskable', 'icon-512x512-maskable.png')">Download PNG</button>
     </div>
   </div>
 
   <div class="instructions">
-    <h2>📋 Інструкція</h2>
+    <h2>📋 Instructions</h2>
     <ol>
-      <li>Натисніть кнопку "Завантажити PNG" під кожною іконкою</li>
-      <li>Збережіть файли в папку <code>src/public/icons/</code></li>
-      <li>Файли повинні мати такі назви:
+      <li>Click the "Download PNG" button under each icon</li>
+      <li>Save the files to <code>src/public/icons/</code></li>
+      <li>The files must have these names:
         <ul>
           <li><code>icon-192x192.png</code></li>
           <li><code>icon-192x192-maskable.png</code></li>
@@ -115,7 +115,7 @@
           <li><code>icon-512x512-maskable.png</code></li>
         </ul>
       </li>
-      <li>Запустіть <code>npm run build</code> для копіювання в dist/</li>
+      <li>Run <code>npm run build</code> to copy files to dist/</li>
     </ol>
   </div>
 

@@ -11,7 +11,7 @@ const MAX_CHATS_PER_SPACE = 10;
 
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) {
-    console.log('[PWA] Service Worker не підтримується цим браузером');
+    console.log('[PWA] Service Worker is not supported in this browser');
     return;
   }
 
@@ -21,17 +21,17 @@ async function registerServiceWorker() {
       scope: '/'
     });
 
-    console.log('[PWA] Service Worker зареєстровано:', registration.scope);
+    console.log('[PWA] Service Worker registered:', registration.scope);
 
     // Check for updates
     registration.addEventListener('updatefound', () => {
       const newWorker = registration.installing;
-      console.log('[PWA] Нова версія Service Worker знайдена');
+      console.log('[PWA] New Service Worker version found');
 
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
           // New content is available
-          console.log('[PWA] Нова версія доступна!');
+          console.log('[PWA] New version is available');
           showUpdateNotification();
         }
       });
@@ -40,21 +40,21 @@ async function registerServiceWorker() {
     // Handle controller change (when new SW takes over)
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('[PWA] Новий Service Worker активовано');
+      console.log('[PWA] New Service Worker activated');
       if (!hadController || refreshing) return;
       refreshing = true;
       window.location.reload();
     });
 
   } catch (error) {
-    console.error('[PWA] Помилка реєстрації Service Worker:', error);
+    console.error('[PWA] Service Worker registration failed:', error);
   }
 }
 
 function showUpdateNotification() {
   // Show a toast notification about the update
   if (typeof showToast === 'function') {
-    showToast('Доступна нова версія! Оновіть сторінку.', 'info');
+    showToast('A new version is available. Refresh the page.', 'info');
   }
 }
 
@@ -68,7 +68,7 @@ window.addEventListener('beforeinstallprompt', (event) => {
   // Store the event for later use
   deferredInstallPrompt = event;
 
-  console.log('[PWA] Додаток можна встановити');
+  console.log('[PWA] App can be installed');
 
   // Optionally show custom install button/notification
   showInstallButton();
@@ -82,7 +82,7 @@ function showInstallButton() {
   // Create a subtle install suggestion after a delay
   setTimeout(() => {
     if (deferredInstallPrompt && typeof showToast === 'function') {
-      showToast('💡 Встановіть Second Brain як додаток!', 'info');
+      showToast('💡 Install Second Brain as an app!', 'info');
       localStorage.setItem('pwa-install-shown', 'true');
     }
   }, 30000); // Show after 30 seconds
@@ -90,11 +90,11 @@ function showInstallButton() {
 
 // Track successful installation
 window.addEventListener('appinstalled', () => {
-  console.log('[PWA] Додаток успішно встановлено!');
+  console.log('[PWA] App installed successfully');
   deferredInstallPrompt = null;
 
   if (typeof showToast === 'function') {
-    showToast('🎉 Second Brain AI встановлено!', 'success');
+    showToast('🎉 Second Brain AI installed!', 'success');
   }
 });
 
@@ -111,24 +111,24 @@ function updateOnlineStatus() {
       elements.headerModelSelector.classList.remove('connected');
     }
     if (elements.headerModelText) {
-      elements.headerModelText.textContent = 'Офлайн';
+      elements.headerModelText.textContent = 'Offline';
     }
   }
 
-  console.log('[PWA] Статус мережі:', isOnline ? 'онлайн' : 'офлайн');
+  console.log('[PWA] Network status:', isOnline ? 'online' : 'offline');
 }
 
 window.addEventListener('online', () => {
   updateOnlineStatus();
   if (typeof showToast === 'function') {
-    showToast("З'єднання відновлено", 'success');
+    showToast('Connection restored', 'success');
   }
 });
 
 window.addEventListener('offline', () => {
   updateOnlineStatus();
   if (typeof showToast === 'function') {
-    showToast('Немає з\'єднання з інтернетом', 'warning');
+    showToast('No internet connection', 'warning');
   }
 });
 
@@ -261,6 +261,64 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+function renderIcon(symbolId, className = 'ui-icon') {
+  return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true"><use href="#${symbolId}" xlink:href="#${symbolId}"></use></svg>`;
+}
+
+const SPACE_ICON_KEYS = ['folder', 'briefcase', 'heart', 'book', 'target', 'bolt'];
+const SPACE_ICON_SYMBOL_BY_KEY = {
+  folder: 'i-folder',
+  briefcase: 'i-briefcase',
+  heart: 'i-heart',
+  book: 'i-book',
+  target: 'i-target',
+  bolt: 'i-bolt',
+};
+
+const LEGACY_SPACE_ICON_MAP = {
+  '📁': 'folder',
+  '💼': 'briefcase',
+  '❤️': 'heart',
+  '❤': 'heart',
+  '📚': 'book',
+  '🎯': 'target',
+  '⚡': 'bolt',
+};
+
+function normalizeSpaceIconKey(iconValue) {
+  if (!iconValue) return 'folder';
+  const raw = String(iconValue).trim();
+  const key = raw.toLowerCase();
+  if (SPACE_ICON_KEYS.includes(key)) return key;
+  return LEGACY_SPACE_ICON_MAP[raw] || 'folder';
+}
+
+function renderSpaceIcon(iconValue, className = 'ui-icon') {
+  const key = normalizeSpaceIconKey(iconValue);
+  const symbolId = SPACE_ICON_SYMBOL_BY_KEY[key] || SPACE_ICON_SYMBOL_BY_KEY.folder;
+  return renderIcon(symbolId, className);
+}
+
+function initSpaceIconCycler() {
+  const iconPicker = document.getElementById('icon-picker');
+  const iconInput = document.getElementById('icon-input');
+  const iconValue = document.getElementById('icon-picker-value');
+  if (!iconPicker || !iconInput || !iconValue) return;
+
+  let current = normalizeSpaceIconKey(iconInput.value);
+  iconInput.value = current;
+  iconValue.innerHTML = renderSpaceIcon(current);
+  iconPicker.title = 'Click to change icon';
+
+  iconPicker.addEventListener('click', () => {
+    const idx = SPACE_ICON_KEYS.indexOf(current);
+    const nextIndex = idx >= 0 ? (idx + 1) % SPACE_ICON_KEYS.length : 0;
+    current = SPACE_ICON_KEYS[nextIndex];
+    iconInput.value = current;
+    iconValue.innerHTML = renderSpaceIcon(current);
+  });
+}
+
 // ═══════════════════════════════════════════════════════════
 // Auth Functions
 // ═══════════════════════════════════════════════════════════
@@ -348,11 +406,14 @@ function setAuthGateVisible(isVisible) {
 
 function renderAuthUI() {
   const loggedIn = !!state.authUser;
+  if (elements.sidebarFooter) {
+    elements.sidebarFooter.classList.toggle('hidden', !loggedIn);
+  }
   if (elements.authUser) {
     elements.authUser.classList.toggle('hidden', !loggedIn);
   }
   if (elements.authGuest) {
-    elements.authGuest.classList.toggle('hidden', loggedIn);
+    elements.authGuest.classList.add('hidden');
   }
   if (elements.authUserEmail) {
     elements.authUserEmail.textContent = loggedIn ? (state.authUser.email || '—') : '—';
@@ -383,9 +444,32 @@ async function signInWithGoogle() {
   await auth.signInWithPopup(googleProvider);
 }
 
+async function sendPasswordReset(email) {
+  if (!auth) throw new Error('Auth not initialized');
+  await auth.sendPasswordResetEmail(email);
+}
+
 async function signOutUser() {
   if (!auth) return;
   await auth.signOut();
+}
+
+function formatAuthError(error, fallbackMessage = 'Action failed') {
+  const code = error?.code;
+
+  const messagesByCode = {
+    'auth/invalid-email': 'Enter a valid email address',
+    'auth/missing-email': 'Enter an email address',
+    'auth/user-not-found': 'No account found for this email',
+    'auth/wrong-password': 'Incorrect password',
+    'auth/invalid-credential': 'Invalid email or password',
+    'auth/user-disabled': 'This account has been disabled',
+    'auth/too-many-requests': 'Too many attempts. Try again later',
+    'auth/network-request-failed': 'No internet connection',
+    'auth/operation-not-allowed': 'Email/password sign-in is currently disabled',
+  };
+
+  return messagesByCode[code] || error?.message || fallbackMessage;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -405,37 +489,25 @@ function showContextMenu(event, type, id) {
   if (type === 'space') {
     menu.innerHTML = `
       <button class="context-menu-item" data-action="edit-space" data-id="${id}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>
-        <span>Редагувати</span>
+        ${renderIcon('i-pencil', 'ui-icon')}
+        <span>Edit</span>
       </button>
       <div class="context-menu-divider"></div>
       <button class="context-menu-item danger" data-action="delete-space" data-id="${id}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        <span>Видалити</span>
+        ${renderIcon('i-trash', 'ui-icon')}
+        <span>Delete</span>
       </button>
     `;
   } else if (type === 'chat') {
     menu.innerHTML = `
       <button class="context-menu-item" data-action="rename-chat" data-id="${id}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>
-        <span>Перейменувати</span>
+        ${renderIcon('i-pencil', 'ui-icon')}
+        <span>Rename</span>
       </button>
       <div class="context-menu-divider"></div>
       <button class="context-menu-item danger" data-action="delete-chat" data-id="${id}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        <span>Видалити</span>
+        ${renderIcon('i-trash', 'ui-icon')}
+        <span>Delete</span>
       </button>
     `;
   }
@@ -545,6 +617,7 @@ const elements = {
   spaceContent: $('#space-content'),
   spaceName: $('#space-name'),
   spaceDescription: $('#space-description'),
+  sidebarFooter: $('#sidebar-footer'),
   modalOverlay: $('#modal-overlay'),
   modal: $('#modal'),
   modalTitle: $('#modal-title'),
@@ -633,7 +706,7 @@ function updateMobileModelSelector() {
   if (state.aiConfigured) {
     elements.mobileModelText.textContent = state.aiModel || 'gpt-4o-mini';
   } else {
-    elements.mobileModelText.textContent = 'Офлайн';
+    elements.mobileModelText.textContent = 'Offline';
   }
 }
 
@@ -758,16 +831,16 @@ function initTextSelectionHandling() {
 
 function showToast(message, type = 'info') {
   const icons = {
-    success: '✓',
-    error: '✕',
-    warning: '⚠',
-    info: 'ℹ',
+    success: 'i-check',
+    error: 'i-error',
+    warning: 'i-alert',
+    info: 'i-info',
   };
 
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `
-    <span class="toast-icon">${icons[type]}</span>
+    <span class="toast-icon">${renderIcon(icons[type], 'ui-icon')}</span>
     <span class="toast-message">${message}</span>
   `;
 
@@ -791,9 +864,13 @@ function openModal(title, formHtml, onSubmit, options = {}) {
   elements.modalOverlay.classList.remove('hidden');
   currentModalCallback = onSubmit;
 
-  elements.modalSubmit.textContent = options.submitLabel || 'Зберегти';
+  elements.modalSubmit.textContent = options.submitLabel || 'Save';
   if (elements.modalCancel) {
-    elements.modalCancel.textContent = options.cancelLabel || 'Скасувати';
+    elements.modalCancel.textContent = options.cancelLabel || 'Cancel';
+  }
+
+  if (typeof options.onOpen === 'function') {
+    options.onOpen(elements.modalBody);
   }
 
   const firstInput = elements.modalBody.querySelector('input, textarea, select');
@@ -859,7 +936,7 @@ async function checkAIStatus() {
       if (elements.headerModelSelector) {
         elements.headerModelSelector.classList.add('connected');
         elements.headerModelSelector.classList.remove('disconnected');
-        elements.headerModelSelector.title = 'Клікніть для зміни моделі';
+        elements.headerModelSelector.title = 'Click to change model';
       }
       if (elements.headerModelText) {
         elements.headerModelText.textContent = status.model;
@@ -871,10 +948,10 @@ async function checkAIStatus() {
       if (elements.headerModelSelector) {
         elements.headerModelSelector.classList.add('disconnected');
         elements.headerModelSelector.classList.remove('connected');
-        elements.headerModelSelector.title = 'AI не налаштовано';
+        elements.headerModelSelector.title = 'AI is not configured';
       }
       if (elements.headerModelText) {
-        elements.headerModelText.textContent = 'Не налаштовано';
+        elements.headerModelText.textContent = 'Not configured';
       }
       // Update mobile model selector
       updateMobileModelSelector();
@@ -886,11 +963,11 @@ async function checkAIStatus() {
       elements.headerModelSelector.classList.remove('connected');
     }
     if (elements.headerModelText) {
-      elements.headerModelText.textContent = 'Помилка';
+      elements.headerModelText.textContent = 'Error';
     }
     // Update mobile model selector on error
     if (elements.mobileModelText) {
-      elements.mobileModelText.textContent = 'Помилка';
+      elements.mobileModelText.textContent = 'Error';
     }
   }
 }
@@ -899,11 +976,11 @@ async function checkAIStatus() {
 const MODEL_INFO = {
   'gpt-4o-mini': {
     name: 'gpt-4o-mini',
-    description: 'Швидка та економна'
+    description: 'Fast and cost-efficient'
   },
   'gpt-4o': {
     name: 'gpt-4o',
-    description: 'Найпотужніша модель'
+    description: 'Most capable model'
   }
 };
 
@@ -911,7 +988,7 @@ let activeModelDropdown = null;
 
 function openModelSelectorDropdown() {
   if (!state.aiConfigured) {
-    showToast('AI не налаштовано', 'warning');
+    showToast('AI is not configured', 'warning');
     return;
   }
 
@@ -935,11 +1012,7 @@ function openModelSelectorDropdown() {
           <span class="model-dropdown-name">${info.name}</span>
           <span class="model-dropdown-desc">${info.description}</span>
         </div>
-        ${isSelected ? `
-          <svg class="model-dropdown-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        ` : ''}
+        ${isSelected ? renderIcon('i-check', 'ui-icon model-dropdown-check') : ''}
       </button>
     `;
   }).join('');
@@ -976,12 +1049,12 @@ function openModelSelectorDropdown() {
         try {
           await chatApi.setModel(model);
           state.aiModel = model;
-          showToast(`Модель змінено на ${model}`, 'success');
+          showToast(`Model switched to ${model}`, 'success');
           await checkAIStatus();
           // Also update mobile model selector
           updateMobileModelSelector();
         } catch (error) {
-          showToast(error.message || 'Не вдалося змінити модель', 'error');
+          showToast(error.message || 'Failed to switch model', 'error');
         }
       }
       closeModelDropdown();
@@ -1043,7 +1116,7 @@ async function loadSpaces() {
       selectSpace(state.spaces[0].id);
     }
   } catch (error) {
-    showToast('Не вдалося завантажити простори', 'error');
+    showToast('Failed to load spaces', 'error');
   }
 }
 
@@ -1061,14 +1134,10 @@ function renderSpacesList() {
     return `
       <li class="sidebar-item-wrapper" data-space-id="${space.id}">
         <div class="sidebar-item ${isActive ? 'active' : ''}" data-id="${space.id}">
-          <span class="sidebar-item-icon">${escapeHtml(space.icon || '📁')}</span>
+          <span class="sidebar-item-icon">${renderSpaceIcon(space.icon)}</span>
           <span class="sidebar-item-name">${escapeHtml(space.name)}</span>
-          <button class="sidebar-item-menu" data-space-id="${space.id}" title="Дії">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="5" r="1"></circle>
-              <circle cx="12" cy="12" r="1"></circle>
-              <circle cx="12" cy="19" r="1"></circle>
-            </svg>
+          <button class="sidebar-item-menu" data-space-id="${space.id}" title="Actions">
+            ${renderIcon('i-dots', 'ui-icon')}
           </button>
         </div>
         ${isActive ? `
@@ -1076,23 +1145,16 @@ function renderSpacesList() {
             ${spaceChats.map(chat => `
               <li class="sidebar-chat-item ${chat.sessionId === state.currentChatId ? 'active' : ''}" 
                   data-chat-id="${chat.sessionId}">
-                <span class="sidebar-chat-item-icon">💬</span>
-                <span class="sidebar-chat-item-name">${escapeHtml(chat.name || `Чат ${new Date(chat.createdAt).toLocaleDateString('uk-UA')}`)}</span>
-                <button class="sidebar-chat-item-menu" data-chat-id="${chat.sessionId}" title="Дії">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="5" r="1"></circle>
-                    <circle cx="12" cy="12" r="1"></circle>
-                    <circle cx="12" cy="19" r="1"></circle>
-                  </svg>
+                <span class="sidebar-chat-item-icon">${renderIcon('i-chat', 'ui-icon')}</span>
+                <span class="sidebar-chat-item-name">${escapeHtml(chat.name || `Chat ${new Date(chat.createdAt).toLocaleDateString('en-US')}`)}</span>
+                <button class="sidebar-chat-item-menu" data-chat-id="${chat.sessionId}" title="Actions">
+                  ${renderIcon('i-dots', 'ui-icon')}
                 </button>
               </li>
             `).join('')}
             <li class="sidebar-new-chat" data-space-id="${space.id}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>Новий чат</span>
+              ${renderIcon('i-plus', 'ui-icon')}
+              <span>New chat</span>
             </li>
           </ul>
         ` : ''}
@@ -1205,7 +1267,7 @@ async function selectSpace(spaceId) {
       closeSidebar();
     }
   } catch (error) {
-    showToast('Не вдалося завантажити простір', 'error');
+    showToast('Failed to load space', 'error');
   }
 }
 
@@ -1218,172 +1280,180 @@ function renderSpaceContent() {
 }
 
 function openRegisterModal() {
-  openModal('Створити акаунт', `
+  openModal('Create account', `
     <div class="form-group">
-      <label class="form-label" for="register-name">Імʼя та прізвище *</label>
-      <input id="register-name" type="text" name="name" class="form-input" placeholder="Наприклад: Олена Шевченко" autocomplete="name">
+      <label class="form-label" for="register-name">Full name *</label>
+      <input id="register-name" type="text" name="name" class="form-input" placeholder="For example: Alex Johnson" autocomplete="name">
     </div>
     <div class="form-group">
       <label class="form-label" for="register-email">Email *</label>
       <input id="register-email" type="email" name="email" class="form-input" placeholder="you@example.com" autocomplete="email">
     </div>
     <div class="form-group">
-      <label class="form-label" for="register-password">Пароль *</label>
-      <input id="register-password" type="password" name="password" class="form-input" placeholder="Мінімум 8 символів" autocomplete="new-password">
-      <div class="form-hint">Використайте щонайменше 8 символів і цифри.</div>
+      <label class="form-label" for="register-password">Password *</label>
+      <input id="register-password" type="password" name="password" class="form-input" placeholder="Minimum 8 characters" autocomplete="new-password">
+      <div class="form-hint">Use at least 8 characters and include numbers.</div>
     </div>
     <div class="form-group">
-      <label class="form-label" for="register-password-confirm">Підтвердження паролю *</label>
-      <input id="register-password-confirm" type="password" name="passwordConfirm" class="form-input" placeholder="Повторіть пароль" autocomplete="new-password">
+      <label class="form-label" for="register-password-confirm">Confirm password *</label>
+      <input id="register-password-confirm" type="password" name="passwordConfirm" class="form-input" placeholder="Repeat password" autocomplete="new-password">
     </div>
     <div class="form-group form-checkbox-group">
       <input id="register-terms" type="checkbox" name="acceptTerms" class="form-checkbox">
-      <label class="form-label" for="register-terms">Погоджуюсь з умовами та політикою конфіденційності</label>
+      <label class="form-label" for="register-terms">I agree to the terms and privacy policy</label>
     </div>
   `, async (data) => {
-    if (!data.name) throw new Error("Вкажіть імʼя та прізвище");
+    if (!data.name) throw new Error('Enter your full name');
     if (!data.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) {
-      throw new Error('Вкажіть коректну електронну пошту');
+      throw new Error('Enter a valid email address');
     }
     if (!data.password || data.password.length < 8) {
-      throw new Error('Пароль має містити щонайменше 8 символів');
+      throw new Error('Password must be at least 8 characters long');
     }
     if (!data.passwordConfirm || data.password !== data.passwordConfirm) {
-      throw new Error('Паролі не співпадають');
+      throw new Error('Passwords do not match');
     }
     if (!data.acceptTerms) {
-      throw new Error('Потрібно погодитися з умовами');
+      throw new Error('You must accept the terms');
     }
 
     await signUpWithEmail(data.name, data.email, data.password);
-    showToast('Акаунт створено', 'success');
+    showToast('Account created', 'success');
   }, {
-    submitLabel: 'Зареєструватися',
-    cancelLabel: 'Не зараз',
+    submitLabel: 'Create account',
+    cancelLabel: 'Not now',
   });
 }
 
 function openLoginModal() {
-  openModal('Увійти', `
+  openModal('Sign in', `
     <div class="form-group">
       <label class="form-label" for="login-email">Email</label>
       <input id="login-email" type="email" name="email" class="form-input" placeholder="you@example.com" autocomplete="email">
     </div>
     <div class="form-group">
-      <label class="form-label" for="login-password">Пароль</label>
-      <input id="login-password" type="password" name="password" class="form-input" placeholder="Ваш пароль" autocomplete="current-password">
+      <label class="form-label" for="login-password">Password</label>
+      <input id="login-password" type="password" name="password" class="form-input" placeholder="Your password" autocomplete="current-password">
+    </div>
+    <div class="form-meta">
+      <button id="forgot-password-btn" type="button" class="form-link-button">Forgot password?</button>
     </div>
   `, async (data) => {
     if (!data.email || !data.password) {
-      throw new Error('Вкажіть email і пароль');
+      throw new Error('Enter email and password');
     }
-    await signInWithEmail(data.email, data.password);
-    showToast('Вхід виконано', 'success');
+    try {
+      await signInWithEmail(data.email, data.password);
+      showToast('Signed in', 'success');
+    } catch (error) {
+      throw new Error(formatAuthError(error, 'Sign in failed'));
+    }
   }, {
-    submitLabel: 'Увійти',
-    cancelLabel: 'Скасувати',
+    submitLabel: 'Sign in',
+    cancelLabel: 'Cancel',
+    onOpen: (modalBody) => {
+      const forgotPasswordBtn = modalBody.querySelector('#forgot-password-btn');
+      const emailInput = modalBody.querySelector('#login-email');
+
+      if (!forgotPasswordBtn || !emailInput) return;
+
+      forgotPasswordBtn.addEventListener('click', async () => {
+        const email = emailInput.value.trim();
+        if (!email) {
+          showToast('Enter email to reset password', 'warning');
+          emailInput.focus();
+          return;
+        }
+
+        forgotPasswordBtn.disabled = true;
+        try {
+          await sendPasswordReset(email);
+          showToast('Password reset email sent', 'success');
+        } catch (error) {
+          showToast(formatAuthError(error, 'Failed to send password reset email'), 'error');
+        } finally {
+          forgotPasswordBtn.disabled = false;
+        }
+      });
+    },
   });
 }
 
 function openCreateSpaceModal() {
-  openModal('Створити простір', `
+  openModal('Create space', `
     <div class="form-group">
-      <label class="form-label">Назва *</label>
-      <input type="text" name="name" class="form-input" placeholder="Наприклад: Робота, Здоров'я, Навчання">
+      <label class="form-label">Name *</label>
+      <input type="text" name="name" class="form-input" placeholder="For example: Work, Health, Learning">
     </div>
     <div class="form-group">
-      <label class="form-label">Опис</label>
-      <textarea name="description" class="form-textarea description-textarea" rows="12" maxlength="20000" placeholder="Детальний опис контексту"></textarea>
+      <label class="form-label">Description</label>
+      <textarea name="description" class="form-textarea description-textarea" rows="12" maxlength="20000" placeholder="Detailed context description"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Іконка</label>
+      <label class="form-label">Icon</label>
       <div class="icon-picker" id="icon-picker">
-        <span class="icon-picker-value" id="icon-picker-value">📁</span>
+        <span class="icon-picker-value" id="icon-picker-value">${renderSpaceIcon('folder')}</span>
       </div>
-      <input type="hidden" name="icon" id="icon-input" value="📁">
+      <input type="hidden" name="icon" id="icon-input" value="folder">
+      <div class="form-hint">Click to cycle through modern icon styles.</div>
     </div>
   `, async (data) => {
-    if (!data.name) throw new Error("Назва обов'язкова");
+    if (!data.name) throw new Error('Name is required');
+    data.icon = normalizeSpaceIconKey(data.icon);
     await spacesApi.create(data);
-    showToast('Простір створено', 'success');
+    showToast('Space created', 'success');
     await loadSpaces();
   });
 
-  // Add click handler for icon picker
   setTimeout(() => {
-    const iconPicker = document.getElementById('icon-picker');
-    const iconInput = document.getElementById('icon-input');
-    const iconValue = document.getElementById('icon-picker-value');
-
-    if (iconPicker) {
-      iconPicker.addEventListener('click', () => {
-        const newIcon = prompt('Введіть emoji або символ:', iconInput.value || '📁');
-        if (newIcon && newIcon.trim()) {
-          const icon = newIcon.trim().substring(0, 2);
-          iconInput.value = icon;
-          iconValue.textContent = icon;
-        }
-      });
-    }
+    initSpaceIconCycler();
   }, 100);
 }
 
 function openEditSpaceModal() {
   const space = state.currentSpace;
-  const currentIcon = space.icon || '📁';
-  openModal('Редагувати простір', `
+  const currentIcon = normalizeSpaceIconKey(space.icon || 'folder');
+  openModal('Edit space', `
     <div class="form-group">
-      <label class="form-label">Назва *</label>
+      <label class="form-label">Name *</label>
       <input type="text" name="name" class="form-input" value="${escapeHtml(space.name)}">
     </div>
     <div class="form-group">
-      <label class="form-label">Опис</label>
+      <label class="form-label">Description</label>
       <textarea name="description" class="form-textarea description-textarea" rows="12" maxlength="20000">${escapeHtml(space.description)}</textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Іконка</label>
+      <label class="form-label">Icon</label>
       <div class="icon-picker" id="icon-picker">
-        <span class="icon-picker-value" id="icon-picker-value">${escapeHtml(currentIcon)}</span>
+        <span class="icon-picker-value" id="icon-picker-value">${renderSpaceIcon(currentIcon)}</span>
       </div>
       <input type="hidden" name="icon" id="icon-input" value="${escapeHtml(currentIcon)}">
+      <div class="form-hint">Click to cycle through modern icon styles.</div>
     </div>
   `, async (data) => {
-    if (!data.name) throw new Error("Назва обов'язкова");
+    if (!data.name) throw new Error('Name is required');
+    data.icon = normalizeSpaceIconKey(data.icon);
     await spacesApi.update(state.currentSpaceId, data);
-    showToast('Простір оновлено', 'success');
+    showToast('Space updated', 'success');
     await selectSpace(state.currentSpaceId);
     await loadSpaces();
   });
 
-  // Add click handler for icon picker
   setTimeout(() => {
-    const iconPicker = document.getElementById('icon-picker');
-    const iconInput = document.getElementById('icon-input');
-    const iconValue = document.getElementById('icon-picker-value');
-
-    if (iconPicker) {
-      iconPicker.addEventListener('click', () => {
-        const newIcon = prompt('Введіть emoji або символ:', iconInput.value || '📁');
-        if (newIcon && newIcon.trim()) {
-          const icon = newIcon.trim().substring(0, 2);
-          iconInput.value = icon;
-          iconValue.textContent = icon;
-        }
-      });
-    }
+    initSpaceIconCycler();
   }, 100);
 }
 
 async function deleteSpace() {
-  if (!confirm(`Видалити простір "${state.currentSpace.name}"? Це незворотня дія!`)) return;
+  if (!confirm(`Delete space "${state.currentSpace.name}"? This action cannot be undone.`)) return;
 
   try {
     await spacesApi.delete(state.currentSpaceId);
-    showToast('Простір видалено', 'success');
+    showToast('Space deleted', 'success');
     state.currentSpaceId = null;
     await loadSpaces();
   } catch (error) {
-    showToast('Не вдалося видалити простір', 'error');
+    showToast('Failed to delete space', 'error');
   }
 }
 
@@ -1414,7 +1484,7 @@ async function loadChats() {
     renderSpacesList();
   } catch (error) {
     console.error('Error loading chats:', error);
-    showToast('Не вдалося завантажити чати', 'error');
+    showToast('Failed to load chats', 'error');
     state.chats = [];
     renderSpacesList();
   }
@@ -1424,7 +1494,7 @@ async function loadChats() {
 
 async function createNewChat() {
   if (state.chats.length >= MAX_CHATS_PER_SPACE) {
-    showToast(`Максимум ${MAX_CHATS_PER_SPACE} чатів на простір. Видаліть старі чати.`, 'warning');
+    showToast(`Maximum ${MAX_CHATS_PER_SPACE} chats per space. Delete older chats.`, 'warning');
     return;
   }
 
@@ -1433,7 +1503,7 @@ async function createNewChat() {
   renderChatWelcome();
   renderSpacesList();
   updateMobileHeaderTitle();
-  showToast('Новий чат створено', 'info');
+  showToast('New chat created', 'info');
 
   // Close sidebar on mobile/tablet
   if (isMobileOrTablet()) {
@@ -1462,26 +1532,26 @@ async function selectChat(sessionId) {
       closeSidebar();
     }
   } catch (error) {
-    showToast('Не вдалося завантажити чат', 'error');
+    showToast('Failed to load chat', 'error');
   }
 }
 
 async function renameChat() {
   if (!state.currentChatId) {
-    showToast('Спочатку оберіть чат', 'warning');
+    showToast('Select a chat first', 'warning');
     return;
   }
 
   const currentChat = state.chats.find(c => c.sessionId === state.currentChatId);
-  openModal('Перейменувати чат', `
+  openModal('Rename chat', `
     <div class="form-group">
-      <label class="form-label">Назва чату *</label>
-      <input type="text" name="name" class="form-input" value="${escapeHtml(currentChat?.name || '')}" placeholder="Моя розмова про...">
+      <label class="form-label">Chat name *</label>
+      <input type="text" name="name" class="form-input" value="${escapeHtml(currentChat?.name || '')}" placeholder="My conversation about...">
     </div>
   `, async (data) => {
-    if (!data.name) throw new Error("Назва обов'язкова");
+    if (!data.name) throw new Error('Name is required');
     await chatApi.renameSession(state.currentChatId, data.name);
-    showToast('Чат перейменовано', 'success');
+    showToast('Chat renamed', 'success');
     await loadChats();
     // Sidebar is already updated by loadChats
   });
@@ -1489,22 +1559,22 @@ async function renameChat() {
 
 async function deleteChat() {
   if (!state.currentChatId) {
-    showToast('Спочатку оберіть чат', 'warning');
+    showToast('Select a chat first', 'warning');
     return;
   }
 
-  if (!confirm('Видалити цей чат? Це незворотня дія!')) return;
+  if (!confirm('Delete this chat? This action cannot be undone.')) return;
 
   try {
     await chatApi.deleteSession(state.currentChatId);
-    showToast('Чат видалено', 'success');
+    showToast('Chat deleted', 'success');
     state.currentChatId = null;
     state.currentChatMessages = [];
     await loadChats();
     renderChatWelcome();
     // Sidebar is already updated by loadChats
   } catch (error) {
-    showToast('Не вдалося видалити чат', 'error');
+    showToast('Failed to delete chat', 'error');
   }
 }
 
@@ -1516,14 +1586,10 @@ function renderChatWelcome() {
   elements.chatMessages.innerHTML = `
     <div class="chat-welcome">
       <div class="chat-welcome-icon">
-        <svg class="chat-welcome-svg-icon" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L14 8.5L20.5 10L14 11.5L12 18L10 11.5L3.5 10L10 8.5L12 2Z"/>
-          <path d="M19 1L20 3.5L22.5 4.5L20 5.5L19 8L18 5.5L15.5 4.5L18 3.5L19 1Z" opacity="0.7"/>
-          <path d="M5 14L6 16.5L8.5 17.5L6 18.5L5 21L4 18.5L1.5 17.5L4 16.5L5 14Z" opacity="0.7"/>
-        </svg>
+        ${renderIcon('i-sparkles', 'ui-icon chat-welcome-svg-icon')}
       </div>
-      <h3>Розпочніть розмову</h3>
-      <p>AI вже знає контекст "${escapeHtml(state.currentSpace?.name || '')}" — запитуйте про що завгодно!</p>
+      <h3>Start a conversation</h3>
+      <p>The AI already knows the "${escapeHtml(state.currentSpace?.name || '')}" context. Ask anything.</p>
     </div>
   `;
 }
@@ -1552,12 +1618,9 @@ function addChatMessageToDOM(role, content) {
         ${formattedContent}
       </div>
       <div class="chat-message-actions visible">
-        <button class="copy-btn" data-text="${escapeHtml(rawText)}" title="Копіювати">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-          <span class="copy-btn-text">Копіювати</span>
+        <button class="copy-btn" data-text="${escapeHtml(rawText)}" title="Copy">
+          ${renderIcon('i-copy', 'ui-icon')}
+          <span class="copy-btn-text">Copy</span>
         </button>
       </div>
     `;
@@ -1572,12 +1635,9 @@ function addChatMessageToDOM(role, content) {
         ${formattedContent}
       </div>
       <div class="chat-message-actions visible">
-        <button class="copy-btn" data-text="${escapeHtml(rawText)}" title="Копіювати">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-          <span class="copy-btn-text">Копіювати</span>
+        <button class="copy-btn" data-text="${escapeHtml(rawText)}" title="Copy">
+          ${renderIcon('i-copy', 'ui-icon')}
+          <span class="copy-btn-text">Copy</span>
         </button>
       </div>
     `;
@@ -1636,14 +1696,14 @@ function copyToClipboard(text, btn = null) {
 
   // Helper: Show success feedback
   function onSuccess() {
-    showToast('Скопійовано', 'success');
+    showToast('Copied', 'success');
     if (btn) {
       btn.classList.add('copied');
       const textEl = btn.querySelector('.copy-btn-text');
-      if (textEl) textEl.textContent = 'Скопійовано!';
+      if (textEl) textEl.textContent = 'Copied!';
       setTimeout(() => {
         btn.classList.remove('copied');
-        if (textEl) textEl.textContent = 'Копіювати';
+        if (textEl) textEl.textContent = 'Copy';
       }, 2000);
     }
   }
@@ -1651,7 +1711,7 @@ function copyToClipboard(text, btn = null) {
   // Helper: Show error feedback
   function onError(msg) {
     console.warn('Copy failed:', msg);
-    showToast('Не вдалося скопіювати', 'error');
+    showToast('Failed to copy', 'error');
   }
 
   // Helper: Synchronous execCommand copy (works reliably on iOS within user gesture)
@@ -1824,14 +1884,14 @@ function showTypingIndicator() {
   typing.className = 'chat-message assistant';
   typing.id = 'typing-indicator';
   typing.innerHTML = `
-    <div class="chat-avatar">🧠</div>
+    <div class="chat-avatar">${renderIcon('i-brand', 'ui-icon')}</div>
     <div class="chat-typing">
       <div class="chat-typing-dots">
         <span></span>
         <span></span>
         <span></span>
       </div>
-      AI думає...
+      AI is thinking...
     </div>
   `;
   elements.chatMessages.appendChild(typing);
@@ -1877,13 +1937,13 @@ function renderAttachments() {
       preview = `<img src="${url}" class="attachment-preview" alt="Preview" style="cursor: pointer">`;
     } else {
       // PDF or other file icon
-      preview = `<div class="attachment-preview">📄</div>`;
+      preview = `<div class="attachment-preview attachment-file-icon">${renderIcon('i-file', 'ui-icon')}</div>`;
     }
 
     item.innerHTML = `
       ${preview}
       <span class="attachment-name" title="${escapeHtml(file.name)}">${escapeHtml(name)}</span>
-      <button class="attachment-remove" data-index="${index}" type="button" aria-label="Видалити">×</button>
+      <button class="attachment-remove" data-index="${index}" type="button" aria-label="Remove">×</button>
     `;
     container.appendChild(item);
   });
@@ -1920,7 +1980,7 @@ document.getElementById('file-input').addEventListener('change', handleFileSelec
 async function sendChatMessage(messageOverride) {
   if (!state.authUser) {
     setAuthGateVisible(true);
-    showToast('Спочатку увійдіть', 'warning');
+    showToast('Please sign in first', 'warning');
     return;
   }
   // Read directly from DOM for reliability, fallback to state
@@ -1930,7 +1990,7 @@ async function sendChatMessage(messageOverride) {
 
   if (!message.trim() && selectedFiles.length === 0) return;
   if (!state.aiConfigured) {
-    showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'error');
+    showToast('AI is not configured. Set OPENAI_API_KEY.', 'error');
     return;
   }
 
@@ -2022,7 +2082,7 @@ async function sendChatMessage(messageOverride) {
   } catch (error) {
     hideTypingIndicator();
     console.error('Send error:', error);
-    showToast(error.message || 'Помилка відправки повідомлення', 'error');
+    showToast(error.message || 'Failed to send message', 'error');
     // On error, the input was already cleared - user needs to retype
     // This is acceptable trade-off for immediate clearing behavior
   } finally {
@@ -2082,7 +2142,7 @@ if (elements.mobileModelSelector) {
     if (state.aiConfigured) {
       openModelSelectorDropdown();
     } else {
-      showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'warning');
+      showToast('AI is not configured. Set OPENAI_API_KEY.', 'warning');
     }
   });
 }
@@ -2132,9 +2192,9 @@ if (elements.googleBtn) {
   elements.googleBtn.addEventListener('click', async () => {
     try {
       await signInWithGoogle();
-      showToast('Вхід через Google виконано', 'success');
+      showToast('Signed in with Google', 'success');
     } catch (error) {
-      showToast(error.message || 'Не вдалося увійти через Google', 'error');
+      showToast(error.message || 'Google sign-in failed', 'error');
     }
   });
 }
@@ -2142,9 +2202,9 @@ if (elements.logoutBtn) {
   elements.logoutBtn.addEventListener('click', async () => {
     try {
       await signOutUser();
-      showToast('Ви вийшли з акаунту', 'info');
+      showToast('Signed out', 'info');
     } catch (error) {
-      showToast('Не вдалося вийти', 'error');
+      showToast('Failed to sign out', 'error');
     }
   });
 }
@@ -2158,9 +2218,9 @@ if (elements.authGoogleBtn) {
   elements.authGoogleBtn.addEventListener('click', async () => {
     try {
       await signInWithGoogle();
-      showToast('Вхід через Google виконано', 'success');
+      showToast('Signed in with Google', 'success');
     } catch (error) {
-      showToast(error.message || 'Не вдалося увійти через Google', 'error');
+      showToast(error.message || 'Google sign-in failed', 'error');
     }
   });
 }
@@ -2242,7 +2302,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.aiConfigured) {
         openModelSelectorDropdown();
       } else {
-        showToast('AI не налаштовано. Встановіть OPENAI_API_KEY.', 'warning');
+        showToast('AI is not configured. Set OPENAI_API_KEY.', 'warning');
       }
     });
   }
