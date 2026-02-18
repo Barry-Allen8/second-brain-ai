@@ -233,16 +233,33 @@ function sanitizeMessagesForStorage(messages: ChatMessage[]): ChatMessage[] {
       return message;
     }
 
-    const textParts = message.content
-      .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-      .map((part) => part.text.trim())
-      .filter((part) => part.length > 0);
-    const combinedText = textParts.join('\n\n').trim();
-    const hasImages = message.content.some((part) => part.type === 'image_url');
+    const sanitizedParts: ChatContentPart[] = message.content.reduce<ChatContentPart[]>((parts, part) => {
+      if (part.type === 'text') {
+        if (part.text.trim().length > 0) {
+          parts.push(part);
+        }
+        return parts;
+      }
+
+      if (part.image_url.url.startsWith('data:')) {
+        parts.push({ type: 'text', text: IMAGE_PLACEHOLDER });
+        return parts;
+      }
+
+      parts.push(part);
+      return parts;
+    }, []);
+
+    if (sanitizedParts.length === 0) {
+      return {
+        ...message,
+        content: '',
+      };
+    }
 
     return {
       ...message,
-      content: combinedText || (hasImages ? IMAGE_PLACEHOLDER : ''),
+      content: sanitizedParts,
     };
   });
 }

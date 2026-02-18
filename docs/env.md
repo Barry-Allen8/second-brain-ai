@@ -23,5 +23,6 @@ These values are obtained from the Firebase Console -> Project Settings -> Servi
 | `APP_FIREBASE_PROJECT_ID` | The Firebase Project ID (e.g., `second-brain-123`) | **Yes** |
 | `APP_FIREBASE_CLIENT_EMAIL` | Service Account Email (e.g., `firebase-adminsdk-...!...`) | **Yes** |
 | `APP_FIREBASE_PRIVATE_KEY` | Private Key string (starts with `-----BEGIN PRIVATE KEY-----`). **Must handle newlines correctly.** | **Yes** |
+| `APP_FIREBASE_STORAGE_BUCKET` | Firebase Storage bucket (e.g., `second-brain-d5333.firebasestorage.app`) for chat image uploads | No |
 
 *> **Note**: When using `.env`, you can paste the private key with actual newlines or `\n` characters depending on your parser. The app expects a standard string.*

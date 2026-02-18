@@ -7,8 +7,10 @@ import type { Request, Response, NextFunction, Router as ExpressRouter } from 'e
 import type { z } from 'zod';
 import type { ChatSession, EntityId, ChatAttachment } from '../../types/index.js';
 import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
 import { extractTextFromPdf } from '../../utils/index.js';
 import { Readable } from 'stream';
+import { storage } from '../../lib/firebase.js';
 
 // CHANGE: Added setModel and SUPPORTED_MODELS imports
 import {
@@ -37,6 +39,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 const uploadAttachments = upload.array('attachments');
+const CHAT_ATTACHMENT_FOLDER = 'chat-attachments';
 
 export const chatRouter: ExpressRouter = Router();
 
@@ -139,6 +142,48 @@ function logParsedChatRequest(request: NormalizedChatRequest & { spaceId: Entity
   });
 }
 
+function sanitizeFilename(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+async function uploadImageAttachment(
+  file: Express.Multer.File,
+  userId: EntityId
+): Promise<string | null> {
+  try {
+    const bucket = storage.bucket();
+    const id = uuidv4();
+    const safeFilename = sanitizeFilename(file.originalname || 'image');
+    const objectPath = `${CHAT_ATTACHMENT_FOLDER}/${userId}/${Date.now()}-${id}-${safeFilename}`;
+    const object = bucket.file(objectPath);
+
+    await object.save(file.buffer, {
+      resumable: false,
+      metadata: {
+        contentType: file.mimetype,
+        cacheControl: 'public,max-age=31536000,immutable',
+        metadata: {
+          originalName: file.originalname,
+          uploadedBy: userId,
+        },
+      },
+    });
+
+    const [signedUrl] = await object.getSignedUrl({
+      action: 'read',
+      // Long-lived URL for chat history rendering and model access.
+      // GCS V2 signed URLs can exceed the 7-day V4 limit.
+      version: 'v2',
+      expires: new Date('2038-01-01T00:00:00.000Z'),
+    });
+
+    return signedUrl;
+  } catch (error) {
+    console.error('Failed to upload image attachment to Firebase Storage', error);
+    return null;
+  }
+}
+
 // Check AI status
 // CHANGE: Added supportedModels to status response
 chatRouter.get(
@@ -215,12 +260,13 @@ chatRouter.post(
             console.error('Failed to parse PDF', e);
           }
         } else if (file.mimetype.startsWith('image/')) {
-          const base64 = file.buffer.toString('base64');
+          const uploadedUrl = await uploadImageAttachment(file, userId);
+          const fallbackUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
           attachments.push({
             type: 'image',
             name: file.originalname,
             mimeType: file.mimetype,
-            url: `data:${file.mimetype};base64,${base64}`
+            url: uploadedUrl || fallbackUrl,
           });
         }
       }
@@ -249,10 +295,8 @@ chatRouter.post(
 
     const resolvedSpaceId = await resolveSpaceId(normalized.spaceId, userId);
 
-    // Pass image URLs if needed. For now simple text append.
-    // If we want real vision support, we need to pass message array to ChatService.
-    // But ChatService builds `ChatMessage` which has `content` string.
-    // So modifying content is the way for now unless I refactor ChatService significantly.
+    // Image attachments are uploaded to Firebase Storage and passed as remote URLs.
+    // ChatService converts them into multimodal `image_url` parts for Vision models.
 
     const response = await chat({
       ...normalized,

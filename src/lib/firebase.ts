@@ -16,6 +16,19 @@ interface FirebaseCredentials {
     privateKey: string;
 }
 
+function getStorageBucketFromEnv(): string | undefined {
+    const explicitBucket =
+        process.env['APP_FIREBASE_STORAGE_BUCKET'] ||
+        process.env['FIREBASE_STORAGE_BUCKET'];
+    if (explicitBucket) return explicitBucket;
+
+    const projectId = process.env['APP_FIREBASE_PROJECT_ID'] || process.env['FIREBASE_PROJECT_ID'];
+    if (!projectId) return undefined;
+
+    // Firebase projects now commonly use the *.firebasestorage.app bucket naming.
+    return `${projectId}.firebasestorage.app`;
+}
+
 // Function to get credentials from env vars
 function getCredentialsFromEnv(): FirebaseCredentials | null {
     const projectId = process.env['APP_FIREBASE_PROJECT_ID'] || process.env['FIREBASE_PROJECT_ID'];
@@ -46,18 +59,23 @@ function initFirebase() {
 
     const credentials = getCredentialsFromEnv();
 
+    const storageBucket = getStorageBucketFromEnv();
+
     if (credentials) {
         admin.initializeApp({
             credential: admin.credential.cert(credentials as ServiceAccount),
+            storageBucket,
         });
         console.log('🔥 Firebase Admin initialized with environment variables');
     } else {
         // Fallback to default application credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS file)
         // This allows using a service-account.json file locally if env vars aren't set
         try {
-            admin.initializeApp();
+            admin.initializeApp({
+                storageBucket,
+            });
             console.log('🔥 Firebase Admin initialized with default credentials');
-        } catch (error) {
+        } catch {
             console.warn('⚠️ Firebase initialization failed. Firestore will not work.');
             console.warn('   Please set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY');
         }
@@ -71,5 +89,6 @@ initFirebase();
 
 export const db = admin.firestore();
 export const auth = admin.auth();
+export const storage: admin.storage.Storage = admin.storage();
 export const FieldValue = admin.firestore.FieldValue;
 export const Timestamp = admin.firestore.Timestamp;
